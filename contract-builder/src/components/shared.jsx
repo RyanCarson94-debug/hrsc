@@ -80,6 +80,7 @@ const ROMAN_MAP = [[1000,"M"],[900,"CM"],[500,"D"],[400,"CD"],[100,"C"],[90,"XC"
 export function toRoman(n) { let r=""; ROMAN_MAP.forEach(([v,s])=>{while(n>=v){r+=s;n-=v;}}); return r; }
 export function toAlpha(n, upper=false) { let r="",x=n; while(x>0){r=String.fromCharCode(64+(x%26||26))+r; x=Math.floor((x-1)/26);} return upper?r:r.toLowerCase(); }
 
+// Render clause content to plain text (for textarea storage / .doc export)
 export function renderClauseContent(text, vars={}) {
   let resolved = text.replace(/\{\{(\w+)\}\}/g, (_,k) => vars[k] || `[${k}]`);
   resolved = resolved.replace(/@(num|alpha|ALPHA|roman|ROMAN)\{([^}]+)\}/g, (_, type, inner) => {
@@ -91,6 +92,58 @@ export function renderClauseContent(text, vars={}) {
     }).join("\n");
   });
   return resolved;
+}
+
+// Render clause content to React JSX (for in-app preview — handles formatting markers)
+export function renderClauseContentRich(text, vars={}) {
+  let resolved = text.replace(/\{\{(\w+)\}\}/g, (_,k) => vars[k] || `[${k}]`);
+  // numbered lists
+  resolved = resolved.replace(/@(num|alpha|ALPHA|roman|ROMAN)\{([^}]+)\}/g, (_, type, inner) => {
+    const items = inner.split("\n").map(s=>s.trim()).filter(Boolean);
+    return items.map((item,i) => {
+      const n=i+1;
+      const prefix = type==="num" ? `${n}.` : type==="alpha" ? `${toAlpha(n)}.` : type==="ALPHA" ? `${toAlpha(n,true)}.` : type==="roman" ? `${toRoman(n).toLowerCase()}.` : `${toRoman(n)}.`;
+      return `    ${prefix} ${item}`;
+    }).join("\n");
+  });
+  // Split into lines and render formatting per line
+  const lines = resolved.split("\n");
+  const elements = [];
+  lines.forEach((line, i) => {
+    const key = i;
+    if (/^# /.test(line)) {
+      elements.push(<div key={key} style={{fontSize:16,fontWeight:700,color:B.black,marginBottom:6,marginTop:10}}>{renderInline(line.replace(/^# /,""))}</div>);
+    } else if (/^## /.test(line)) {
+      elements.push(<div key={key} style={{fontSize:14,fontWeight:700,color:B.black,marginBottom:4,marginTop:8}}>{renderInline(line.replace(/^## /,""))}</div>);
+    } else if (/^### /.test(line)) {
+      elements.push(<div key={key} style={{fontSize:13,fontWeight:700,color:B.black,marginBottom:3,marginTop:6}}>{renderInline(line.replace(/^### /,""))}</div>);
+    } else if (line === "") {
+      elements.push(<div key={key} style={{height:8}}/>);
+    } else {
+      elements.push(<div key={key} style={{lineHeight:1.85}}>{renderInline(line)}</div>);
+    }
+  });
+  return <>{elements}</>;
+}
+
+function renderInline(text) {
+  // Bold+italic: ***text***
+  // Bold: **text**
+  // Italic: *text*
+  // Underline: __text__
+  const parts = [];
+  const re = /(\*\*\*(.+?)\*\*\*|\*\*(.+?)\*\*|\*(.+?)\*|__(.+?)__)/g;
+  let last = 0, m;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    if (m[1].startsWith("***"))      parts.push(<strong key={m.index}><em>{m[2]}</em></strong>);
+    else if (m[1].startsWith("**"))  parts.push(<strong key={m.index}>{m[3]}</strong>);
+    else if (m[1].startsWith("*"))   parts.push(<em key={m.index}>{m[4]}</em>);
+    else if (m[1].startsWith("__"))  parts.push(<span key={m.index} style={{textDecoration:"underline"}}>{m[5]}</span>);
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts.length ? parts : text;
 }
 
 export function buildSectionNumbers(sections, format) {
@@ -121,18 +174,32 @@ export function templateMatches(t, countryFilter, entityFilter) {
   return cOk && eOk;
 }
 
-// ── Clause content editor with toolbar ────────────────────────────────────────
+// ── Clause content editor with rich text toolbar ───────────────────────────────
 export function ClauseEditor({ label, value, onChange }) {
   const [f, setF] = useState(false);
   const EDITOR_ID = "clause-editor-ta";
-  const BTNS = [
-    {label:"1. 2. 3.",     code:"@num{\nItem one\nItem two\nItem three\n}"},
-    {label:"a. b. c.",     code:"@alpha{\nItem one\nItem two\nItem three\n}"},
-    {label:"A. B. C.",     code:"@ALPHA{\nItem one\nItem two\nItem three\n}"},
-    {label:"i. ii. iii.",  code:"@roman{\nItem one\nItem two\nItem three\n}"},
-    {label:"I. II. III.",  code:"@ROMAN{\nItem one\nItem two\nItem three\n}"},
-    {label:"{{var}}",      code:"{{variable_name}}"},
-  ];
+
+  function wrap(before, after="", placeholder="text") {
+    const ta = document.getElementById(EDITOR_ID);
+    if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const sel = value.slice(start, end) || placeholder;
+    const next = value.slice(0,start) + before + sel + after + value.slice(end);
+    onChange({ target:{value:next} });
+    setTimeout(()=>{ ta.focus(); ta.selectionStart=start+before.length; ta.selectionEnd=start+before.length+sel.length; }, 10);
+  }
+
+  function insertLine(prefix) {
+    const ta = document.getElementById(EDITOR_ID);
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const lineStart = value.lastIndexOf("\n", start-1)+1;
+    const before = value.slice(0,lineStart);
+    const after  = value.slice(lineStart);
+    onChange({ target:{value: before + prefix + after} });
+    setTimeout(()=>{ ta.focus(); ta.selectionStart=ta.selectionEnd=lineStart+prefix.length; }, 10);
+  }
+
   function insertAtCursor(code) {
     const ta = document.getElementById(EDITOR_ID);
     if (!ta) { onChange({ target:{value: value+"\n"+code} }); return; }
@@ -140,39 +207,104 @@ export function ClauseEditor({ label, value, onChange }) {
     onChange({ target:{value: value.slice(0,start)+"\n"+code+"\n"+value.slice(end)} });
     setTimeout(()=>{ ta.focus(); ta.selectionStart=ta.selectionEnd=start+code.length+2; }, 10);
   }
+
+  const FMT_BTNS = [
+    { label:"B",     title:"Bold",           action:()=>wrap("**","**") ,         style:{fontWeight:700} },
+    { label:"I",     title:"Italic",         action:()=>wrap("*","*"),             style:{fontStyle:"italic"} },
+    { label:"U",     title:"Underline",      action:()=>wrap("__","__"),           style:{textDecoration:"underline"} },
+    { label:"H1",    title:"Heading 1",      action:()=>insertLine("# "),          style:{fontWeight:700} },
+    { label:"H2",    title:"Heading 2",      action:()=>insertLine("## "),         style:{fontWeight:700} },
+    { label:"H3",    title:"Heading 3",      action:()=>insertLine("### "),        style:{fontWeight:700} },
+  ];
+  const LIST_BTNS = [
+    { label:"1. 2. 3.",    action:()=>insertAtCursor("@num{\nItem one\nItem two\nItem three\n}") },
+    { label:"a. b. c.",    action:()=>insertAtCursor("@alpha{\nItem one\nItem two\nItem three\n}") },
+    { label:"A. B. C.",    action:()=>insertAtCursor("@ALPHA{\nItem one\nItem two\nItem three\n}") },
+    { label:"i. ii. iii.", action:()=>insertAtCursor("@roman{\nItem one\nItem two\nItem three\n}") },
+    { label:"{{var}}",     action:()=>wrap("{{","}}","variable_name") },
+  ];
+
   return (
     <div>
       <label style={LBL}>{label}</label>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",padding:"8px 10px",background:B.g1,borderRadius:"6px 6px 0 0",border:`1.5px solid ${B.g2}`,borderBottom:"none"}}>
-        {BTNS.map(b => (
-          <button key={b.label} onClick={()=>insertAtCursor(b.code)} style={{...BS,padding:"4px 10px",fontSize:11,fontWeight:700,color:B.black,background:B.white,borderColor:B.g2}}>
-            {b.label}
-          </button>
-        ))}
-        <span style={{fontSize:10,color:B.g3,alignSelf:"center",marginLeft:4,fontStyle:"italic"}}>Insert at cursor — list items on separate lines</span>
+      <div style={{background:B.g1,borderRadius:"6px 6px 0 0",border:`1.5px solid ${B.g2}`,borderBottom:"none"}}>
+        {/* Formatting row */}
+        <div style={{display:"flex",gap:4,padding:"6px 8px",borderBottom:`1px solid ${B.g2}`,flexWrap:"wrap",alignItems:"center"}}>
+          <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:B.g3,marginRight:4}}>Format</span>
+          {FMT_BTNS.map(b=>(
+            <button key={b.label} title={b.title} onClick={b.action} style={{...BS,padding:"3px 9px",fontSize:12,background:B.white,borderColor:B.g2,minWidth:32,...b.style}}>
+              {b.label}
+            </button>
+          ))}
+          <div style={{width:1,height:20,background:B.g2,margin:"0 4px"}}/>
+          <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:B.g3,marginRight:4}}>Lists & vars</span>
+          {LIST_BTNS.map(b=>(
+            <button key={b.label} title={b.label} onClick={b.action} style={{...BS,padding:"3px 9px",fontSize:11,background:B.white,borderColor:B.g2,fontWeight:700}}>
+              {b.label}
+            </button>
+          ))}
+        </div>
+        {/* Syntax hint */}
+        <div style={{padding:"4px 10px",fontSize:10,color:B.g3,fontStyle:"italic"}}>
+          **bold** &nbsp;·&nbsp; *italic* &nbsp;·&nbsp; __underline__ &nbsp;·&nbsp; # Heading
+        </div>
       </div>
-      <textarea id={EDITOR_ID} style={{...mkInp(f),minHeight:140,resize:"vertical",lineHeight:1.65,borderRadius:"0 0 6px 6px"}} value={value} onChange={onChange} onFocus={()=>setF(true)} onBlur={()=>setF(false)}/>
+      <textarea
+        id={EDITOR_ID}
+        style={{...mkInp(f), minHeight:160, resize:"vertical", lineHeight:1.65, borderRadius:"0 0 6px 6px"}}
+        value={value}
+        onChange={onChange}
+        onFocus={()=>setF(true)}
+        onBlur={()=>setF(false)}
+      />
     </div>
   );
 }
 
 // ── Preview renderer ───────────────────────────────────────────────────────────
-export function PreviewContent({ sections, clauses, vars, numberingFormat }) {
+export function DocHeader({ hf }) {
+  if (!hf) return null;
+  return (
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",paddingBottom:16,marginBottom:20,borderBottom:`3px solid ${B.red}`}}>
+      <div style={{flex:1}}>
+        {hf.logoBase64 && <img src={hf.logoBase64} alt="Logo" style={{maxHeight:60,maxWidth:200,objectFit:"contain",marginBottom:8,display:"block"}}/>}
+        {hf.companyLine && <div style={{fontSize:13,fontWeight:700,color:B.black}}>{hf.companyLine}</div>}
+        {hf.addressLine1 && <div style={{fontSize:11,color:B.g3}}>{hf.addressLine1}</div>}
+        {hf.addressLine2 && <div style={{fontSize:11,color:B.g3}}>{hf.addressLine2}</div>}
+        {hf.phone && <div style={{fontSize:11,color:B.g3}}>{hf.phone}</div>}
+        {hf.email && <div style={{fontSize:11,color:B.g3}}>{hf.email}</div>}
+        {hf.website && <div style={{fontSize:11,color:B.g3}}>{hf.website}</div>}
+      </div>
+    </div>
+  );
+}
+
+export function DocFooter({ hf }) {
+  if (!hf?.footerText) return null;
+  return (
+    <div style={{borderTop:`1px solid ${B.g2}`,marginTop:24,paddingTop:10,fontSize:10,color:B.g3,lineHeight:1.6}}>
+      {hf.footerText}
+    </div>
+  );
+}
+
+export function PreviewContent({ sections, clauses, vars, numberingFormat, headerFooter }) {
   const nums = buildSectionNumbers(sections, numberingFormat);
   return (
     <div>
+      <DocHeader hf={headerFooter}/>
       {sections.map((s,i) => {
         const txt = s.clauseId ? (clauses.find(c=>c.id===s.clauseId)?.content||"") : (s.content||"");
-        const rendered = renderClauseContent(txt, vars);
         const prefix = nums[i] ? `${nums[i]} ` : "";
         return (
           <div key={s.id} style={{marginBottom:26}}>
             <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",color:B.g3,marginBottom:6}}>{prefix}{s.name}</div>
-            <div style={{fontSize:13,lineHeight:1.85,whiteSpace:"pre-wrap",color:B.black}}>{rendered}</div>
+            <div style={{fontSize:13,color:B.black}}>{renderClauseContentRich(txt,vars)}</div>
             {i<sections.length-1 && <div style={{borderBottom:`1px solid ${B.g1}`,marginTop:22}}/>}
           </div>
         );
       })}
+      <DocFooter hf={headerFooter}/>
     </div>
   );
 }

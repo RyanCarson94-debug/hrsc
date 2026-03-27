@@ -82,6 +82,42 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
                 </FS>
                 <FI label="Description" value={draft.description} onChange={e=>setDraft({...draft,description:e.target.value})} placeholder="Brief description…"/>
               </div>
+              {/* Per-template header/footer override */}
+              <div style={{padding:"10px 12px",background:B.g1,borderRadius:8}}>
+                <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:12,fontWeight:600,marginBottom:draft.useCustomHeaderFooter?10:0}}>
+                  <input type="checkbox" checked={!!draft.useCustomHeaderFooter} onChange={e=>setDraft({...draft,useCustomHeaderFooter:e.target.checked,headerFooter:e.target.checked?(draft.headerFooter||{}):undefined})} style={{accentColor:B.red,width:14,height:14}}/>
+                  Override entity header/footer for this template
+                </label>
+                {draft.useCustomHeaderFooter && (
+                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                      <FI label="Company line" value={draft.headerFooter?.companyLine||""} onChange={e=>setDraft({...draft,headerFooter:{...draft.headerFooter,companyLine:e.target.value}})} placeholder="CSL Behring Ltd"/>
+                      <FI label="Address line 1" value={draft.headerFooter?.addressLine1||""} onChange={e=>setDraft({...draft,headerFooter:{...draft.headerFooter,addressLine1:e.target.value}})} placeholder="1 Innovation Drive"/>
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                      <FI label="Address line 2" value={draft.headerFooter?.addressLine2||""} onChange={e=>setDraft({...draft,headerFooter:{...draft.headerFooter,addressLine2:e.target.value}})} placeholder="Liverpool, L1 1AA"/>
+                      <FI label="Footer text" value={draft.headerFooter?.footerText||""} onChange={e=>setDraft({...draft,headerFooter:{...draft.headerFooter,footerText:e.target.value}})} placeholder="Registered company details…"/>
+                    </div>
+                    <div>
+                      <label style={{fontSize:10,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:B.g3,display:"block",marginBottom:5}}>Logo image (PNG/JPG, max 300kb)</label>
+                      {draft.headerFooter?.logoBase64 && (
+                        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+                          <img src={draft.headerFooter.logoBase64} alt="Logo" style={{maxHeight:40,maxWidth:120,objectFit:"contain",border:`1px solid ${B.g2}`,borderRadius:4,padding:3}}/>
+                          <button style={{...BG(B.red)}} onClick={()=>setDraft({...draft,headerFooter:{...draft.headerFooter,logoBase64:null}})}>Remove</button>
+                        </div>
+                      )}
+                      <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={e=>{
+                        const file=e.target.files[0];
+                        if(!file)return;
+                        if(file.size>300000){alert("Image too large — max 300kb.");return;}
+                        const reader=new FileReader();
+                        reader.onload=ev=>setDraft(d=>({...d,headerFooter:{...d.headerFooter,logoBase64:ev.target.result}}));
+                        reader.readAsDataURL(file);
+                      }} style={{fontSize:12,color:B.black}}/>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div style={CARD()}>

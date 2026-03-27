@@ -2,8 +2,7 @@ import { useState, useMemo } from "react";
 import {
   B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar,
   renderClauseContent, buildSectionNumbers, templateMatches, PreviewContent,
-} from "./shared";
-import { ALL_COUNTRIES } from "../defaults";
+} from "./shared";import { ALL_COUNTRIES } from "../defaults";
 
 const OPERATORS = [{value:"equals",label:"equals"},{value:"not_equals",label:"does not equal"},{value:"gte",label:"is ≥",num:true},{value:"lte",label:"is ≤",num:true},{value:"in",label:"is one of"}];
 
@@ -55,6 +54,14 @@ export default function GenerateTab({ state }) {
   const buOptions  = settings.dropdowns.businessUnits.filter(b => b.global || b.entityIds.includes(emp.entityId));
   const etOptions  = settings.dropdowns.employmentTypes.filter(b => b.global || b.entityIds.includes(emp.entityId));
   const mlOptions  = settings.dropdowns.managerLevels.filter(b => b.global || b.entityIds.includes(emp.entityId));
+
+  // Resolve header/footer: template override takes precedence, then entity default
+  const headerFooter = useMemo(() => {
+    if (!tmpl) return null;
+    if (tmpl.headerFooter) return tmpl.headerFooter; // per-template override
+    const entityId = tmpl.entityId && tmpl.entityId !== "__global__" ? tmpl.entityId : emp.entityId;
+    return settings.headerFooters?.[entityId] || null;
+  }, [tmpl, emp.entityId, settings.headerFooters]);
 
   function onSelect(t) {
     setTmpl(t);
@@ -154,14 +161,41 @@ export default function GenerateTab({ state }) {
 
   function downloadDoc() {
     const nums = buildSectionNumbers(resolved, tmpl?.numberingFormat || "flat");
-    const html = `<!DOCTYPE html><html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='UTF-8'><style>body{font-family:Calibri,sans-serif;font-size:11pt;margin:2.5cm;line-height:1.65;color:#231F20}h1{font-size:15pt;font-weight:700;border-bottom:3px solid #FC1921;padding-bottom:8pt;margin-bottom:4pt}h2{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#808284;margin-top:22pt;margin-bottom:4pt}p{margin:0 0 9pt}.meta{color:#808284;font-size:10pt}</style></head><body>
-<h1>${tmpl.name}</h1><p class="meta">${emp.employee_name||"Employee"} · ${emp.country} · ${new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</p><hr style="border:none;border-top:1px solid #E2DFDA;margin:14pt 0">
+    const hf = headerFooter;
+    const headerHtml = hf ? `
+      <table width="100%" style="border-bottom:3pt solid #FC1921;margin-bottom:12pt;padding-bottom:8pt" cellpadding="0" cellspacing="0"><tr>
+        <td>${hf.logoBase64?`<img src="${hf.logoBase64}" style="max-height:50pt;max-width:150pt"/>`:""}
+          ${hf.companyLine?`<div style="font-size:13pt;font-weight:700">${hf.companyLine}</div>`:""}
+          ${hf.addressLine1?`<div style="font-size:9pt;color:#808284">${hf.addressLine1}</div>`:""}
+          ${hf.addressLine2?`<div style="font-size:9pt;color:#808284">${hf.addressLine2}</div>`:""}
+          ${hf.phone?`<div style="font-size:9pt;color:#808284">${hf.phone}</div>`:""}
+          ${hf.email?`<div style="font-size:9pt;color:#808284">${hf.email}</div>`:""}
+          ${hf.website?`<div style="font-size:9pt;color:#808284">${hf.website}</div>`:""}
+        </td>
+      </tr></table>` : `<div style="border-bottom:3pt solid #FC1921;padding-bottom:8pt;margin-bottom:12pt"><h1 style="margin:0;font-size:15pt">${tmpl.name}</h1><p style="color:#808284;font-size:9pt;margin:3pt 0 0">${emp.employee_name||"Employee"} · ${emp.country}</p></div>`;
+    const footerHtml = hf?.footerText ? `<div style="border-top:1px solid #E2DFDA;margin-top:18pt;padding-top:8pt;font-size:8pt;color:#808284">${hf.footerText}</div>` : "";
+
+    // Convert markdown formatting to Word HTML
+    function mdToHtml(text) {
+      return text
+        .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.+?)\*/g, "<em>$1</em>")
+        .replace(/__(.+?)__/g, "<u>$1</u>")
+        .replace(/^# (.+)$/gm, "<h2 style='font-size:13pt;font-weight:700;margin:12pt 0 4pt'>$1</h2>")
+        .replace(/^## (.+)$/gm, "<h3 style='font-size:11pt;font-weight:700;margin:10pt 0 3pt'>$1</h3>")
+        .replace(/^### (.+)$/gm, "<h4 style='font-size:10pt;font-weight:700;margin:8pt 0 2pt'>$1</h4>");
+    }
+
+    const html = `<!DOCTYPE html><html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='UTF-8'><style>body{font-family:Calibri,sans-serif;font-size:11pt;margin:2.5cm;line-height:1.65;color:#231F20}h2{font-size:9pt;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#808284;margin-top:22pt;margin-bottom:4pt}p{margin:0 0 9pt}</style></head><body>
+${headerHtml}
 ${resolved.map((s,i) => {
   const txt = s.clauseId ? (clauses.find(c=>c.id===s.clauseId)?.content||"") : (s.content||"");
   const rendered = renderClauseContent(txt, vars);
   const prefix = nums[i] ? `${nums[i]} ` : "";
-  return `<h2>${prefix}${s.name}</h2><p>${rendered.replace(/\n\n/g,"</p><p>").replace(/\n/g,"<br>")}</p>`;
+  return `<h2>${prefix}${s.name}</h2><p>${mdToHtml(rendered).replace(/\n\n/g,"</p><p>").replace(/\n/g,"<br>")}</p>`;
 }).join("\n")}
+${footerHtml}
 </body></html>`;
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([html], {type:"application/msword"}));
@@ -332,7 +366,7 @@ ${resolved.map((s,i) => {
               <div style={{fontSize:16,fontWeight:700}}>{tmpl.name}</div>
               <div style={{fontSize:12,color:B.g3,marginTop:3}}>{emp.employee_name||"[Employee Name]"} · {emp.company_name||"[Company]"}</div>
             </div>
-            <PreviewContent sections={resolved} clauses={clauses} vars={vars} numberingFormat={tmpl.numberingFormat}/>
+            <PreviewContent sections={resolved} clauses={clauses} vars={vars} numberingFormat={tmpl.numberingFormat} headerFooter={headerFooter}/>
           </div>
           <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:14}}>
             <button style={BS} onClick={()=>setStep("variables")}>Back</button>

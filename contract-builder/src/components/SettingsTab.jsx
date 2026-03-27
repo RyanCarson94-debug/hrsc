@@ -103,6 +103,7 @@ export default function SettingsTab({ state, saveSettings }) {
     { id:"business_units",   label:"Business Units" },
     { id:"employment_types", label:"Employment Types" },
     { id:"manager_levels",   label:"Manager Levels" },
+    { id:"headers_footers",  label:"Headers & Footers" },
   ];
 
   return (
@@ -165,6 +166,104 @@ export default function SettingsTab({ state, saveSettings }) {
       {tab==="business_units"   && <div style={{ maxWidth:700 }}><DropList listKey="businessUnits"   label="Business Units"/></div>}
       {tab==="employment_types" && <div style={{ maxWidth:700 }}><DropList listKey="employmentTypes" label="Employment Types"/></div>}
       {tab==="manager_levels"   && <div style={{ maxWidth:700 }}><DropList listKey="managerLevels"   label="Manager Levels"/></div>}
+      {tab==="headers_footers"  && <HeaderFooterSettings settings={settings} updateSettings={updateSettings}/>}
+    </div>
+  );
+}
+
+function HeaderFooterSettings({ settings, updateSettings }) {
+  const entities = settings.entities || [];
+  const hfMap = settings.headerFooters || {};
+  const [selEntityId, setSelEntityId] = useState(entities[0]?.id || "");
+  const [draft, setDraft] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const currentHF = hfMap[selEntityId] || {};
+
+  function startEdit() { setDraft(JSON.parse(JSON.stringify(currentHF))); }
+
+  async function saveDraft() {
+    if (!draft) return;
+    setSaving(true);
+    try { await updateSettings({ headerFooters:{ ...hfMap, [selEntityId]: draft } }); setDraft(null); }
+    finally { setSaving(false); }
+  }
+
+  function handleLogoUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 300000) { alert("Image too large — please use an image under 300kb."); return; }
+    const reader = new FileReader();
+    reader.onload = ev => setDraft(d => ({ ...d, logoBase64: ev.target.result }));
+    reader.readAsDataURL(file);
+  }
+
+  const activeEnt = entities.find(e=>e.id===selEntityId);
+  const { CARD, BP, BS, BG, FI, B, TAG, LBL, mkInp } = arguments[0]; // passed via closure
+
+  return (
+    <div style={{ maxWidth:760 }}>
+      <div style={{ fontSize:12, color:B.g3, marginBottom:16 }}>Configure a default header and footer for each legal entity. Templates can override this individually.</div>
+      <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
+        {entities.map(e => (
+          <button key={e.id} onClick={()=>{ setSelEntityId(e.id); setDraft(null); }} style={{ padding:"7px 16px", background:selEntityId===e.id?B.black:"transparent", color:selEntityId===e.id?B.white:B.black, border:`1.5px solid ${selEntityId===e.id?B.black:B.g2}`, borderRadius:6, cursor:"pointer", fontSize:12, fontWeight:600, fontFamily:"'Montserrat',sans-serif" }}>
+            {e.shortCode} — {e.name}
+          </button>
+        ))}
+      </div>
+      {!draft ? (
+        <div style={{ background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:10, padding:"1.25rem" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:16 }}>
+            <div style={{ fontSize:13, fontWeight:700 }}>{activeEnt?.name} — Header & Footer</div>
+            <button style={{ padding:"9px 20px", background:B.red, color:B.white, border:"none", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:"'Montserrat',sans-serif", cursor:"pointer" }} onClick={startEdit}>Edit</button>
+          </div>
+          {currentHF.logoBase64 && <img src={currentHF.logoBase64} alt="Logo" style={{ maxHeight:50, maxWidth:160, objectFit:"contain", marginBottom:8, display:"block" }}/>}
+          {currentHF.companyLine && <div style={{ fontSize:13, fontWeight:700, marginBottom:2 }}>{currentHF.companyLine}</div>}
+          {currentHF.addressLine1 && <div style={{ fontSize:12, color:B.g3 }}>{currentHF.addressLine1}</div>}
+          {currentHF.addressLine2 && <div style={{ fontSize:12, color:B.g3 }}>{currentHF.addressLine2}</div>}
+          {currentHF.phone && <div style={{ fontSize:12, color:B.g3 }}>{currentHF.phone}</div>}
+          {currentHF.email && <div style={{ fontSize:12, color:B.g3 }}>{currentHF.email}</div>}
+          {currentHF.website && <div style={{ fontSize:12, color:B.g3 }}>{currentHF.website}</div>}
+          {currentHF.footerText && <div style={{ marginTop:12, paddingTop:10, borderTop:`1px solid ${B.g2}`, fontSize:11, color:B.g3 }}>{currentHF.footerText}</div>}
+          {!currentHF.companyLine && !currentHF.logoBase64 && <div style={{ color:B.g3, fontSize:12 }}>No header/footer configured yet. Click Edit to set one up.</div>}
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+          <div style={{ background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:10, padding:"1.25rem" }}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase", color:B.g3, marginBottom:14 }}>Header</div>
+            <div style={{ marginBottom:14 }}>
+              <label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:6 }}>Logo image (PNG, JPG or SVG, max 300kb)</label>
+              {draft.logoBase64 && (
+                <div style={{ marginBottom:8, display:"flex", alignItems:"center", gap:12 }}>
+                  <img src={draft.logoBase64} alt="Logo preview" style={{ maxHeight:50, maxWidth:160, objectFit:"contain", border:`1px solid ${B.g2}`, borderRadius:4, padding:4 }}/>
+                  <button style={{ padding:"7px 14px", background:"transparent", color:B.red, border:"none", borderRadius:6, fontSize:12, fontWeight:500, fontFamily:"'Montserrat',sans-serif", cursor:"pointer" }} onClick={()=>setDraft({...draft,logoBase64:null})}>Remove logo</button>
+                </div>
+              )}
+              <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={handleLogoUpload} style={{ fontSize:12, color:B.black }}/>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
+              <div><label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Company / entity line</label><input style={{ width:"100%", boxSizing:"border-box", padding:"9px 12px", background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:13, fontFamily:"'Montserrat',sans-serif", color:B.black, outline:"none" }} value={draft.companyLine||""} onChange={e=>setDraft({...draft,companyLine:e.target.value})} placeholder="CSL Behring Ltd"/></div>
+              <div><label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Address line 1</label><input style={{ width:"100%", boxSizing:"border-box", padding:"9px 12px", background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:13, fontFamily:"'Montserrat',sans-serif", color:B.black, outline:"none" }} value={draft.addressLine1||""} onChange={e=>setDraft({...draft,addressLine1:e.target.value})} placeholder="1 Innovation Drive"/></div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
+              <div><label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Address line 2</label><input style={{ width:"100%", boxSizing:"border-box", padding:"9px 12px", background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:13, fontFamily:"'Montserrat',sans-serif", color:B.black, outline:"none" }} value={draft.addressLine2||""} onChange={e=>setDraft({...draft,addressLine2:e.target.value})} placeholder="Liverpool, L1 1AA"/></div>
+              <div><label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Phone</label><input style={{ width:"100%", boxSizing:"border-box", padding:"9px 12px", background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:13, fontFamily:"'Montserrat',sans-serif", color:B.black, outline:"none" }} value={draft.phone||""} onChange={e=>setDraft({...draft,phone:e.target.value})} placeholder="+44 151 000 0000"/></div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+              <div><label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Email</label><input style={{ width:"100%", boxSizing:"border-box", padding:"9px 12px", background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:13, fontFamily:"'Montserrat',sans-serif", color:B.black, outline:"none" }} value={draft.email||""} onChange={e=>setDraft({...draft,email:e.target.value})} placeholder="hr@cslbehring.com"/></div>
+              <div><label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Website</label><input style={{ width:"100%", boxSizing:"border-box", padding:"9px 12px", background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:13, fontFamily:"'Montserrat',sans-serif", color:B.black, outline:"none" }} value={draft.website||""} onChange={e=>setDraft({...draft,website:e.target.value})} placeholder="www.cslbehring.com"/></div>
+            </div>
+          </div>
+          <div style={{ background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:10, padding:"1.25rem" }}>
+            <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase", color:B.g3, marginBottom:12 }}>Footer</div>
+            <div><label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Footer text (e.g. registered company details, legal disclaimer)</label><textarea style={{ width:"100%", boxSizing:"border-box", padding:"9px 12px", background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:13, fontFamily:"'Montserrat',sans-serif", color:B.black, outline:"none", minHeight:80, resize:"vertical", lineHeight:1.6 }} value={draft.footerText||""} onChange={e=>setDraft({...draft,footerText:e.target.value})} placeholder="CSL Behring Ltd is registered in England & Wales. Company No. 000000..."/></div>
+          </div>
+          <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+            <button style={{ padding:"9px 20px", background:"transparent", color:B.black, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:12, fontWeight:600, fontFamily:"'Montserrat',sans-serif", cursor:"pointer" }} onClick={()=>setDraft(null)}>Cancel</button>
+            <button style={{ padding:"9px 20px", background:B.red, color:B.white, border:"none", borderRadius:6, fontSize:12, fontWeight:700, fontFamily:"'Montserrat',sans-serif", cursor:"pointer", opacity:saving?0.6:1 }} onClick={saveDraft} disabled={saving}>{saving?"Saving…":"Save Header & Footer"}</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
