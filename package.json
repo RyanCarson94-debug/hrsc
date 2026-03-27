@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && cp public/copilot.html dist/copilot.html && cp public/index.html dist/index.html",
     "lint": "eslint .",
     "preview": "vite preview"
   },

@@ -6,8 +6,6 @@ export default defineConfig({
   base: '/csp-calculator/',
   build: {
     outDir: 'dist/csp-calculator',
-    rollupOptions: {
-      input: 'src/csp-calculator/index.html',
-    }
+    emptyOutDir: true,
   }
 })
