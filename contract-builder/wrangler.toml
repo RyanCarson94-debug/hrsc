@@ -5,4 +5,4 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "hrsc-contract-builder"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "a74da827-ad8d-4562-a729-5abe97863edb"
