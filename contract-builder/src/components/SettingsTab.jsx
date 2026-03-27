@@ -199,7 +199,6 @@ function HeaderFooterSettings({ settings, updateSettings }) {
   }
 
   const activeEnt = entities.find(e=>e.id===selEntityId);
-  const { CARD, BP, BS, BG, FI, B, TAG, LBL, mkInp } = arguments[0]; // passed via closure
 
   return (
     <div style={{ maxWidth:760 }}>
