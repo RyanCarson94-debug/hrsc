@@ -1,0 +1,160 @@
+import { useState } from "react";
+import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, ClauseEditor, renderClauseContent, mkInp } from "./shared";
+import { ALL_COUNTRIES } from "../defaults";
+
+function gid() { return Math.random().toString(36).slice(2,8); }
+
+export default function ClausesTab({ state, saveClause, removeClause }) {
+  const { settings, clauses } = state;
+  const [cf, setCf] = useState(""), [ef, setEf] = useState("");
+  const [sel, setSel]     = useState(null);
+  const [draft, setDraft] = useState(null);
+  const [isNew, setIsNew] = useState(false);
+  const [search, setSearch] = useState("");
+  const [sf, setSf]  = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const filtered = clauses.filter(c => {
+    if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !c.tags.some(t=>t.includes(search.toLowerCase()))) return false;
+    if (c.global) return true;
+    if (cf && !c.countries.includes(cf)) return false;
+    if (ef && !c.entityIds.includes(ef)) return false;
+    return true;
+  });
+
+  const missing = draft
+    ? (draft.content.match(/\{\{(\w+)\}\}/g)||[]).map(m=>m.slice(2,-2)).filter(k=>!draft.variables.some(v=>v.key===k))
+    : [];
+
+  function startNew() { setDraft({id:gid(),name:"New Clause",description:"",content:"",variables:[],tags:[],global:false,countries:[],entityIds:[]}); setIsNew(true); setSel(null); }
+  function startEdit(c) { setDraft(JSON.parse(JSON.stringify(c))); setIsNew(false); setSel(c); }
+  async function save() {
+    if (!draft) return;
+    setSaving(true);
+    try { await saveClause(draft, isNew); setSel(draft); setIsNew(false); setDraft(null); }
+    finally { setSaving(false); }
+  }
+  async function del(id) { await removeClause(id); setSel(null); setDraft(null); }
+
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"300px 1fr",gap:20,alignItems:"start"}}>
+      <div>
+        <FilterBar countries={ALL_COUNTRIES} entities={settings.entities} countryFilter={cf} setCountryFilter={setCf} entityFilter={ef} setEntityFilter={setEf}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",color:B.g3}}>{filtered.length} Clauses</span>
+          <button style={{...BP,padding:"6px 12px",fontSize:11}} onClick={startNew}>+ New</button>
+        </div>
+        <input style={{...mkInp(sf),marginBottom:10}} placeholder="Search clauses…" value={search} onChange={e=>setSearch(e.target.value)} onFocus={()=>setSf(true)} onBlur={()=>setSf(false)}/>
+        {filtered.map(c => {
+          const a = sel?.id===c.id || draft?.id===c.id;
+          return (
+            <div key={c.id} onClick={()=>!draft&&startEdit(c)} style={{padding:"10px 12px",cursor:"pointer",borderLeft:`3px solid ${a?B.red:"transparent"}`,background:a?B.g1:B.white,marginBottom:2,borderRadius:"0 6px 6px 0"}}>
+              <div style={{fontSize:12,fontWeight:700,marginBottom:4,lineHeight:1.3}}>{c.name}</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                {c.global && <span style={TAG(B.g1,B.teal)}>Global</span>}
+                {c.tags.map(t=><span key={t} style={TAG()}>{t}</span>)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div>
+        {!draft && !sel && <div style={{...CARD({textAlign:"center",padding:"3rem",color:B.g3})}}>Select a clause to view or edit, or create a new one.</div>}
+
+        {draft && (
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            <div style={CARD()}>
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",color:B.g3,marginBottom:12}}>Clause Details</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                <FI label="Clause Name" value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})}/>
+                <FI label="Tags (comma-separated)" value={draft.tags.join(", ")} onChange={e=>setDraft({...draft,tags:e.target.value.split(",").map(t=>t.trim()).filter(Boolean)})} placeholder="e.g. probation, senior"/>
+              </div>
+              <div style={{marginBottom:12}}><FI label="Description" value={draft.description} onChange={e=>setDraft({...draft,description:e.target.value})} placeholder="When is this clause used?"/></div>
+
+              {/* Scope */}
+              <div style={{padding:"12px",background:B.g1,borderRadius:8,marginBottom:12}}>
+                <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",marginBottom:draft.global?0:12,fontSize:12,fontWeight:600}}>
+                  <input type="checkbox" checked={draft.global} onChange={e=>setDraft({...draft,global:e.target.checked,countries:e.target.checked?[]:draft.countries,entityIds:e.target.checked?[]:draft.entityIds})} style={{accentColor:B.red,width:14,height:14}}/>
+                  Global clause (available to all countries and entities)
+                </label>
+                {!draft.global && (
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                    <div>
+                      <label style={{fontSize:10,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:B.g3,display:"block",marginBottom:5}}>Countries (hold Ctrl)</label>
+                      <select multiple style={{...mkInp(false),height:100,padding:"6px"}} value={draft.countries} onChange={e=>setDraft({...draft,countries:[...e.target.selectedOptions].map(o=>o.value)})}>
+                        {ALL_COUNTRIES.map(c=><option key={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{fontSize:10,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:B.g3,display:"block",marginBottom:5}}>Legal Entities</label>
+                      <select multiple style={{...mkInp(false),height:100,padding:"6px"}} value={draft.entityIds} onChange={e=>setDraft({...draft,entityIds:[...e.target.selectedOptions].map(o=>o.value)})}>
+                        {settings.entities.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <ClauseEditor label="Clause Content" value={draft.content} onChange={e=>setDraft({...draft,content:e.target.value})}/>
+              {missing.length>0 && <div style={{marginTop:8,padding:"9px 12px",background:"#FFF9E6",border:`1.5px solid ${B.yellow}`,borderRadius:6,fontSize:11,color:"#7A5E00",fontWeight:500}}>⚠ Undeclared variables: {missing.join(", ")} — add them below.</div>}
+            </div>
+
+            <div style={CARD()}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",color:B.g3}}>Variables</div>
+                <button style={{...BS,padding:"5px 12px",fontSize:11}} onClick={()=>setDraft({...draft,variables:[...draft.variables,{key:"new_var",label:"New variable",type:"text"}]})}>+ Add</button>
+              </div>
+              {draft.variables.length===0 && <div style={{color:B.g3,fontSize:12}}>Use {"{{key}}"} in content above, then declare variables here.</div>}
+              {draft.variables.map((v,idx) => (
+                <div key={idx} style={{display:"grid",gridTemplateColumns:"1fr 1fr 120px auto",gap:10,alignItems:"end",marginBottom:8}}>
+                  <FI label="Key" value={v.key} onChange={e=>setDraft({...draft,variables:draft.variables.map((x,i)=>i===idx?{...x,key:e.target.value.replace(/\s/g,"_").toLowerCase()}:x)})} placeholder="var_key"/>
+                  <FI label="Label" value={v.label} onChange={e=>setDraft({...draft,variables:draft.variables.map((x,i)=>i===idx?{...x,label:e.target.value}:x)})}/>
+                  <FS label="Type" value={v.type} onChange={e=>setDraft({...draft,variables:draft.variables.map((x,i)=>i===idx?{...x,type:e.target.value}:x)})}>
+                    <option value="text">Text</option>
+                    <option value="number">Number</option>
+                    <option value="date">Date</option>
+                  </FS>
+                  <button onClick={()=>setDraft({...draft,variables:draft.variables.filter((_,i)=>i!==idx)})} style={{...BG(B.red),fontSize:18,marginBottom:2}}>×</button>
+                </div>
+              ))}
+            </div>
+
+            <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+              {!isNew && <button style={BG(B.red)} onClick={()=>del(draft.id)}>Delete Clause</button>}
+              <button style={BS} onClick={()=>{setDraft(null);setSel(null);}}>Cancel</button>
+              <button style={{...BP,opacity:saving?0.6:1}} onClick={save} disabled={saving}>{saving?"Saving…":"Save Clause"}</button>
+            </div>
+          </div>
+        )}
+
+        {sel && !draft && (
+          <div style={CARD()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+              <div>
+                <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>{sel.name}</div>
+                <div style={{fontSize:12,color:B.g3,marginBottom:8}}>{sel.description}</div>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                  {sel.global && <span style={TAG(B.g1,B.teal)}>Global</span>}
+                  {!sel.global && sel.countries.map(c=><span key={c} style={TAG()}>{c}</span>)}
+                  {sel.tags.map(t=><span key={t} style={TAG()}>{t}</span>)}
+                </div>
+              </div>
+              <button style={BP} onClick={()=>startEdit(sel)}>Edit Clause</button>
+            </div>
+            <div style={{fontFamily:"'Courier New',monospace",fontSize:12,lineHeight:1.8,whiteSpace:"pre-wrap",background:B.g1,padding:"1rem",borderRadius:8,borderLeft:`3px solid ${B.red}`,marginBottom:12}}>
+              {renderClauseContent(sel.content)}
+            </div>
+            {sel.variables.map(v => (
+              <div key={v.key} style={{display:"flex",gap:10,fontSize:12,padding:"6px 0",borderBottom:`1px solid ${B.g1}`,alignItems:"center"}}>
+                <code style={{fontFamily:"'Courier New',monospace",color:B.red,background:B.g1,padding:"1px 7px",borderRadius:4,fontSize:11}}>{`{{${v.key}}}`}</code>
+                <span style={{flex:1}}>{v.label}</span>
+                <span style={TAG()}>{v.type}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
