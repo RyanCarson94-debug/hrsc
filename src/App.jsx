@@ -418,8 +418,9 @@ const B = {
 };
 
 export default function CSPCalculator() {
-  const [startDateStr, setStartDateStr] = useState("");
-  const [queryDateStr, setQueryDateStr] = useState(new Date().toISOString().slice(0, 10));
+  const todayInit = () => { const d = new Date(); return { d: String(d.getDate()).padStart(2,'0'), m: String(d.getMonth()+1).padStart(2,'0'), y: String(d.getFullYear()) }; };
+  const [startDate, setStartDate] = useState({ d: "", m: "", y: "" });
+  const [queryDate, setQueryDate] = useState(todayInit());
   const [rawData, setRawData] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
@@ -428,15 +429,17 @@ export default function CSPCalculator() {
   const handleCalculate = () => {
     setError("");
     setResult(null);
-    if (!startDateStr) return setError("Please enter the employee's start date.");
-    if (!queryDateStr) return setError("Please enter the query date.");
+    if (!startDate.d || !startDate.m || !startDate.y) return setError("Please enter the employee's start date.");
+    if (!queryDate.d || !queryDate.m || !queryDate.y) return setError("Please enter the query date.");
     if (!rawData.trim()) return setError("Please paste the employee's absence record.");
-    const startDate = new Date(startDateStr);
-    const queryDate = new Date(queryDateStr);
-    if (isNaN(startDate) || isNaN(queryDate)) return setError("Invalid date entered.");
-    if (queryDate < startDate) return setError("Query date cannot be before start date.");
+    const startDateObj = new Date(parseInt(startDate.y), parseInt(startDate.m)-1, parseInt(startDate.d));
+    const queryDateObj = new Date(parseInt(queryDate.y), parseInt(queryDate.m)-1, parseInt(queryDate.d));
+    if (isNaN(startDateObj) || isNaN(queryDateObj)) return setError("Invalid date entered.");
+    if (queryDateObj < startDateObj) return setError("Query date cannot be before start date.");
+    const startDateStr = startDateObj.toISOString().slice(0,10);
+    const queryDateStr = queryDateObj.toISOString().slice(0,10);
     const { sickDays, annualLeaveSet } = parseAbsenceData(rawData);
-    const res = calculate(startDate, queryDate, sickDays, annualLeaveSet);
+    const res = calculate(startDateObj, queryDateObj, sickDays, annualLeaveSet);
     setResult(res);
     setActiveTab("results");
   };
@@ -448,14 +451,33 @@ export default function CSPCalculator() {
   };
   const sc = result ? STATUS[result.payStatus] : null;
 
-  const Field = ({ label, value, onChange, type = "date" }) => (
+  const selectStyle = {
+    padding: "9px 8px", borderRadius: 4, border: `1px solid ${B.gray2}`,
+    background: B.white, color: B.black, fontSize: 13, fontFamily: "Montserrat, sans-serif",
+    outline: "none", cursor: "pointer", appearance: "auto",
+  };
+
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const DAYS = Array.from({length:31},(_,i)=>String(i+1).padStart(2,'0'));
+  const YEARS = Array.from({length:30},(_,i)=>String(new Date().getFullYear()-i));
+
+  const DatePicker = ({ label, value, onChange }) => (
     <div>
       <div style={{ fontSize: 10, color: B.gray3, marginBottom: 5, fontFamily: "Montserrat, sans-serif", fontWeight: 700, letterSpacing: "0.06em" }}>{label}</div>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} style={{
-        width: "100%", padding: "10px 12px", borderRadius: 4, border: `1px solid ${B.gray2}`,
-        background: B.white, color: B.black, fontSize: 13, fontFamily: "Montserrat, sans-serif",
-        boxSizing: "border-box", outline: "none",
-      }} />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.3fr", gap: 6 }}>
+        <select value={value.d} onChange={e => onChange({...value, d: e.target.value})} style={selectStyle}>
+          <option value="">Day</option>
+          {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+        </select>
+        <select value={value.m} onChange={e => onChange({...value, m: e.target.value})} style={selectStyle}>
+          <option value="">Month</option>
+          {MONTHS.map((m,i) => <option key={m} value={String(i+1).padStart(2,'0')}>{m}</option>)}
+        </select>
+        <select value={value.y} onChange={e => onChange({...value, y: e.target.value})} style={selectStyle}>
+          <option value="">Year</option>
+          {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+      </div>
     </div>
   );
 
@@ -488,7 +510,22 @@ export default function CSPCalculator() {
               </div>
             </div>
           </div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: B.red, fontFamily: "Montserrat, sans-serif", letterSpacing: "-0.02em" }}>CSL</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <button onClick={() => {
+              setStartDate({ d: "", m: "", y: "" });
+              setQueryDate(todayInit());
+              setRawData("");
+              setResult(null);
+              setError("");
+              setActiveTab("setup");
+            }} style={{
+              padding: "7px 14px", borderRadius: 4, border: `1px solid ${B.gray3}`,
+              background: "transparent", color: B.gray3, fontSize: 11,
+              fontFamily: "Montserrat, sans-serif", fontWeight: 700,
+              letterSpacing: "0.06em", cursor: "pointer",
+            }}>&#x21BA; New Calculation</button>
+            <div style={{ fontSize: 18, fontWeight: 800, color: B.red, fontFamily: "Montserrat, sans-serif", letterSpacing: "-0.02em" }}>CSL</div>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -516,8 +553,8 @@ export default function CSPCalculator() {
             <div style={{ background: B.white, borderRadius: 6, padding: "20px", marginBottom: 16, border: `1px solid ${B.gray2}` }}>
               <SectionLabel>Employee Details</SectionLabel>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                <Field label="START DATE (appointment anniversary)" value={startDateStr} onChange={setStartDateStr} />
-                <Field label="QUERY DATE (date of review)" value={queryDateStr} onChange={setQueryDateStr} />
+                <DatePicker label="START DATE (appointment anniversary)" value={startDate} onChange={setStartDate} />
+                <DatePicker label="QUERY DATE (date of review)" value={queryDate} onChange={setQueryDate} />
               </div>
             </div>
 
