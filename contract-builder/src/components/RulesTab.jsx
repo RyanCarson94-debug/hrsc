@@ -3,7 +3,7 @@ import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, mkInp } from "./shared";
 import { ALL_COUNTRIES } from "../defaults";
 
 const OPERATORS    = [{value:"equals",label:"equals"},{value:"not_equals",label:"does not equal"},{value:"gte",label:"is ≥",num:true},{value:"lte",label:"is ≤",num:true},{value:"in",label:"is one of"}];
-const ACTION_TYPES = [{value:"use_clause",label:"Include clause in section"},{value:"replace_clause",label:"Replace default clause in section"},{value:"add_clause",label:"Append clause to template"},{value:"remove_clause",label:"Remove clause from section"}];
+const ACTION_TYPES = [{value:"use_clause",label:"Include clause in section"},{value:"replace_clause",label:"Replace default clause in section"},{value:"add_clause",label:"Append clause to template"},{value:"remove_clause",label:"Remove clause from section"},{value:"set_variable",label:"Set computed variable value"}];
 const COND_FIELDS  = [{value:"grade",label:"Job Grade"},{value:"businessUnit",label:"Business Unit"},{value:"employmentType",label:"Employment Type"},{value:"managerLevel",label:"Manager Level"},{value:"country",label:"Country"}];
 
 function gid() { return Math.random().toString(36).slice(2,8); }
@@ -169,7 +169,7 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule }) {
                 {ACTION_TYPES.map(a=><option key={a.value} value={a.value}>{a.label}</option>)}
               </FS>
             </div>
-            {draft.action.type!=="add_clause" && <>
+            {draft.action.type!=="add_clause" && draft.action.type!=="set_variable" && <>
               <div style={{marginBottom:10}}>
                 <FS label="Target Template" value={draft.action.targetTemplateId||""} onChange={e=>setDraft({...draft,action:{...draft.action,targetTemplateId:e.target.value,targetSectionId:""}})}>
                   <option value="">— Select template —</option>
@@ -183,12 +183,23 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule }) {
                 </FS>
               </div>
             </>}
-            {draft.action.type!=="remove_clause" && (
+            {draft.action.type==="set_variable" && (
+              <div style={{background:B.g1,borderRadius:8,padding:"12px",marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",color:B.teal,marginBottom:10}}>✦ Computed Variable</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  <FI label="Variable key (must match {{key}} in clause)" value={draft.action.variableKey||""} onChange={e=>setDraft({...draft,action:{...draft.action,variableKey:e.target.value.replace(/\s/g,"_").toLowerCase()}})} placeholder="e.g. sti_percentage"/>
+                  <FI label="Value to set" value={draft.action.variableValue||""} onChange={e=>setDraft({...draft,action:{...draft.action,variableValue:e.target.value}})} placeholder="e.g. 15"/>
+                </div>
+                <div style={{fontSize:11,color:B.g3,marginTop:8}}>When this rule fires, <code style={{fontFamily:"'Courier New',monospace",background:B.g2,padding:"1px 5px",borderRadius:3}}>{`{{${draft.action.variableKey||"key"}}}`}</code> will contribute <strong>{draft.action.variableValue||"value"}</strong> to the final value. If multiple rules match, numeric values are <strong>added together</strong>. If no rules match and no default is set on the variable, generation will be blocked.</div>
+              </div>
+            )}
+            {draft.action.type!=="remove_clause" && draft.action.type!=="set_variable" && (
               <FS label="Clause to Use" value={draft.action.clauseId||""} onChange={e=>setDraft({...draft,action:{...draft.action,clauseId:e.target.value}})}>
                 <option value="">— Select clause —</option>
                 {scopedClauses.map(c=><option key={c.id} value={c.id}>{c.name}{c.global?" (Global)":""}</option>)}
               </FS>
             )}
+
           </div>
 
           <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>

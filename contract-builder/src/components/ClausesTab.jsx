@@ -107,15 +107,26 @@ export default function ClausesTab({ state, saveClause, removeClause }) {
               </div>
               {draft.variables.length===0 && <div style={{color:B.g3,fontSize:12}}>Use {"{{key}}"} in content above, then declare variables here.</div>}
               {draft.variables.map((v,idx) => (
-                <div key={idx} style={{display:"grid",gridTemplateColumns:"1fr 1fr 120px auto",gap:10,alignItems:"end",marginBottom:8}}>
-                  <FI label="Key" value={v.key} onChange={e=>setDraft({...draft,variables:draft.variables.map((x,i)=>i===idx?{...x,key:e.target.value.replace(/\s/g,"_").toLowerCase()}:x)})} placeholder="var_key"/>
-                  <FI label="Label" value={v.label} onChange={e=>setDraft({...draft,variables:draft.variables.map((x,i)=>i===idx?{...x,label:e.target.value}:x)})}/>
-                  <FS label="Type" value={v.type} onChange={e=>setDraft({...draft,variables:draft.variables.map((x,i)=>i===idx?{...x,type:e.target.value}:x)})}>
-                    <option value="text">Text</option>
-                    <option value="number">Number</option>
-                    <option value="date">Date</option>
-                  </FS>
-                  <button onClick={()=>setDraft({...draft,variables:draft.variables.filter((_,i)=>i!==idx)})} style={{...BG(B.red),fontSize:18,marginBottom:2}}>×</button>
+                <div key={idx} style={{background:B.g1,borderRadius:8,padding:"10px 12px",marginBottom:8}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 140px auto",gap:10,alignItems:"end",marginBottom: v.type==="computed"?10:0}}>
+                    <FI label="Key" value={v.key} onChange={e=>setDraft({...draft,variables:draft.variables.map((x,i)=>i===idx?{...x,key:e.target.value.replace(/\s/g,"_").toLowerCase()}:x)})} placeholder="var_key"/>
+                    <FI label="Label" value={v.label} onChange={e=>setDraft({...draft,variables:draft.variables.map((x,i)=>i===idx?{...x,label:e.target.value}:x)})}/>
+                    <FS label="Type" value={v.type} onChange={e=>setDraft({...draft,variables:draft.variables.map((x,i)=>i===idx?{...x,type:e.target.value,defaultValue:e.target.value==="computed"?(x.defaultValue||""):""}:x)})}>
+                      <option value="text">Text</option>
+                      <option value="number">Number</option>
+                      <option value="date">Date</option>
+                      <option value="computed">Computed (rule-driven)</option>
+                    </FS>
+                    <button onClick={()=>setDraft({...draft,variables:draft.variables.filter((_,i)=>i!==idx)})} style={{...BG(B.red),fontSize:18,marginBottom:2}}>×</button>
+                  </div>
+                  {v.type==="computed" && (
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:2}}>
+                      <FI label="Default value (if no rule matches)" value={v.defaultValue||""} onChange={e=>setDraft({...draft,variables:draft.variables.map((x,i)=>i===idx?{...x,defaultValue:e.target.value}:x)})} placeholder="e.g. 0"/>
+                      <div style={{display:"flex",alignItems:"flex-end",paddingBottom:2}}>
+                        <span style={{fontSize:11,color:B.teal,fontWeight:600}}>✦ Value set automatically by Rules Engine</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
