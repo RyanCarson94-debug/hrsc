@@ -5,6 +5,6 @@ export default defineConfig({
   plugins: [react()],
   base: '/csp-calculator/',
   build: {
-    outDir: 'dist',
+    outDir: 'dist/csp-calculator',
   }
 })
