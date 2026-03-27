@@ -1,0 +1,245 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HRSC Copilot | CSL Behring</title>
+
+  <!-- Montserrat (brand primary). If you prefer not to load external fonts, remove this and rely on installed font. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --csl-red:#FC1921;
+      --white:#FFFFFF;
+      --gray-1:#F1EFEA;   /* Warm Gray 1 C */
+      --gray-2:#E2DFDA;   /* Warm Gray 1 C (darker use) */
+      --gray-3:#808284;   /* Process Black C */
+      --black:#000000;
+
+      --max: 920px;
+      --radius: 14px;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+
+    body{
+      margin:0;
+      background: var(--gray-1);
+      color: var(--black);
+      font-family: Arial, Helvetica, sans-serif; /* Brand secondary */
+    }
+
+    /* Simple header bar */
+    .topbar{
+      background: var(--white);
+      border-bottom: 1px solid rgba(0,0,0,0.10);
+    }
+
+    .wrap{
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 18px 18px 80px; /* bottom padding so content doesn't sit under widget */
+    }
+
+    .brandline{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding: 16px 0;
+    }
+
+    .mark{
+      width: 40px;
+      height: 40px;
+      background: var(--csl-red);
+      flex: 0 0 auto;
+    }
+
+    h1,h2{
+      font-family: "Montserrat", Arial, Helvetica, sans-serif; /* Brand primary */
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    h1{
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .sub{
+      margin: 4px 0 0;
+      color: rgba(0,0,0,0.70);
+      font-size: 14px;
+    }
+
+    .panel{
+      background: var(--white);
+      border: 1px solid rgba(0,0,0,0.10);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-top: 16px;
+    }
+
+    .lead{
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .lead b{
+      font-weight: 700;
+    }
+
+    .rule{
+      height: 1px;
+      background: rgba(0,0,0,0.10);
+      margin: 16px 0;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+    @media (max-width: 780px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    h2{
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      text-transform: none;
+    }
+
+    ul{
+      margin: 10px 0 0 18px;
+      padding:0;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    li{ margin: 8px 0; }
+
+    /* CSL-style red bullets (subtle) */
+    li::marker{
+      color: var(--csl-red);
+    }
+
+    .callout{
+      border-left: 4px solid var(--csl-red);
+      background: var(--gray-2);
+      padding: 12px 12px;
+      border-radius: 10px;
+      margin-top: 16px;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .muted{
+      color: rgba(0,0,0,0.65);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    /* Optional: make the widget larger (container/iframe sizing) */
+    iframe[src*="copilot-eu.dovetailnow.com"]{
+      width: 460px !important;
+      height: min(78vh, 860px) !important;
+      max-height: 860px !important;
+    }
+    @media (max-width: 520px){
+      iframe[src*="copilot-eu.dovetailnow.com"]{
+        width: min(92vw, 460px) !important;
+        height: 70vh !important;
+      }
+    }
+
+    /* Footer text */
+    .footer{
+      margin-top: 16px;
+      color: rgba(0,0,0,0.60);
+      font-size: 12px;
+    }
+
+    /* Small red link style (if you add links later) */
+    a{ color: var(--csl-red); }
+    a:hover{ text-decoration: underline; }
+  </style>
+</head>
+
+<body>
+  <div class="topbar">
+    <div class="wrap">
+      <div class="brandline">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <h1>HR Service Center Copilot</h1>
+          <p class="sub">Internal chatbot for HRSC colleagues to draft answers and complete requests faster</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="panel">
+      <p class="lead">
+        Use the chat widget (bottom-right) to help you <b>draft responses</b>, <b>structure case notes</b>, and
+        <b>work through process steps</b>. Treat outputs as drafts and validate against the relevant SOPs, policy, and system data.
+      </p>
+
+      <div class="callout">
+        <b>Internal use only.</b> Do not paste sensitive personal data (e.g., medical details, bank details, ID numbers, full home address).
+        If the case is high-risk or time-critical, escalate early.
+      </div>
+
+      <div class="grid">
+        <div>
+          <h2>Good uses</h2>
+          <ul>
+            <li>Draft an employee/manager reply in clear, neutral language</li>
+            <li>Convert messy notes into a structured case summary</li>
+            <li>Generate a step-by-step plan for a request (with checks)</li>
+            <li>Create a KCS-style knowledge article from a solved case</li>
+          </ul>
+        </div>
+
+        <div>
+          <h2>Escalate when</h2>
+          <ul>
+            <li>Legal / ER sensitivity (disciplinary, grievance, protected topics)</li>
+            <li>Payroll impact this cycle, retro changes, or termination pay issues</li>
+            <li>Policy ambiguity or precedent-setting decisions</li>
+            <li>Data privacy concern or suspected breach</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="rule"></div>
+
+      <p class="muted">
+        Tip: Start your prompt with country + employee type + what the person asked + deadline/urgency + what you already checked in Workday/ServiceNow.
+      </p>
+
+      <div class="footer">
+        © CSL Behring — HR Service Center (internal)
+      </div>
+    </div>
+  </div>
+
+  <!-- Your widget script (unchanged) -->
+  <script
+    data-application-id="6aa8e2a6-c5c9-47ba-b766-df8db1a966e2"
+    data-configuration="H4sIAH5KVWkAA5WSwU7DMBBEfwWFK4cUmipwc+ytYzX2Vo4NLRcLpBSQEIcCJ8S/s0CT0ASS4uPuzOitNW8Rz5kLhmmILiJeFkdZdb99eLqLTr43V0pIcEGokmUFCBJtbh6fq3q9tEozuw4Z4wtp0RsROBZoSXdcpZNkknSVczSu1Wy+Xq3RbBVyUDJ3tEvj+OecQFxO42najJXhqJWRIfPOoTkAousYgumloxVgW/XtLKY3ona54gsDZUmO055W04JJ+A94bTmIvMnvoI9k/8Le3IneSRxjn84TNjv70zLE3s/vsI9kD7FTiZcFWweB3GsghhK95RDA7Lr9sn2tdtpr+hYBK7Kf02tLjIw7dQmD5+9f1Pfs3//ZIurR+wdcwTJEiwMAAA=="
+    id="auxi-widget"
+    src="https://chat.copilot-eu.dovetailnow.com/v1.js">
+  </script>
+</body>
+</html>
