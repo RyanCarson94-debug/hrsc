@@ -4,6 +4,7 @@ import {
   renderClauseContent, buildSectionNumbers, templateMatches, PreviewContent,
 } from "./shared";
 import { generateDocx } from "./docxExport";
+import { saveGeneration } from "../api";
 import { ALL_COUNTRIES } from "../defaults";
 
 const OPERATORS = [{value:"equals",label:"equals"},{value:"not_equals",label:"does not equal"},{value:"gte",label:"is ≥",num:true},{value:"lte",label:"is ≤",num:true},{value:"in",label:"is one of"}];
@@ -39,7 +40,7 @@ function resolveTemplate(tmpl, rules, data) {
   return sections;
 }
 
-export default function GenerateTab({ state }) {
+export default function GenerateTab({ state, userName }) {
   const { settings, clauses, templates, rules } = state;
   const [cf, setCf]   = useState(""), [ef, setEf] = useState("");
   const [step, setStep]   = useState("select");
@@ -163,14 +164,23 @@ export default function GenerateTab({ state }) {
 
   async function downloadDoc() {
     await generateDocx({
-      tmpl,
-      resolved,
-      clauses,
-      vars,
-      headerFooter,
-      emp,
+      tmpl, resolved, clauses, vars, headerFooter, emp,
       numberingFormat: tmpl?.numberingFormat || "flat",
     });
+    // Save generation snapshot for history/versioning
+    saveGeneration({
+      id: Math.random().toString(36).slice(2,10),
+      templateName: tmpl.name,
+      employeeName: emp.employee_name || "",
+      country: emp.country,
+      userName: userName || localStorage.getItem("hrsc_user_name") || "Unknown",
+      generatedAt: new Date().toISOString(),
+      snapshot: JSON.stringify({
+        tmpl, resolved, clauses, vars, headerFooter, emp,
+        numberingFormat: tmpl?.numberingFormat || "flat",
+        firedRules: fired,
+      }),
+    }).catch(() => {}); // fire-and-forget
   }
 
   const STEPS  = ["select","employee","variables","preview"];

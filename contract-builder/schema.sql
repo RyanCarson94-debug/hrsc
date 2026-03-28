@@ -71,3 +71,25 @@ INSERT OR IGNORE INTO settings (key, value) VALUES (
     }
   }'
 );
+
+-- Audit log
+CREATE TABLE IF NOT EXISTS audit_log (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  action      TEXT NOT NULL,
+  record_type TEXT NOT NULL,
+  record_name TEXT NOT NULL,
+  user_name   TEXT NOT NULL DEFAULT 'Unknown',
+  detail      TEXT,
+  timestamp   TEXT NOT NULL
+);
+
+-- Document generation snapshots
+CREATE TABLE IF NOT EXISTS document_generations (
+  id            TEXT PRIMARY KEY,
+  template_name TEXT NOT NULL,
+  employee_name TEXT NOT NULL,
+  country       TEXT,
+  user_name     TEXT NOT NULL DEFAULT 'Unknown',
+  generated_at  TEXT NOT NULL,
+  snapshot      TEXT NOT NULL
+);

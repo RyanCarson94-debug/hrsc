@@ -35,8 +35,11 @@ export const createClause  = (data)   => request("POST",   "/clauses",       dat
 export const updateClause  = (id, d)  => request("PUT",    `/clauses/${id}`, d);
 export const deleteClause  = (id)     => request("DELETE", `/clauses/${id}`);
 
-// ── Rules ─────────────────────────────────────────────────────────────────────
-export const getRules    = ()       => request("GET",    "/rules");
-export const createRule  = (data)   => request("POST",   "/rules",       data);
-export const updateRule  = (id, d)  => request("PUT",    `/rules/${id}`, d);
-export const deleteRule  = (id)     => request("DELETE", `/rules/${id}`);
+// ── Audit log ─────────────────────────────────────────────────────────────────
+export const logAudit      = (entry)  => request("POST",  "/audit", entry);
+export const getAuditLog   = (params) => request("GET",   `/audit${params||""}`);
+
+// ── Document generations ──────────────────────────────────────────────────────
+export const saveGeneration   = (data) => request("POST", "/generations", data);
+export const getGenerations   = (params) => request("GET", `/generations${params||""}`);
+export const getGeneration    = (id)   => request("GET",  `/generations/${id}`);

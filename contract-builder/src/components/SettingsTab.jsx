@@ -6,10 +6,23 @@ function gid() { return Math.random().toString(36).slice(2,8); }
 
 export default function SettingsTab({ state, saveSettings }) {
   const { settings } = state;
-  const [tab, setTab]       = useState("entities");
+  const [tab, setTab]           = useState("entities");
   const [entDraft, setEntDraft] = useState(null);
   const [entNew, setEntNew]     = useState(false);
   const [saving, setSaving]     = useState(false);
+  const [userName, setUserName] = useState(() => localStorage.getItem("hrsc_user_name") || "");
+  const [userNameDraft, setUserNameDraft] = useState(() => localStorage.getItem("hrsc_user_name") || "");
+  const [userNameSaved, setUserNameSaved] = useState(false);
+
+  function saveUserName() {
+    const trimmed = userNameDraft.trim();
+    if (trimmed) {
+      localStorage.setItem("hrsc_user_name", trimmed);
+      setUserName(trimmed);
+      setUserNameSaved(true);
+      setTimeout(() => setUserNameSaved(false), 2000);
+    }
+  }
 
   async function updateSettings(patch) {
     const next = { ...settings, ...patch };
@@ -108,6 +121,29 @@ export default function SettingsTab({ state, saveSettings }) {
 
   return (
     <div>
+      {/* User identity card */}
+      <div style={{ ...CARD({ marginBottom:20, display:"flex", alignItems:"center", gap:16, borderLeft:`4px solid ${B.red}`, borderRadius:"0 10px 10px 0" }) }}>
+        <div style={{ width:40, height:40, borderRadius:"50%", background:B.red, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:B.white, flexShrink:0 }}>
+          {userName ? userName.trim().split(/\s+/).map(w=>w[0].toUpperCase()).slice(0,2).join("") : "?"}
+        </div>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, marginBottom:5 }}>You are logged in as</div>
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+            <input
+              style={{ ...mkInp(false), maxWidth:280, padding:"7px 10px" }}
+              value={userNameDraft}
+              onChange={e => setUserNameDraft(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && saveUserName()}
+              placeholder="Enter your full name…"
+            />
+            <button style={{ ...BP, padding:"7px 16px", fontSize:12 }} onClick={saveUserName}>
+              {userNameSaved ? "✓ Saved" : "Save"}
+            </button>
+          </div>
+          <div style={{ fontSize:11, color:B.g3, marginTop:5 }}>This name appears in the audit log against all changes you make.</div>
+        </div>
+      </div>
+
       {saving && (
         <div style={{ marginBottom:12, padding:"8px 14px", background:B.g1, borderRadius:6, fontSize:12, color:B.g3 }}>
           Saving…
