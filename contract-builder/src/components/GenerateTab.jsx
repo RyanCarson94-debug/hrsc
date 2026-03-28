@@ -4,7 +4,7 @@ import {
   renderClauseContent, buildSectionNumbers, templateMatches, PreviewContent,
 } from "./shared";
 import { generateDocx } from "./docxExport";
-import { saveGeneration } from "../api";
+import { saveGeneration, logAudit } from "../api";
 import { ALL_COUNTRIES } from "../defaults";
 
 const OPERATORS = [{value:"equals",label:"equals"},{value:"not_equals",label:"does not equal"},{value:"gte",label:"is ≥",num:true},{value:"lte",label:"is ≤",num:true},{value:"in",label:"is one of"}];
@@ -168,12 +168,13 @@ export default function GenerateTab({ state, userName }) {
       numberingFormat: tmpl?.numberingFormat || "flat",
     });
     // Save generation snapshot for history/versioning
+    const user = userName || localStorage.getItem("hrsc_user_name") || "Unknown";
     saveGeneration({
       id: Math.random().toString(36).slice(2,10),
       templateName: tmpl.name,
       employeeName: emp.employee_name || "",
       country: emp.country,
-      userName: userName || localStorage.getItem("hrsc_user_name") || "Unknown",
+      userName: user,
       generatedAt: new Date().toISOString(),
       snapshot: {
         tmpl, resolved, clauses, vars, headerFooter, emp,
@@ -181,6 +182,14 @@ export default function GenerateTab({ state, userName }) {
         firedRules: fired,
       },
     }).catch(() => {}); // fire-and-forget
+    logAudit({
+      action: "generate",
+      recordType: "document",
+      recordName: tmpl.name,
+      detail: { employeeName: emp.employee_name, country: emp.country, grade: emp.grade },
+      userName: user,
+      timestamp: new Date().toISOString(),
+    }).catch(() => {});
   }
 
   const STEPS  = ["select","employee","variables","preview"];
@@ -339,7 +348,7 @@ export default function GenerateTab({ state, userName }) {
               <div style={{fontSize:16,fontWeight:700,marginBottom:3}}>{tmpl.name}</div>
               <div style={{fontSize:12,color:B.g3}}>{emp.employee_name||"Employee"} · {emp.country} · Grade {emp.grade} · {new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</div>
             </div>
-            <button style={BP} onClick={downloadDoc}>↓ Download .doc</button>
+            <button style={BP} onClick={downloadDoc}>↓ Download .docx</button>
           </div>
           <div style={{...CARD({padding:"2rem",maxHeight:540,overflowY:"auto"})}}>
             <div style={{borderBottom:`3px solid ${B.red}`,paddingBottom:14,marginBottom:22}}>
@@ -351,7 +360,7 @@ export default function GenerateTab({ state, userName }) {
           <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:14}}>
             <button style={BS} onClick={()=>setStep("variables")}>Back</button>
             <button style={BS} onClick={()=>{setStep("select");setTmpl(null);setVars({});}}>New Document</button>
-            <button style={BP} onClick={downloadDoc}>↓ Download .doc</button>
+            <button style={BP} onClick={downloadDoc}>↓ Download .docx</button>
           </div>
         </div>
       )}

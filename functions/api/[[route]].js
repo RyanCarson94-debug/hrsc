@@ -150,12 +150,23 @@ export async function onRequest(context) {
     // ── AUDIT LOG ─────────────────────────────────────────────────────────────
     if (resource === "audit") {
       if (request.method === "GET") {
-        const limit  = parseInt(url.searchParams.get("limit")  || "25", 10);
-        const offset = parseInt(url.searchParams.get("offset") || "0",  10);
+        const limit      = parseInt(url.searchParams.get("limit")      || "25", 10);
+        const offset     = parseInt(url.searchParams.get("offset")     || "0",  10);
+        const action     = url.searchParams.get("action")     || "";
+        const recordType = url.searchParams.get("recordType") || "";
+        const userName   = url.searchParams.get("userName")   || "";
+
+        const conds = [], filterArgs = [];
+        if (action)     { conds.push("action = ?");       filterArgs.push(action); }
+        if (recordType) { conds.push("record_type = ?");  filterArgs.push(recordType); }
+        if (userName)   { conds.push("user_name LIKE ?"); filterArgs.push(`%${userName}%`); }
+        const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
+
         const rows = await DB.prepare(
-          "SELECT id, action, record_type, record_name, user_name, detail, timestamp FROM audit_log ORDER BY id DESC LIMIT ? OFFSET ?"
-        ).bind(limit, offset).all();
-        const total = await DB.prepare("SELECT COUNT(*) AS n FROM audit_log").first();
+          `SELECT id, action, record_type, record_name, user_name, detail, timestamp FROM audit_log ${where} ORDER BY id DESC LIMIT ? OFFSET ?`
+        ).bind(...filterArgs, limit, offset).all();
+        const total = await DB.prepare(`SELECT COUNT(*) AS n FROM audit_log ${where}`)
+          .bind(...filterArgs).first();
         return json({ entries: rows.results, total: total.n });
       }
       if (request.method === "POST") {
@@ -184,10 +195,18 @@ export async function onRequest(context) {
       if (request.method === "GET") {
         const limit  = parseInt(url.searchParams.get("limit")  || "20", 10);
         const offset = parseInt(url.searchParams.get("offset") || "0",  10);
+        const search = url.searchParams.get("search") || "";
+
+        const where = search
+          ? "WHERE (template_name LIKE ? OR employee_name LIKE ? OR user_name LIKE ?)"
+          : "";
+        const searchArgs = search ? [`%${search}%`, `%${search}%`, `%${search}%`] : [];
+
         const rows = await DB.prepare(
-          "SELECT id, template_name, employee_name, country, user_name, generated_at FROM document_generations ORDER BY generated_at DESC LIMIT ? OFFSET ?"
-        ).bind(limit, offset).all();
-        const total = await DB.prepare("SELECT COUNT(*) AS n FROM document_generations").first();
+          `SELECT id, template_name, employee_name, country, user_name, generated_at FROM document_generations ${where} ORDER BY generated_at DESC LIMIT ? OFFSET ?`
+        ).bind(...searchArgs, limit, offset).all();
+        const total = await DB.prepare(`SELECT COUNT(*) AS n FROM document_generations ${where}`)
+          .bind(...searchArgs).first();
         return json({ entries: rows.results, total: total.n });
       }
       if (request.method === "POST") {

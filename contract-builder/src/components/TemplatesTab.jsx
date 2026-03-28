@@ -11,6 +11,8 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
   const [draft, setDraft] = useState(null);
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [dragIdx, setDragIdx] = useState(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
 
   const filtered = templates.filter(t => templateMatches(t, cf, ef));
   const availClauses = draft ? clauses.filter(c => clauseAvailable(c, draft.country, draft.entityId)) : [];
@@ -23,8 +25,22 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
     try { await saveTemplate(draft, isNew); setSel(draft); setIsNew(false); setDraft(null); }
     finally { setSaving(false); }
   }
-  async function del(id) {
+  async function del(id, name) {
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
     await removeTemplate(id); setSel(null); setDraft(null);
+  }
+
+  function onDragStart(e, idx) { setDragIdx(idx); e.dataTransfer.effectAllowed = "move"; }
+  function onDragOver(e, idx)  { e.preventDefault(); setDragOverIdx(idx); }
+  function onDragEnd()          { setDragIdx(null); setDragOverIdx(null); }
+  function onDrop(e, idx) {
+    e.preventDefault();
+    if (dragIdx === null || dragIdx === idx) { onDragEnd(); return; }
+    const secs = [...draft.sections];
+    const [moved] = secs.splice(dragIdx, 1);
+    secs.splice(idx, 0, moved);
+    setDraft({ ...draft, sections: secs });
+    onDragEnd();
   }
   function addSec() { if (!draft) return; setDraft({...draft, sections:[...draft.sections,{id:gid(),name:"New Section",clauseId:null,level:1,content:"",required:true,ruleSlot:false}]}); }
   function updSec(idx, patch) { if (!draft) return; setDraft({...draft, sections:draft.sections.map((s,i)=>i===idx?{...s,...patch}:s)}); }
@@ -127,8 +143,16 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
               </div>
               {draft.sections.length===0 && <div style={{textAlign:"center",padding:"1.5rem",color:B.g3,fontSize:12}}>No sections yet.</div>}
               {draft.sections.map((s,idx) => (
-                <div key={s.id} style={{background:B.g1,borderRadius:8,padding:"12px",marginBottom:10}}>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 80px auto",gap:10,alignItems:"end",marginBottom:10}}>
+                <div key={s.id}
+                  draggable
+                  onDragStart={e=>onDragStart(e,idx)}
+                  onDragOver={e=>onDragOver(e,idx)}
+                  onDrop={e=>onDrop(e,idx)}
+                  onDragEnd={onDragEnd}
+                  style={{background:dragOverIdx===idx?B.g2:B.g1,borderRadius:8,padding:"12px",marginBottom:10,transition:"background 0.1s",opacity:dragIdx===idx?0.5:1}}
+                >
+                  <div style={{display:"grid",gridTemplateColumns:"20px 1fr 1fr 80px auto",gap:10,alignItems:"end",marginBottom:10}}>
+                    <div style={{cursor:"grab",color:B.g3,fontSize:16,userSelect:"none",paddingBottom:6,textAlign:"center"}}>⠿</div>
                     <FI label="Section Name" value={s.name} onChange={e=>updSec(idx,{name:e.target.value})}/>
                     <FS label="Linked Clause" value={s.clauseId||""} onChange={e=>updSec(idx,{clauseId:e.target.value||null})}>
                       <option value="">— Free text —</option>
@@ -150,7 +174,7 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
             </div>
 
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-              {!isNew && <button style={BG(B.red)} onClick={()=>del(draft.id)}>Delete Template</button>}
+              {!isNew && <button style={BG(B.red)} onClick={()=>del(draft.id, draft.name)}>Delete Template</button>}
               <button style={BS} onClick={()=>{setDraft(null);setSel(null);}}>Cancel</button>
               <button style={{...BP,opacity:saving?0.6:1}} onClick={save} disabled={saving}>{saving?"Saving…":"Save Template"}</button>
             </div>
