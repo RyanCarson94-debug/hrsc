@@ -73,6 +73,18 @@ export function useAppState() {
     }
   }, []);
 
+  const duplicateTemplate = useCallback(async (tmpl) => {
+    const copy = {
+      ...JSON.parse(JSON.stringify(tmpl)),
+      id: Math.random().toString(36).slice(2, 10),
+      name: `${tmpl.name} (copy)`,
+    };
+    await api.createTemplate(copy);
+    setState(s => ({ ...s, templates: [...s.templates, copy] }));
+    audit("create", "template", copy.name, { country: copy.country, entityId: copy.entityId });
+    return copy;
+  }, []);
+
   const removeTemplate = useCallback(async (id, name) => {
     await api.deleteTemplate(id);
     setState(s => ({ ...s, templates: s.templates.filter(t => t.id !== id) }));
@@ -127,8 +139,8 @@ export function useAppState() {
   return {
     state, loading, error, setState,
     saveSettings,
-    saveTemplate,  removeTemplate,
-    saveClause,    removeClause,
-    saveRule,      removeRule, toggleRule,
+    saveTemplate, duplicateTemplate, removeTemplate,
+    saveClause,   removeClause,
+    saveRule,     removeRule, toggleRule,
   };
 }

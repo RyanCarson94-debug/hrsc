@@ -41,7 +41,8 @@ export default function SettingsTab({ state, saveSettings }) {
     await updateSettings({ entities });
     setEntDraft(null);
   }
-  async function delEnt(id) {
+  async function delEnt(id, name) {
+    if (!window.confirm(`Delete entity "${name}"? This cannot be undone.`)) return;
     await updateSettings({ entities: settings.entities.filter(e => e.id!==id) });
   }
 
@@ -57,7 +58,8 @@ export default function SettingsTab({ state, saveSettings }) {
       await updateSettings({ dropdowns:{ ...settings.dropdowns, [listKey]:newItems } });
       setNewLabel("");
     }
-    async function delItem(id) {
+    async function delItem(id, label) {
+      if (!window.confirm(`Delete "${label}"? This cannot be undone.`)) return;
       await updateSettings({ dropdowns:{ ...settings.dropdowns, [listKey]:items.filter(i=>i.id!==id) } });
     }
     async function toggleGlobal(id) {
@@ -76,7 +78,7 @@ export default function SettingsTab({ state, saveSettings }) {
               <span style={{ flex:1, fontSize:12, fontWeight:600 }}>{item.label}</span>
               <span style={item.global ? TAG(B.g1,B.teal) : TAG()}>{item.global ? "Global" : "Entity-specific"}</span>
               <button style={{...BS, padding:"3px 10px", fontSize:11}} onClick={()=>setEditIdx(editIdx===idx?null:idx)}>Configure</button>
-              <button style={BG(B.red)} onClick={()=>delItem(item.id)}>×</button>
+              <button style={BG(B.red)} onClick={()=>delItem(item.id, item.label)}>×</button>
             </div>
             {editIdx===idx && (
               <div style={{ marginTop:8, padding:"10px", background:B.g1, borderRadius:6 }}>
@@ -193,7 +195,7 @@ export default function SettingsTab({ state, saveSettings }) {
                 <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>{e.countries.map(c => <span key={c} style={TAG()}>{c}</span>)}</div>
               </div>
               <button style={{ ...BS, padding:"5px 12px", fontSize:11 }} onClick={()=>{ setEntDraft(JSON.parse(JSON.stringify(e))); setEntNew(false); }}>Edit</button>
-              <button style={BG(B.red)} onClick={()=>delEnt(e.id)}>×</button>
+              <button style={BG(B.red)} onClick={()=>delEnt(e.id, e.name)}>×</button>
             </div>
           ))}
         </div>

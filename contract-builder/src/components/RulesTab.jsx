@@ -32,7 +32,10 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule }) {
     try { await saveRule(draft, isNew); setDraft(null); }
     finally { setSaving(false); }
   }
-  async function del(id) { await removeRule(id); setDraft(null); }
+  async function del(id, name) {
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    await removeRule(id); setDraft(null);
+  }
   function updCond(idx, patch) { if (!draft) return; setDraft({...draft,conditions:draft.conditions.map((c,i)=>i===idx?{...c,...patch}:c)}); }
 
   const targetTemplateSections = useMemo(() => {
@@ -203,7 +206,7 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule }) {
           </div>
 
           <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-            {!isNew && <button style={BG(B.red)} onClick={()=>del(draft.id)}>Delete Rule</button>}
+            {!isNew && <button style={BG(B.red)} onClick={()=>del(draft.id, draft.name)}>Delete Rule</button>}
             <button style={BS} onClick={()=>setDraft(null)}>Cancel</button>
             <button style={{...BP,opacity:saving?0.6:1}} onClick={save} disabled={saving}>{saving?"Saving…":"Save Rule"}</button>
           </div>

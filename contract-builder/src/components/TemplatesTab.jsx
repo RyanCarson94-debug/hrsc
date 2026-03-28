@@ -4,7 +4,7 @@ import { ALL_COUNTRIES } from "../defaults";
 
 function gid() { return Math.random().toString(36).slice(2,8); }
 
-export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
+export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, removeTemplate }) {
   const { settings, clauses, templates } = state;
   const [cf, setCf] = useState(""), [ef, setEf] = useState("");
   const [sel, setSel]   = useState(null);
@@ -19,6 +19,13 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
 
   function startNew() { setDraft({id:gid(),name:"New Template",country:"United Kingdom",entityId:settings.entities[0]?.id||"",documentType:"contract",description:"",numberingFormat:"hierarchical",sections:[]}); setIsNew(true); setSel(null); }
   function startEdit(t) { setDraft(JSON.parse(JSON.stringify(t))); setIsNew(false); setSel(t); }
+  async function duplicate(t) {
+    const copy = await duplicateTemplate(t);
+    setDraft(JSON.parse(JSON.stringify(copy)));
+    setIsNew(false);
+    setSel(copy);
+  }
+
   async function save() {
     if (!draft) return;
     setSaving(true);
@@ -194,7 +201,10 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
                 </div>
                 <div style={{fontSize:12,color:B.g3}}>{sel.description}</div>
               </div>
-              <button style={BP} onClick={()=>startEdit(sel)}>Edit Template</button>
+              <div style={{display:"flex",gap:8}}>
+                <button style={BS} onClick={()=>duplicate(sel)}>Duplicate</button>
+                <button style={BP} onClick={()=>startEdit(sel)}>Edit Template</button>
+              </div>
             </div>
             <div style={{borderTop:`1.5px solid ${B.g2}`,paddingTop:14}}>
               {sel.sections.map((s,i) => (

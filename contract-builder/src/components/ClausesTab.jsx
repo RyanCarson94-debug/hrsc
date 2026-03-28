@@ -34,7 +34,10 @@ export default function ClausesTab({ state, saveClause, removeClause }) {
     try { await saveClause(draft, isNew); setSel(draft); setIsNew(false); setDraft(null); }
     finally { setSaving(false); }
   }
-  async function del(id) { await removeClause(id); setSel(null); setDraft(null); }
+  async function del(id, name) {
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    await removeClause(id); setSel(null); setDraft(null);
+  }
 
   return (
     <div style={{display:"grid",gridTemplateColumns:"300px 1fr",gap:20,alignItems:"start"}}>
@@ -132,7 +135,7 @@ export default function ClausesTab({ state, saveClause, removeClause }) {
             </div>
 
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-              {!isNew && <button style={BG(B.red)} onClick={()=>del(draft.id)}>Delete Clause</button>}
+              {!isNew && <button style={BG(B.red)} onClick={()=>del(draft.id, draft.name)}>Delete Clause</button>}
               <button style={BS} onClick={()=>{setDraft(null);setSel(null);}}>Cancel</button>
               <button style={{...BP,opacity:saving?0.6:1}} onClick={save} disabled={saving}>{saving?"Saving…":"Save Clause"}</button>
             </div>
