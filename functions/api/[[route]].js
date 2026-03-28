@@ -19,6 +19,13 @@
  *   POST   /api/rules             → create rule
  *   PUT    /api/rules/:id         → update rule
  *   DELETE /api/rules/:id         → delete rule
+ *
+ *   GET    /api/audit             → list audit log entries (?limit=&offset=)
+ *   POST   /api/audit             → write audit log entry
+ *
+ *   GET    /api/generations       → list generation snapshots (?limit=&offset=)
+ *   POST   /api/generations       → save generation snapshot
+ *   GET    /api/generations/:id   → fetch single generation snapshot
  */
 
 const CORS = {
@@ -137,6 +144,66 @@ export async function onRequest(context) {
       if (request.method === "DELETE" && id) {
         await DB.prepare("DELETE FROM rules WHERE id = ?").bind(id).run();
         return json({ ok: true });
+      }
+    }
+
+    // ── AUDIT LOG ─────────────────────────────────────────────────────────────
+    if (resource === "audit") {
+      if (request.method === "GET") {
+        const limit  = parseInt(url.searchParams.get("limit")  || "25", 10);
+        const offset = parseInt(url.searchParams.get("offset") || "0",  10);
+        const rows = await DB.prepare(
+          "SELECT id, action, record_type, record_name, user_name, detail, timestamp FROM audit_log ORDER BY id DESC LIMIT ? OFFSET ?"
+        ).bind(limit, offset).all();
+        const total = await DB.prepare("SELECT COUNT(*) AS n FROM audit_log").first();
+        return json({ entries: rows.results, total: total.n });
+      }
+      if (request.method === "POST") {
+        const body = await request.json();
+        await DB.prepare(
+          "INSERT INTO audit_log (action, record_type, record_name, user_name, detail, timestamp) VALUES (?, ?, ?, ?, ?, ?)"
+        ).bind(
+          body.action      || "",
+          body.recordType  || "",
+          body.recordName  || "",
+          body.userName    || "Unknown",
+          body.detail      ? JSON.stringify(body.detail) : null,
+          body.timestamp   || new Date().toISOString()
+        ).run();
+        return json({ ok: true }, 201);
+      }
+    }
+
+    // ── DOCUMENT GENERATIONS ──────────────────────────────────────────────────
+    if (resource === "generations") {
+      if (request.method === "GET" && id) {
+        const row = await DB.prepare("SELECT * FROM document_generations WHERE id = ?").bind(id).first();
+        if (!row) return err("Not found", 404);
+        return json({ ...row, snapshot: JSON.parse(row.snapshot) });
+      }
+      if (request.method === "GET") {
+        const limit  = parseInt(url.searchParams.get("limit")  || "20", 10);
+        const offset = parseInt(url.searchParams.get("offset") || "0",  10);
+        const rows = await DB.prepare(
+          "SELECT id, template_name, employee_name, country, user_name, generated_at FROM document_generations ORDER BY generated_at DESC LIMIT ? OFFSET ?"
+        ).bind(limit, offset).all();
+        const total = await DB.prepare("SELECT COUNT(*) AS n FROM document_generations").first();
+        return json({ entries: rows.results, total: total.n });
+      }
+      if (request.method === "POST") {
+        const body = await request.json();
+        await DB.prepare(
+          "INSERT INTO document_generations (id, template_name, employee_name, country, user_name, generated_at, snapshot) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        ).bind(
+          body.id            || crypto.randomUUID(),
+          body.templateName  || "",
+          body.employeeName  || "",
+          body.country       || null,
+          body.userName      || "Unknown",
+          body.generatedAt   || new Date().toISOString(),
+          JSON.stringify(body.snapshot || {})
+        ).run();
+        return json({ ok: true }, 201);
       }
     }
 
