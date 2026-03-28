@@ -6,16 +6,15 @@
  */
 
 import {
-  Document, Packer, Paragraph, TextRun, HeadingLevel,
+  Document, Packer, Paragraph, TextRun,
   Header, Footer, ImageRun, AlignmentType, PageNumber,
-  NumberFormat, Table, TableRow, TableCell, WidthType,
-  BorderStyle, ShadingType, convertInchesToTwip, Tab,
+  Table, TableRow, TableCell, WidthType,
+  BorderStyle, TabStopType, TabStopPosition,
 } from "docx";
 import { buildSectionNumbers, renderClauseContent } from "./shared";
 
-// ── Pt / twip helpers ──────────────────────────────────────────────────────────
-const pt  = n => n * 20;   // half-points (docx uses half-points for font size)
-const twip = n => n * 567; // cm to twips (1cm = 567 twips)
+const pt   = n => n * 20;
+const twip = n => Math.round(n * 567);
 
 // CSL Red in hex without #
 const CSL_RED = "FC1921";
@@ -80,13 +79,12 @@ function textToParagraphs(text) {
     const listMatch = line.match(/^\s{4}([\d]+\.|[a-z]+\.|[A-Z]+\.|[ivxlcdmIVXLCDM]+\.)\s(.+)$/);
     if (listMatch) {
       paragraphs.push(new Paragraph({
-        children: parseInline(listMatch[2]),
-        indent: { left: twip(1), hanging: twip(0.5) },
-        spacing: { before: pt(2), after: pt(2) },
         children: [
           new TextRun({ text: listMatch[1] + "  ", size: BODY_SIZE, font: BODY_FONT }),
           ...parseInline(listMatch[2]),
         ],
+        indent: { left: twip(1), hanging: twip(0.5) },
+        spacing: { before: pt(2), after: pt(2) },
       }));
       continue;
     }
@@ -191,16 +189,14 @@ export async function generateDocx({ tmpl, resolved, clauses, vars, headerFooter
     new Paragraph({
       children: [
         new TextRun({ text: hf?.footerText || "", size: 16, font: BODY_FONT, color: "808284" }),
-        new TextRun({ children: [new Tab()], size: 16 }),
+        new TextRun({ text: "\t", size: 16 }),
         new TextRun({ text: "Page ", size: 16, font: BODY_FONT, color: "808284" }),
         new TextRun({ children: [PageNumber.CURRENT], size: 16, font: BODY_FONT, color: "808284" }),
         new TextRun({ text: " of ", size: 16, font: BODY_FONT, color: "808284" }),
         new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 16, font: BODY_FONT, color: "808284" }),
       ],
-      tabStops: [{ type: AlignmentType.RIGHT, position: twip(16) }],
-      border: {
-        top: { style: BorderStyle.SINGLE, size: 4, color: "E2DFDA" },
-      },
+      tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+      border: { top: { style: BorderStyle.SINGLE, size: 4, color: "E2DFDA" } },
     }),
   ];
 
