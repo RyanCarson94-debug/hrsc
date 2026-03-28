@@ -20,7 +20,7 @@ function audit(action, recordType, recordName, detail = {}) {
     action,
     recordType,
     recordName,
-    detail: JSON.stringify(detail),
+    detail,
     userName: getCurrentUser(),
     timestamp: new Date().toISOString(),
   }).catch(() => {}); // fire-and-forget, never block UI

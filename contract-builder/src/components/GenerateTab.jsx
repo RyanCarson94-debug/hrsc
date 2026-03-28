@@ -175,11 +175,11 @@ export default function GenerateTab({ state, userName }) {
       country: emp.country,
       userName: userName || localStorage.getItem("hrsc_user_name") || "Unknown",
       generatedAt: new Date().toISOString(),
-      snapshot: JSON.stringify({
+      snapshot: {
         tmpl, resolved, clauses, vars, headerFooter, emp,
         numberingFormat: tmpl?.numberingFormat || "flat",
         firedRules: fired,
-      }),
+      },
     }).catch(() => {}); // fire-and-forget
   }
 
