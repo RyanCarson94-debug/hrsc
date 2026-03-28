@@ -109,6 +109,65 @@ async function dataUriToArrayBuffer(dataUri) {
   return res.arrayBuffer();
 }
 
+// ── HTML → docx paragraphs (for WYSIWYG-authored clauses) ─────────────────────
+function htmlToParagraphs(html, vars) {
+  html = html.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] || `[${k}]`);
+  const parser = new DOMParser();
+  const doc    = parser.parseFromString(html, "text/html");
+  const paragraphs = [];
+
+  function nodeToRuns(node, props = {}) {
+    if (node.nodeType === 3) {
+      const text = node.textContent;
+      if (!text) return [];
+      return [new TextRun({ text, ...props, size: BODY_SIZE, font: BODY_FONT })];
+    }
+    if (node.nodeType !== 1) return [];
+    const tag = node.tagName.toLowerCase();
+    const p = { ...props };
+    if (tag === "strong" || tag === "b") p.bold = true;
+    if (tag === "em"     || tag === "i") p.italics = true;
+    if (tag === "u") p.underline = {};
+    return [...node.childNodes].flatMap(n => nodeToRuns(n, p));
+  }
+
+  function processNode(node) {
+    if (node.nodeType !== 1) return;
+    const tag = node.tagName.toLowerCase();
+    if (tag === "p" || tag === "div") {
+      const runs = [...node.childNodes].flatMap(n => nodeToRuns(n));
+      paragraphs.push(new Paragraph({ children: runs.length ? runs : [new TextRun({ text:"", size:BODY_SIZE })], spacing:{ before:0, after:pt(6) } }));
+    } else if (tag === "h1") {
+      paragraphs.push(new Paragraph({ children:[...node.childNodes].flatMap(n=>nodeToRuns(n,{bold:true,size:28,font:BODY_FONT})), spacing:{ before:pt(12), after:pt(4) } }));
+    } else if (tag === "h2") {
+      paragraphs.push(new Paragraph({ children:[...node.childNodes].flatMap(n=>nodeToRuns(n,{bold:true,size:24,font:BODY_FONT})), spacing:{ before:pt(10), after:pt(3) } }));
+    } else if (tag === "h3") {
+      paragraphs.push(new Paragraph({ children:[...node.childNodes].flatMap(n=>nodeToRuns(n,{bold:true,size:22,font:BODY_FONT})), spacing:{ before:pt(8), after:pt(2) } }));
+    } else if (tag === "ol") {
+      let i = 0;
+      for (const li of node.childNodes) {
+        if (li.nodeType === 1 && li.tagName.toLowerCase() === "li") {
+          i++;
+          paragraphs.push(new Paragraph({ children:[new TextRun({text:`${i}.  `,size:BODY_SIZE,font:BODY_FONT}),...[...li.childNodes].flatMap(n=>nodeToRuns(n))], indent:{ left:twip(1), hanging:twip(0.5) }, spacing:{ before:pt(2), after:pt(2) } }));
+        }
+      }
+    } else if (tag === "ul") {
+      for (const li of node.childNodes) {
+        if (li.nodeType === 1 && li.tagName.toLowerCase() === "li") {
+          paragraphs.push(new Paragraph({ children:[new TextRun({text:"•  ",size:BODY_SIZE,font:BODY_FONT}),...[...li.childNodes].flatMap(n=>nodeToRuns(n))], indent:{ left:twip(1), hanging:twip(0.5) }, spacing:{ before:pt(2), after:pt(2) } }));
+        }
+      }
+    } else if (tag === "br") {
+      paragraphs.push(new Paragraph({ children:[], spacing:{ before:0, after:pt(2) } }));
+    } else {
+      for (const child of node.childNodes) processNode(child);
+    }
+  }
+
+  for (const child of doc.body.childNodes) processNode(child);
+  return paragraphs.length ? paragraphs : [new Paragraph({ children:[new TextRun({text:"",size:BODY_SIZE})] })];
+}
+
 // ── Main export function ───────────────────────────────────────────────────────
 export async function generateDocx({ tmpl, resolved, clauses, vars, headerFooter, emp, numberingFormat }) {
   const nums = buildSectionNumbers(resolved, numberingFormat || "flat");
@@ -204,10 +263,9 @@ export async function generateDocx({ tmpl, resolved, clauses, vars, headerFooter
   const bodyChildren = [];
 
   resolved.forEach((s, i) => {
-    const txt      = s.clauseId ? (clauses.find(c=>c.id===s.clauseId)?.content || "") : (s.content || "");
-    const resolved_text = renderClauseContent(txt, vars);
-    const prefix   = nums[i] ? `${nums[i]} ` : "";
-    const heading  = `${prefix}${s.name}`.toUpperCase();
+    const txt    = s.clauseId ? (clauses.find(c=>c.id===s.clauseId)?.content || "") : (s.content || "");
+    const prefix = nums[i] ? `${nums[i]} ` : "";
+    const heading = `${prefix}${s.name}`.toUpperCase();
 
     // Section heading paragraph
     bodyChildren.push(
@@ -218,8 +276,10 @@ export async function generateDocx({ tmpl, resolved, clauses, vars, headerFooter
       })
     );
 
-    // Section body paragraphs
-    const sectionParas = textToParagraphs(resolved_text);
+    // Section body paragraphs — HTML or legacy markdown
+    const sectionParas = txt.trim().startsWith("<")
+      ? htmlToParagraphs(txt, vars)
+      : textToParagraphs(renderClauseContent(txt, vars));
     bodyChildren.push(...sectionParas);
   });
 

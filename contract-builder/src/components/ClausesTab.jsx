@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, ClauseEditor, renderClauseContent, mkInp } from "./shared";
+import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, RichTextEditor, renderClauseContent, renderClauseContentRich, mkInp, Toast } from "./shared";
 import { ALL_COUNTRIES } from "../defaults";
 
 function gid() { return Math.random().toString(36).slice(2,8); }
@@ -9,10 +9,12 @@ export default function ClausesTab({ state, saveClause, removeClause }) {
   const [cf, setCf] = useState(""), [ef, setEf] = useState("");
   const [sel, setSel]     = useState(null);
   const [draft, setDraft] = useState(null);
+  const [origDraft, setOrigDraft] = useState(null);
   const [isNew, setIsNew] = useState(false);
   const [search, setSearch] = useState("");
   const [sf, setSf]  = useState(false);
   const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const filtered = clauses.filter(c => {
     if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !c.tags.some(t=>t.includes(search.toLowerCase()))) return false;
@@ -26,12 +28,18 @@ export default function ClausesTab({ state, saveClause, removeClause }) {
     ? (draft.content.match(/\{\{(\w+)\}\}/g)||[]).map(m=>m.slice(2,-2)).filter(k=>!draft.variables.some(v=>v.key===k))
     : [];
 
-  function startNew() { setDraft({id:gid(),name:"New Clause",description:"",content:"",variables:[],tags:[],global:false,countries:[],entityIds:[]}); setIsNew(true); setSel(null); }
-  function startEdit(c) { setDraft(JSON.parse(JSON.stringify(c))); setIsNew(false); setSel(c); }
+  function startNew() { const d = {id:gid(),name:"New Clause",description:"",content:"",variables:[],tags:[],global:false,countries:[],entityIds:[]}; setDraft(d); setOrigDraft(d); setIsNew(true); setSel(null); }
+  function startEdit(c) { const d = JSON.parse(JSON.stringify(c)); setDraft(d); setOrigDraft(d); setIsNew(false); setSel(c); }
+  function cancelEdit() {
+    if (!isNew && origDraft && JSON.stringify(draft) !== JSON.stringify(origDraft)) {
+      if (!window.confirm("Discard unsaved changes?")) return;
+    }
+    setDraft(null); setSel(null);
+  }
   async function save() {
     if (!draft) return;
     setSaving(true);
-    try { await saveClause(draft, isNew); setSel(draft); setIsNew(false); setDraft(null); }
+    try { await saveClause(draft, isNew); setSel(draft); setIsNew(false); setDraft(null); setToast("Clause saved"); }
     finally { setSaving(false); }
   }
   async function del(id, name) {
@@ -40,6 +48,7 @@ export default function ClausesTab({ state, saveClause, removeClause }) {
   }
 
   return (
+    <>
     <div style={{display:"grid",gridTemplateColumns:"300px 1fr",gap:20,alignItems:"start"}}>
       <div>
         <FilterBar countries={ALL_COUNTRIES} entities={settings.entities} countryFilter={cf} setCountryFilter={setCf} entityFilter={ef} setEntityFilter={setEf}/>
@@ -99,7 +108,7 @@ export default function ClausesTab({ state, saveClause, removeClause }) {
                 )}
               </div>
 
-              <ClauseEditor label="Clause Content" value={draft.content} onChange={e=>setDraft({...draft,content:e.target.value})}/>
+              <RichTextEditor key={draft.id} label="Clause Content" value={draft.content} onChange={e=>setDraft({...draft,content:e.target.value})}/>
               {missing.length>0 && <div style={{marginTop:8,padding:"9px 12px",background:"#FFF9E6",border:`1.5px solid ${B.yellow}`,borderRadius:6,fontSize:11,color:"#7A5E00",fontWeight:500}}>⚠ Undeclared variables: {missing.join(", ")} — add them below.</div>}
             </div>
 
@@ -136,7 +145,7 @@ export default function ClausesTab({ state, saveClause, removeClause }) {
 
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
               {!isNew && <button style={BG(B.red)} onClick={()=>del(draft.id, draft.name)}>Delete Clause</button>}
-              <button style={BS} onClick={()=>{setDraft(null);setSel(null);}}>Cancel</button>
+              <button style={BS} onClick={cancelEdit}>Cancel</button>
               <button style={{...BP,opacity:saving?0.6:1}} onClick={save} disabled={saving}>{saving?"Saving…":"Save Clause"}</button>
             </div>
           </div>
@@ -156,8 +165,8 @@ export default function ClausesTab({ state, saveClause, removeClause }) {
               </div>
               <button style={BP} onClick={()=>startEdit(sel)}>Edit Clause</button>
             </div>
-            <div style={{fontFamily:"'Courier New',monospace",fontSize:12,lineHeight:1.8,whiteSpace:"pre-wrap",background:B.g1,padding:"1rem",borderRadius:8,borderLeft:`3px solid ${B.red}`,marginBottom:12}}>
-              {renderClauseContent(sel.content)}
+            <div style={{fontSize:13,lineHeight:1.8,background:B.g1,padding:"1rem",borderRadius:8,borderLeft:`3px solid ${B.red}`,marginBottom:12}}>
+              {renderClauseContentRich(sel.content)}
             </div>
             {sel.variables.map(v => (
               <div key={v.key} style={{display:"flex",gap:10,fontSize:12,padding:"6px 0",borderBottom:`1px solid ${B.g1}`,alignItems:"center"}}>
@@ -170,5 +179,7 @@ export default function ClausesTab({ state, saveClause, removeClause }) {
         )}
       </div>
     </div>
+    {toast && <Toast message={toast} onDone={() => setToast(null)}/>}
+    </>
   );
 }

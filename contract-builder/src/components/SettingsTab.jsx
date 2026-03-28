@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { B, CARD, BP, BS, BG, TAG, FI, mkInp } from "./shared";
+import { B, CARD, BP, BS, BG, TAG, FI, mkInp, Toast } from "./shared";
 import { ALL_COUNTRIES } from "../defaults";
 
 function gid() { return Math.random().toString(36).slice(2,8); }
@@ -13,6 +13,7 @@ export default function SettingsTab({ state, saveSettings }) {
   const [userName, setUserName] = useState(() => localStorage.getItem("hrsc_user_name") || "");
   const [userNameDraft, setUserNameDraft] = useState(() => localStorage.getItem("hrsc_user_name") || "");
   const [userNameSaved, setUserNameSaved] = useState(false);
+  const [toast, setToast] = useState(null);
 
   function saveUserName() {
     const trimmed = userNameDraft.trim();
@@ -21,6 +22,7 @@ export default function SettingsTab({ state, saveSettings }) {
       setUserName(trimmed);
       setUserNameSaved(true);
       setTimeout(() => setUserNameSaved(false), 2000);
+      setToast("Name saved");
     }
   }
 
@@ -40,6 +42,7 @@ export default function SettingsTab({ state, saveSettings }) {
       : settings.entities.map(e => e.id===entDraft.id ? entDraft : e);
     await updateSettings({ entities });
     setEntDraft(null);
+    setToast("Entity saved");
   }
   async function delEnt(id, name) {
     if (!window.confirm(`Delete entity "${name}"? This cannot be undone.`)) return;
@@ -122,6 +125,7 @@ export default function SettingsTab({ state, saveSettings }) {
   ];
 
   return (
+    <>
     <div>
       {/* User identity card */}
       <div style={{ ...CARD({ marginBottom:20, display:"flex", alignItems:"center", gap:16, borderLeft:`4px solid ${B.red}`, borderRadius:"0 10px 10px 0" }) }}>
@@ -206,6 +210,8 @@ export default function SettingsTab({ state, saveSettings }) {
       {tab==="manager_levels"   && <div style={{ maxWidth:700 }}><DropList listKey="managerLevels"   label="Manager Levels"/></div>}
       {tab==="headers_footers"  && <HeaderFooterSettings settings={settings} updateSettings={updateSettings}/>}
     </div>
+    {toast && <Toast message={toast} onDone={() => setToast(null)}/>}
+    </>
   );
 }
 
@@ -215,6 +221,7 @@ function HeaderFooterSettings({ settings, updateSettings }) {
   const [selEntityId, setSelEntityId] = useState(entities[0]?.id || "");
   const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const currentHF = hfMap[selEntityId] || {};
 
@@ -223,7 +230,7 @@ function HeaderFooterSettings({ settings, updateSettings }) {
   async function saveDraft() {
     if (!draft) return;
     setSaving(true);
-    try { await updateSettings({ headerFooters:{ ...hfMap, [selEntityId]: draft } }); setDraft(null); }
+    try { await updateSettings({ headerFooters:{ ...hfMap, [selEntityId]: draft } }); setDraft(null); setToast("Header & Footer saved"); }
     finally { setSaving(false); }
   }
 
@@ -239,6 +246,7 @@ function HeaderFooterSettings({ settings, updateSettings }) {
   const activeEnt = entities.find(e=>e.id===selEntityId);
 
   return (
+    <>
     <div style={{ maxWidth:760 }}>
       <div style={{ fontSize:12, color:B.g3, marginBottom:16 }}>Configure a default header and footer for each legal entity. Templates can override this individually.</div>
       <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
@@ -302,5 +310,7 @@ function HeaderFooterSettings({ settings, updateSettings }) {
         </div>
       )}
     </div>
+    {toast && <Toast message={toast} onDone={() => setToast(null)}/>}
+    </>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, mkInp } from "./shared";
+import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, mkInp, Toast } from "./shared";
 import { ALL_COUNTRIES } from "../defaults";
 
 const OPERATORS    = [{value:"equals",label:"equals"},{value:"not_equals",label:"does not equal"},{value:"gte",label:"is ≥",num:true},{value:"lte",label:"is ≤",num:true},{value:"in",label:"is one of"}];
@@ -12,8 +12,10 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule }) {
   const { settings, clauses, templates, rules } = state;
   const [cf, setCf] = useState(""), [ef, setEf] = useState("");
   const [draft, setDraft] = useState(null);
+  const [origDraft, setOrigDraft] = useState(null);
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const filtered = rules.filter(r => {
     if (cf && r.country && r.country!=="__global__" && r.country!==cf) return false;
@@ -22,14 +24,20 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule }) {
   });
 
   function startNew() {
-    setDraft({id:gid(),name:"New Rule",description:"",conditions:[{field:"grade",operator:"gte",value:"5"}],conditionLogic:"AND",action:{type:"replace_clause",targetTemplateId:"",targetSectionId:"",clauseId:""},country:"__global__",entityId:"__global__",priority:rules.length+1,active:true});
-    setIsNew(true);
+    const d = {id:gid(),name:"New Rule",description:"",conditions:[{field:"grade",operator:"gte",value:"5"}],conditionLogic:"AND",action:{type:"replace_clause",targetTemplateId:"",targetSectionId:"",clauseId:""},country:"__global__",entityId:"__global__",priority:rules.length+1,active:true};
+    setDraft(d); setOrigDraft(d); setIsNew(true);
   }
-  function startEdit(r) { setDraft(JSON.parse(JSON.stringify(r))); setIsNew(false); }
+  function startEdit(r) { const d = JSON.parse(JSON.stringify(r)); setDraft(d); setOrigDraft(d); setIsNew(false); }
+  function cancelEdit() {
+    if (!isNew && origDraft && JSON.stringify(draft) !== JSON.stringify(origDraft)) {
+      if (!window.confirm("Discard unsaved changes?")) return;
+    }
+    setDraft(null);
+  }
   async function save() {
     if (!draft) return;
     setSaving(true);
-    try { await saveRule(draft, isNew); setDraft(null); }
+    try { await saveRule(draft, isNew); setDraft(null); setToast("Rule saved"); }
     finally { setSaving(false); }
   }
   async function del(id, name) {
@@ -66,6 +74,7 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule }) {
   };
 
   return (
+    <>
     <div style={{display:"grid",gridTemplateColumns:draft?"1fr 480px":"1fr",gap:20,alignItems:"start"}}>
       <div>
         <FilterBar countries={ALL_COUNTRIES} entities={settings.entities} countryFilter={cf} setCountryFilter={setCf} entityFilter={ef} setEntityFilter={setEf}/>
@@ -207,11 +216,13 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule }) {
 
           <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
             {!isNew && <button style={BG(B.red)} onClick={()=>del(draft.id, draft.name)}>Delete Rule</button>}
-            <button style={BS} onClick={()=>setDraft(null)}>Cancel</button>
+            <button style={BS} onClick={cancelEdit}>Cancel</button>
             <button style={{...BP,opacity:saving?0.6:1}} onClick={save} disabled={saving}>{saving?"Saving…":"Save Rule"}</button>
           </div>
         </div>
       )}
     </div>
+    {toast && <Toast message={toast} onDone={() => setToast(null)}/>}
+    </>
   );
 }

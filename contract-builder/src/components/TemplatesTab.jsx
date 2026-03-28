@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, clauseAvailable, templateMatches } from "./shared";
+import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, clauseAvailable, templateMatches, mkInp, Toast } from "./shared";
 import { ALL_COUNTRIES } from "../defaults";
 
 function gid() { return Math.random().toString(36).slice(2,8); }
@@ -9,16 +9,26 @@ export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, r
   const [cf, setCf] = useState(""), [ef, setEf] = useState("");
   const [sel, setSel]   = useState(null);
   const [draft, setDraft] = useState(null);
+  const [origDraft, setOrigDraft] = useState(null);
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dragIdx, setDragIdx] = useState(null);
   const [dragOverIdx, setDragOverIdx] = useState(null);
+  const [search, setSearch] = useState("");
+  const [sf, setSf] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  const filtered = templates.filter(t => templateMatches(t, cf, ef));
+  const filtered = templates.filter(t => templateMatches(t, cf, ef) && (!search || t.name.toLowerCase().includes(search.toLowerCase())));
   const availClauses = draft ? clauses.filter(c => clauseAvailable(c, draft.country, draft.entityId)) : [];
 
-  function startNew() { setDraft({id:gid(),name:"New Template",country:"United Kingdom",entityId:settings.entities[0]?.id||"",documentType:"contract",description:"",numberingFormat:"hierarchical",sections:[]}); setIsNew(true); setSel(null); }
-  function startEdit(t) { setDraft(JSON.parse(JSON.stringify(t))); setIsNew(false); setSel(t); }
+  function startNew() { const d = {id:gid(),name:"New Template",country:"United Kingdom",entityId:settings.entities[0]?.id||"",documentType:"contract",description:"",numberingFormat:"hierarchical",sections:[]}; setDraft(d); setOrigDraft(d); setIsNew(true); setSel(null); }
+  function startEdit(t) { const d = JSON.parse(JSON.stringify(t)); setDraft(d); setOrigDraft(d); setIsNew(false); setSel(t); }
+  function cancelEdit() {
+    if (!isNew && origDraft && JSON.stringify(draft) !== JSON.stringify(origDraft)) {
+      if (!window.confirm("Discard unsaved changes?")) return;
+    }
+    setDraft(null); setSel(null);
+  }
   async function duplicate(t) {
     const copy = await duplicateTemplate(t);
     setDraft(JSON.parse(JSON.stringify(copy)));
@@ -29,7 +39,7 @@ export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, r
   async function save() {
     if (!draft) return;
     setSaving(true);
-    try { await saveTemplate(draft, isNew); setSel(draft); setIsNew(false); setDraft(null); }
+    try { await saveTemplate(draft, isNew); setSel(draft); setIsNew(false); setDraft(null); setToast("Template saved"); }
     finally { setSaving(false); }
   }
   async function del(id, name) {
@@ -53,13 +63,15 @@ export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, r
   function updSec(idx, patch) { if (!draft) return; setDraft({...draft, sections:draft.sections.map((s,i)=>i===idx?{...s,...patch}:s)}); }
 
   return (
+    <>
     <div style={{display:"grid",gridTemplateColumns:"280px 1fr",gap:20,alignItems:"start"}}>
       <div>
         <FilterBar countries={ALL_COUNTRIES} entities={settings.entities} countryFilter={cf} setCountryFilter={setCf} entityFilter={ef} setEntityFilter={setEf}/>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",color:B.g3}}>{filtered.length} Templates</span>
           <button style={{...BP,padding:"6px 12px",fontSize:11}} onClick={startNew}>+ New</button>
         </div>
+        <input style={{...mkInp(sf),marginBottom:10}} placeholder="Search templates…" value={search} onChange={e=>setSearch(e.target.value)} onFocus={()=>setSf(true)} onBlur={()=>setSf(false)}/>
         {filtered.map(t => {
           const a = sel?.id===t.id || draft?.id===t.id;
           const ent = settings.entities.find(e=>e.id===t.entityId);
@@ -182,7 +194,7 @@ export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, r
 
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
               {!isNew && <button style={BG(B.red)} onClick={()=>del(draft.id, draft.name)}>Delete Template</button>}
-              <button style={BS} onClick={()=>{setDraft(null);setSel(null);}}>Cancel</button>
+              <button style={BS} onClick={cancelEdit}>Cancel</button>
               <button style={{...BP,opacity:saving?0.6:1}} onClick={save} disabled={saving}>{saving?"Saving…":"Save Template"}</button>
             </div>
           </div>
@@ -220,5 +232,7 @@ export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, r
         )}
       </div>
     </div>
+    {toast && <Toast message={toast} onDone={() => setToast(null)}/>}
+    </>
   );
 }

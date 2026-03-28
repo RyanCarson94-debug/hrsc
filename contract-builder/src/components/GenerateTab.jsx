@@ -50,6 +50,8 @@ export default function GenerateTab({ state, userName }) {
   const [fired, setFired] = useState([]);
   const [resolved, setResolved] = useState([]);
   const [blockedVars, setBlockedVars] = useState([]);
+  const [validationError, setValidationError] = useState("");
+  const [downloadMsg, setDownloadMsg] = useState(false);
 
   const filteredTemplates = templates.filter(t => templateMatches(t, cf, ef));
   const contracts  = filteredTemplates.filter(t => t.documentType === "contract");
@@ -74,6 +76,11 @@ export default function GenerateTab({ state, userName }) {
   }
 
   function onEmpNext() {
+    if (!emp.employee_name.trim() || !emp.job_title.trim()) {
+      setValidationError("Employee name and job title are required.");
+      return;
+    }
+    setValidationError("");
     const fr  = rules.filter(r => evalRule(r, emp));
     const res = resolveTemplate(tmpl, rules, emp);
     setFired(fr); setResolved(res);
@@ -190,6 +197,8 @@ export default function GenerateTab({ state, userName }) {
       userName: user,
       timestamp: new Date().toISOString(),
     }).catch(() => {});
+    setDownloadMsg(true);
+    setTimeout(() => setDownloadMsg(false), 4000);
   }
 
   const STEPS  = ["select","employee","variables","preview"];
@@ -282,6 +291,11 @@ export default function GenerateTab({ state, userName }) {
             </div>
           </div>
           <div style={{display:"flex",gap:10,justifyContent:"flex-end",flexDirection:"column"}}>
+            {validationError && (
+              <div style={{padding:"12px 16px",background:"#FEE2E2",border:`1.5px solid ${B.red}`,borderRadius:8,fontSize:13,color:"#b91c1c",fontWeight:600}}>
+                {validationError}
+              </div>
+            )}
             {blockedVars.length>0 && (
               <div style={{padding:"12px 16px",background:"#FEE2E2",border:`1.5px solid ${B.red}`,borderRadius:8,fontSize:13}}>
                 <div style={{fontWeight:700,color:"#b91c1c",marginBottom:4}}>Cannot generate — unresolved computed variables</div>
@@ -357,9 +371,14 @@ export default function GenerateTab({ state, userName }) {
             </div>
             <PreviewContent sections={resolved} clauses={clauses} vars={vars} numberingFormat={tmpl.numberingFormat} headerFooter={headerFooter}/>
           </div>
+          {downloadMsg && (
+            <div style={{marginTop:14,padding:"10px 16px",background:"#DCFCE7",border:"1.5px solid #00A28A",borderRadius:8,fontSize:13,color:"#166534",fontWeight:600}}>
+              ✓ Downloaded and saved to Document History
+            </div>
+          )}
           <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:14}}>
             <button style={BS} onClick={()=>setStep("variables")}>Back</button>
-            <button style={BS} onClick={()=>{setStep("select");setTmpl(null);setVars({});}}>New Document</button>
+            <button style={BS} onClick={()=>{setStep("select");setTmpl(null);setVars({});setDownloadMsg(false);}}>New Document</button>
             <button style={BP} onClick={downloadDoc}>↓ Download .docx</button>
           </div>
         </div>
