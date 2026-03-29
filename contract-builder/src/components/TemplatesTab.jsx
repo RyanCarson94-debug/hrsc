@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, clauseAvailable, templateMatches } from "./shared";
+import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, clauseAvailable, templateMatches, usePersistedFilter, compressImage } from "./shared";
 import { ALL_COUNTRIES } from "../defaults";
 
 function gid() { return Math.random().toString(36).slice(2,8); }
 
 export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
   const { settings, clauses, templates } = state;
-  const [cf, setCf] = useState(""), [ef, setEf] = useState("");
+  const [cf, setCf] = usePersistedFilter("hrsc_tm_cf");
+  const [ef, setEf] = usePersistedFilter("hrsc_tm_ef");
   const [sel, setSel]   = useState(null);
   const [draft, setDraft] = useState(null);
   const [isNew, setIsNew] = useState(false);
@@ -106,13 +107,11 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
                           <button style={{...BG(B.red)}} onClick={()=>setDraft({...draft,headerFooter:{...draft.headerFooter,logoBase64:null}})}>Remove</button>
                         </div>
                       )}
-                      <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={e=>{
+                      <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={async e=>{
                         const file=e.target.files[0];
                         if(!file)return;
-                        if(file.size>300000){alert("Image too large — max 300kb.");return;}
-                        const reader=new FileReader();
-                        reader.onload=ev=>setDraft(d=>({...d,headerFooter:{...d.headerFooter,logoBase64:ev.target.result}}));
-                        reader.readAsDataURL(file);
+                        const dataUrl = await compressImage(file);
+                        setDraft(d=>({...d,headerFooter:{...d.headerFooter,logoBase64:dataUrl}}));
                       }} style={{fontSize:12,color:B.black}}/>
                     </div>
                   </div>

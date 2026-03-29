@@ -70,7 +70,7 @@ export default function App() {
         {!loading && isAdmin && tab==="templates" && <TemplatesTab {...appState}/>}
         {!loading && isAdmin && tab==="clauses"   && <ClausesTab   {...appState}/>}
         {!loading && isAdmin && tab==="rules"     && <RulesTab     {...appState}/>}
-        {!loading && isAdmin && tab==="settings"  && <SettingsTab  {...appState}/>}
+        {!loading && isAdmin && tab==="settings"  && <SettingsTab  {...appState} users={appState.users} saveUser={appState.saveUser} removeUser={appState.removeUser}/>}
         {!loading && isAdmin && tab==="history"   && <HistoryTab/>}
       </div>
     </div>

@@ -93,3 +93,22 @@ CREATE TABLE IF NOT EXISTS document_generations (
   generated_at  TEXT NOT NULL,
   snapshot      TEXT NOT NULL
 );
+
+-- Clause version history (snapshot on each content save)
+CREATE TABLE IF NOT EXISTS clause_versions (
+  id         TEXT PRIMARY KEY,
+  clause_id  TEXT NOT NULL,
+  content    TEXT NOT NULL,
+  name       TEXT,
+  saved_by   TEXT NOT NULL DEFAULT 'Unknown',
+  saved_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Users (for role-based access management)
+CREATE TABLE IF NOT EXISTS users (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  email      TEXT DEFAULT '',
+  role       TEXT NOT NULL DEFAULT 'Adviser',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

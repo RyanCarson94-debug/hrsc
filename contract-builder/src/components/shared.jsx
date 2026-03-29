@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 export const B = {
   red:"#FC1921", black:"#231F20", white:"#FFFFFF",
@@ -23,6 +23,56 @@ export const BG = (c=B.g3) => ({ padding:"7px 14px", background:"transparent", c
 export const TAG = (bg=B.g1, tc=B.g3) => ({ display:"inline-block", padding:"2px 9px", background:bg, color:tc, borderRadius:20, fontSize:10, fontWeight:600, letterSpacing:"0.04em" });
 
 export function gid() { return Math.random().toString(36).slice(2,8); }
+
+/**
+ * Persistent filter state — reads initial value from localStorage,
+ * writes on every change. Use in place of useState for country/entity filters.
+ */
+export function usePersistedFilter(storageKey) {
+  const [val, setVal] = useState(() => {
+    try { return localStorage.getItem(storageKey) || ""; } catch { return ""; }
+  });
+  const set = useCallback((v) => {
+    setVal(v);
+    try { localStorage.setItem(storageKey, v); } catch {}
+  }, [storageKey]);
+  return [val, set];
+}
+
+/**
+ * Compress an image file to JPEG via canvas.
+ * Returns a data-URL string. Falls back to FileReader for SVGs.
+ */
+export function compressImage(file, maxW = 400, maxH = 200, quality = 0.82) {
+  return new Promise((resolve) => {
+    if (file.type === "image/svg+xml") {
+      const reader = new FileReader();
+      reader.onload = ev => resolve(ev.target.result);
+      reader.readAsDataURL(file);
+      return;
+    }
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let w = img.width, h = img.height;
+      const ratio = Math.min(maxW / w, maxH / h, 1);
+      w = Math.round(w * ratio);
+      h = Math.round(h * ratio);
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      const reader = new FileReader();
+      reader.onload = ev => resolve(ev.target.result);
+      reader.readAsDataURL(file);
+    };
+    img.src = objectUrl;
+  });
+}
 
 export function FI({ label, value, onChange, type="text", placeholder="", as="input", min, rows=4 }) {
   const [f, setF] = useState(false);
@@ -175,8 +225,9 @@ export function templateMatches(t, countryFilter, entityFilter) {
 }
 
 // ── Clause content editor with rich text toolbar ───────────────────────────────
-export function ClauseEditor({ label, value, onChange }) {
+export function ClauseEditor({ label, value, onChange, variables = [] }) {
   const [f, setF] = useState(false);
+  const [preview, setPreview] = useState(false);
   const EDITOR_ID = "clause-editor-ta";
 
   function wrap(before, after="", placeholder="text") {
@@ -224,39 +275,64 @@ export function ClauseEditor({ label, value, onChange }) {
     { label:"{{var}}",     action:()=>wrap("{{","}}","variable_name") },
   ];
 
+  function previewContent() {
+    // Replace {{key}} with [Label] using variables list
+    return value.replace(/\{\{(\w+)\}\}/g, (_, k) => {
+      const v = variables.find(x => x.key === k);
+      return `[${v ? v.label : k}]`;
+    });
+  }
+
   return (
     <div>
-      <label style={LBL}>{label}</label>
-      <div style={{background:B.g1,borderRadius:"6px 6px 0 0",border:`1.5px solid ${B.g2}`,borderBottom:"none"}}>
-        {/* Formatting row */}
-        <div style={{display:"flex",gap:4,padding:"6px 8px",borderBottom:`1px solid ${B.g2}`,flexWrap:"wrap",alignItems:"center"}}>
-          <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:B.g3,marginRight:4}}>Format</span>
-          {FMT_BTNS.map(b=>(
-            <button key={b.label} title={b.title} onClick={b.action} style={{...BS,padding:"3px 9px",fontSize:12,background:B.white,borderColor:B.g2,minWidth:32,...b.style}}>
-              {b.label}
-            </button>
-          ))}
-          <div style={{width:1,height:20,background:B.g2,margin:"0 4px"}}/>
-          <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:B.g3,marginRight:4}}>Lists & vars</span>
-          {LIST_BTNS.map(b=>(
-            <button key={b.label} title={b.label} onClick={b.action} style={{...BS,padding:"3px 9px",fontSize:11,background:B.white,borderColor:B.g2,fontWeight:700}}>
-              {b.label}
-            </button>
-          ))}
-        </div>
-        {/* Syntax hint */}
-        <div style={{padding:"4px 10px",fontSize:10,color:B.g3,fontStyle:"italic"}}>
-          **bold** &nbsp;·&nbsp; *italic* &nbsp;·&nbsp; __underline__ &nbsp;·&nbsp; # Heading
-        </div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
+        <label style={LBL}>{label}</label>
+        <button
+          onClick={()=>setPreview(p=>!p)}
+          style={{...BS,padding:"2px 10px",fontSize:10,background:preview?B.black:"transparent",color:preview?B.white:B.g3,borderColor:preview?B.black:B.g2}}
+        >
+          {preview ? "✎ Edit" : "◉ Preview"}
+        </button>
       </div>
-      <textarea
-        id={EDITOR_ID}
-        style={{...mkInp(f), minHeight:160, resize:"vertical", lineHeight:1.65, borderRadius:"0 0 6px 6px"}}
-        value={value}
-        onChange={onChange}
-        onFocus={()=>setF(true)}
-        onBlur={()=>setF(false)}
-      />
+
+      {preview ? (
+        <div style={{...mkInp(false), minHeight:160, borderRadius:6, lineHeight:1.65, whiteSpace:"pre-wrap", color:B.black, overflowY:"auto"}}>
+          {previewContent()}
+        </div>
+      ) : (
+        <>
+          <div style={{background:B.g1,borderRadius:"6px 6px 0 0",border:`1.5px solid ${B.g2}`,borderBottom:"none"}}>
+            {/* Formatting row */}
+            <div style={{display:"flex",gap:4,padding:"6px 8px",borderBottom:`1px solid ${B.g2}`,flexWrap:"wrap",alignItems:"center"}}>
+              <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:B.g3,marginRight:4}}>Format</span>
+              {FMT_BTNS.map(b=>(
+                <button key={b.label} title={b.title} onClick={b.action} style={{...BS,padding:"3px 9px",fontSize:12,background:B.white,borderColor:B.g2,minWidth:32,...b.style}}>
+                  {b.label}
+                </button>
+              ))}
+              <div style={{width:1,height:20,background:B.g2,margin:"0 4px"}}/>
+              <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:B.g3,marginRight:4}}>Lists & vars</span>
+              {LIST_BTNS.map(b=>(
+                <button key={b.label} title={b.label} onClick={b.action} style={{...BS,padding:"3px 9px",fontSize:11,background:B.white,borderColor:B.g2,fontWeight:700}}>
+                  {b.label}
+                </button>
+              ))}
+            </div>
+            {/* Syntax hint */}
+            <div style={{padding:"4px 10px",fontSize:10,color:B.g3,fontStyle:"italic"}}>
+              **bold** &nbsp;·&nbsp; *italic* &nbsp;·&nbsp; __underline__ &nbsp;·&nbsp; # Heading
+            </div>
+          </div>
+          <textarea
+            id={EDITOR_ID}
+            style={{...mkInp(f), minHeight:160, resize:"vertical", lineHeight:1.65, borderRadius:"0 0 6px 6px"}}
+            value={value}
+            onChange={onChange}
+            onFocus={()=>setF(true)}
+            onBlur={()=>setF(false)}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -33,6 +33,7 @@ export function useAppState() {
     clauses:   DEFAULT_CLAUSES,
     rules:     DEFAULT_RULES,
   });
+  const [users, setUsers]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
 
@@ -42,14 +43,16 @@ export function useAppState() {
       api.getTemplates(),
       api.getClauses(),
       api.getRules(),
+      api.getUsers().catch(() => []),
     ])
-      .then(([settings, templates, clauses, rules]) => {
+      .then(([settings, templates, clauses, rules, users]) => {
         setState({
           settings:  settings  || DEFAULT_SETTINGS,
           templates: templates.length ? templates : DEFAULT_TEMPLATES,
           clauses:   clauses.length   ? clauses   : DEFAULT_CLAUSES,
           rules:     rules.length     ? rules     : DEFAULT_RULES,
         });
+        setUsers(Array.isArray(users) ? users : []);
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
@@ -82,11 +85,13 @@ export function useAppState() {
   const saveClause = useCallback(async (clause, isNew) => {
     if (isNew) {
       await api.createClause(clause);
-      setState(s => ({ ...s, clauses: [...s.clauses, clause] }));
+      const { _savedBy: _, ...clean } = clause;
+      setState(s => ({ ...s, clauses: [...s.clauses, clean] }));
       audit("create", "clause", clause.name, { global: clause.global, tags: clause.tags });
     } else {
       await api.updateClause(clause.id, clause);
-      setState(s => ({ ...s, clauses: s.clauses.map(c => c.id === clause.id ? clause : c) }));
+      const { _savedBy: _, ...clean } = clause;
+      setState(s => ({ ...s, clauses: s.clauses.map(c => c.id === clause.id ? clean : c) }));
       audit("update", "clause", clause.name, { global: clause.global, tags: clause.tags });
     }
   }, []);
@@ -124,11 +129,42 @@ export function useAppState() {
     audit(updated.active ? "enable" : "disable", "rule", rule.name, {});
   }, [state.rules]);
 
+  const saveUser = useCallback(async (user, isNew) => {
+    if (isNew) {
+      const created = await api.createUser(user);
+      setUsers(u => [...u, { ...user, id: created.id || user.id }]);
+      audit("create", "settings", `User: ${user.name}`, { role: user.role });
+    } else {
+      await api.updateUser(user.id, user);
+      setUsers(u => u.map(x => x.id === user.id ? user : x));
+      audit("update", "settings", `User: ${user.name}`, { role: user.role });
+    }
+  }, []);
+
+  const removeUser = useCallback(async (id) => {
+    const user = users.find(u => u.id === id);
+    await api.deleteUser(id);
+    setUsers(u => u.filter(x => x.id !== id));
+    if (user) audit("delete", "settings", `User: ${user.name}`, {});
+  }, [users]);
+
+  const duplicateTemplate = useCallback(async (tmpl) => {
+    const copy = JSON.parse(JSON.stringify(tmpl));
+    copy.id   = Math.random().toString(36).slice(2, 10);
+    copy.name = `${tmpl.name} (copy)`;
+    copy.sections = copy.sections.map(s => ({ ...s, id: Math.random().toString(36).slice(2, 10) }));
+    await api.createTemplate(copy);
+    setState(s => ({ ...s, templates: [...s.templates, copy] }));
+    audit("create", "template", copy.name, { country: copy.country, entityId: copy.entityId });
+    return copy;
+  }, []);
+
   return {
-    state, loading, error, setState,
+    state, users, loading, error, setState,
     saveSettings,
-    saveTemplate,  removeTemplate,
+    saveTemplate,  removeTemplate, duplicateTemplate,
     saveClause,    removeClause,
     saveRule,      removeRule, toggleRule,
+    saveUser,      removeUser,
   };
 }

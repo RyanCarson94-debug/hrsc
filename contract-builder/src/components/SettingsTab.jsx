@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { B, CARD, BP, BS, BG, TAG, FI, mkInp } from "./shared";
+import { B, CARD, BP, BS, BG, TAG, FI, mkInp, compressImage } from "./shared";
 import { ALL_COUNTRIES } from "../defaults";
 
 function gid() { return Math.random().toString(36).slice(2,8); }
 
-export default function SettingsTab({ state, saveSettings }) {
+export default function SettingsTab({ state, saveSettings, users = [], saveUser, removeUser }) {
   const { settings } = state;
   const [tab, setTab]           = useState("entities");
   const [entDraft, setEntDraft] = useState(null);
@@ -117,6 +117,7 @@ export default function SettingsTab({ state, saveSettings }) {
     { id:"employment_types", label:"Employment Types" },
     { id:"manager_levels",   label:"Manager Levels" },
     { id:"headers_footers",  label:"Headers & Footers" },
+    { id:"users",            label:"User Management" },
   ];
 
   return (
@@ -203,6 +204,88 @@ export default function SettingsTab({ state, saveSettings }) {
       {tab==="employment_types" && <div style={{ maxWidth:700 }}><DropList listKey="employmentTypes" label="Employment Types"/></div>}
       {tab==="manager_levels"   && <div style={{ maxWidth:700 }}><DropList listKey="managerLevels"   label="Manager Levels"/></div>}
       {tab==="headers_footers"  && <HeaderFooterSettings settings={settings} updateSettings={updateSettings}/>}
+      {tab==="users"            && <UserManagement users={users} saveUser={saveUser} removeUser={removeUser}/>}
+    </div>
+  );
+}
+
+// ── User Management sub-tab ───────────────────────────────────────────────────
+function UserManagement({ users, saveUser, removeUser }) {
+  const [draft, setDraft]   = useState(null);
+  const [isNew, setIsNew]   = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  function startNew() {
+    setDraft({ id: Math.random().toString(36).slice(2, 10), name:"", email:"", role:"Adviser" });
+    setIsNew(true);
+  }
+  function startEdit(u) { setDraft(JSON.parse(JSON.stringify(u))); setIsNew(false); }
+
+  async function save() {
+    if (!draft || !draft.name.trim()) return;
+    setSaving(true);
+    try { await saveUser(draft, isNew); setDraft(null); }
+    finally { setSaving(false); }
+  }
+
+  async function del(id) {
+    if (!window.confirm("Remove this user?")) return;
+    await removeUser(id);
+  }
+
+  const ROLES = ["Adviser", "Admin"];
+  const roleColour = r => r === "Admin" ? { bg:"#DBEAFE", tc:"#1e40af" } : { bg:B.g1, tc:B.g3 };
+
+  return (
+    <div style={{ maxWidth:700 }}>
+      <div style={{ fontSize:12, color:B.g3, marginBottom:14 }}>Manage who has access to this tool and their role. Role determines whether a user can see Admin tabs.</div>
+
+      {draft && (
+        <div style={{ ...CARD({ marginBottom:14, borderLeft:`4px solid ${B.red}`, borderRadius:"0 10px 10px 0" }) }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 140px", gap:12, marginBottom:12 }}>
+            <FI label="Full Name" value={draft.name} onChange={e => setDraft({ ...draft, name:e.target.value })} placeholder="Jane Smith"/>
+            <FI label="Email (optional)" value={draft.email || ""} onChange={e => setDraft({ ...draft, email:e.target.value })} placeholder="jane@company.com"/>
+            <div>
+              <label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Role</label>
+              <select style={{ ...mkInp(false), appearance:"none" }} value={draft.role} onChange={e => setDraft({ ...draft, role:e.target.value })}>
+                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
+            <button style={BS} onClick={() => setDraft(null)}>Cancel</button>
+            <button style={{ ...BP, opacity:saving || !draft.name.trim() ? 0.5 : 1 }} onClick={save} disabled={saving || !draft.name.trim()}>{saving ? "Saving…" : "Save User"}</button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+        <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase", color:B.g3 }}>{users.length} User{users.length !== 1 ? "s" : ""}</span>
+        <button style={BP} onClick={startNew}>+ Add User</button>
+      </div>
+
+      {users.length === 0 && !draft && (
+        <div style={{ ...CARD({ textAlign:"center", padding:"2rem", color:B.g3 }) }}>No users configured yet. Add users to manage access.</div>
+      )}
+
+      {users.map(u => (
+        <div key={u.id} style={{ ...CARD({ marginBottom:8, display:"flex", alignItems:"center", gap:14 }) }}>
+          <div style={{ width:36, height:36, borderRadius:"50%", background:B.red, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:700, color:B.white, flexShrink:0 }}>
+            {u.name.trim().split(/\s+/).map(w => w[0]?.toUpperCase() || "").slice(0, 2).join("")}
+          </div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:13, fontWeight:700 }}>{u.name}</div>
+            {u.email && <div style={{ fontSize:11, color:B.g3 }}>{u.email}</div>}
+          </div>
+          <span style={{ ...TAG(roleColour(u.role).bg, roleColour(u.role).tc) }}>{u.role}</span>
+          <button style={{ ...BS, padding:"4px 10px", fontSize:11 }} onClick={() => startEdit(u)}>Edit</button>
+          <button style={BG(B.red)} onClick={() => del(u.id)}>×</button>
+        </div>
+      ))}
+
+      <div style={{ marginTop:16, padding:"10px 14px", background:B.g1, borderRadius:8, fontSize:11, color:B.g3 }}>
+        ℹ️ Role is enforced via the role selector in the top navigation bar. Users can identify themselves by entering their name in the "You are logged in as" field above.
+      </div>
     </div>
   );
 }
@@ -225,13 +308,11 @@ function HeaderFooterSettings({ settings, updateSettings }) {
     finally { setSaving(false); }
   }
 
-  function handleLogoUpload(e) {
+  async function handleLogoUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 300000) { alert("Image too large — please use an image under 300kb."); return; }
-    const reader = new FileReader();
-    reader.onload = ev => setDraft(d => ({ ...d, logoBase64: ev.target.result }));
-    reader.readAsDataURL(file);
+    const dataUrl = await compressImage(file);
+    setDraft(d => ({ ...d, logoBase64: dataUrl }));
   }
 
   const activeEnt = entities.find(e=>e.id===selEntityId);
@@ -267,7 +348,7 @@ function HeaderFooterSettings({ settings, updateSettings }) {
           <div style={{ background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:10, padding:"1.25rem" }}>
             <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase", color:B.g3, marginBottom:14 }}>Header</div>
             <div style={{ marginBottom:14 }}>
-              <label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:6 }}>Logo image (PNG, JPG or SVG, max 300kb)</label>
+              <label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:6 }}>Logo image (PNG, JPG or SVG — auto-compressed)</label>
               {draft.logoBase64 && (
                 <div style={{ marginBottom:8, display:"flex", alignItems:"center", gap:12 }}>
                   <img src={draft.logoBase64} alt="Logo preview" style={{ maxHeight:50, maxWidth:160, objectFit:"contain", border:`1px solid ${B.g2}`, borderRadius:4, padding:4 }}/>

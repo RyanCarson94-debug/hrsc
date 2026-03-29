@@ -30,10 +30,12 @@ export const updateTemplate  = (id, d)  => request("PUT",    `/templates/${id}`,
 export const deleteTemplate  = (id)     => request("DELETE", `/templates/${id}`);
 
 // ── Clauses ───────────────────────────────────────────────────────────────────
-export const getClauses    = ()       => request("GET",    "/clauses");
-export const createClause  = (data)   => request("POST",   "/clauses",       data);
-export const updateClause  = (id, d)  => request("PUT",    `/clauses/${id}`, d);
-export const deleteClause  = (id)     => request("DELETE", `/clauses/${id}`);
+export const getClauses       = ()       => request("GET",    "/clauses");
+export const createClause     = (data)   => request("POST",   "/clauses",                data);
+export const updateClause     = (id, d)  => request("PUT",    `/clauses/${id}`,           d);
+export const deleteClause     = (id)     => request("DELETE", `/clauses/${id}`);
+export const getClauseUsage   = (id)     => request("GET",    `/clauses/${id}/usage`);
+export const getClauseVersions= (id)     => request("GET",    `/clauses/${id}/versions`);
 
 // ── Rules ─────────────────────────────────────────────────────────────────────
 export const getRules    = ()       => request("GET",    "/rules");
@@ -46,6 +48,12 @@ export const logAudit      = (entry)  => request("POST",  "/audit", entry);
 export const getAuditLog   = (params) => request("GET",   `/audit${params||""}`);
 
 // ── Document generations ──────────────────────────────────────────────────────
-export const saveGeneration   = (data) => request("POST", "/generations", data);
-export const getGenerations   = (params) => request("GET", `/generations${params||""}`);
-export const getGeneration    = (id)   => request("GET",  `/generations/${id}`);
+export const saveGeneration    = (data)   => request("POST", "/generations", data);
+export const getGenerations    = (params) => request("GET",  `/generations${params||""}`);
+export const getGeneration     = (id)     => request("GET",  `/generations/${id}`);
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+export const getUsers    = ()       => request("GET",    "/users");
+export const createUser  = (data)   => request("POST",   "/users",       data);
+export const updateUser  = (id, d)  => request("PUT",    `/users/${id}`, d);
+export const deleteUser  = (id)     => request("DELETE", `/users/${id}`);
