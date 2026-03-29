@@ -168,8 +168,8 @@ function htmlToParagraphs(html, vars) {
   return paragraphs.length ? paragraphs : [new Paragraph({ children:[new TextRun({text:"",size:BODY_SIZE})] })];
 }
 
-// ── Main export function ───────────────────────────────────────────────────────
-export async function generateDocx({ tmpl, resolved, clauses, vars, headerFooter, emp, numberingFormat }) {
+// ── Core document builder — returns a Blob ────────────────────────────────────
+export async function generateDocxBlob({ tmpl, resolved, clauses, vars, headerFooter, emp, numberingFormat }) {
   const nums = buildSectionNumbers(resolved, numberingFormat || "flat");
   const hf   = headerFooter;
   const date = new Date().toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" });
@@ -318,12 +318,16 @@ export async function generateDocx({ tmpl, resolved, clauses, vars, headerFooter
     },
   });
 
-  // ── Pack and download ─────────────────────────────────────────────────────────
-  const blob = await Packer.toBlob(doc);
+  return Packer.toBlob(doc);
+}
+
+// ── Convenience wrapper — builds blob then triggers browser download ───────────
+export async function generateDocx(opts) {
+  const blob = await generateDocxBlob(opts);
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href     = url;
-  a.download = `${(tmpl.name + " " + (emp.employee_name || "draft")).replace(/\s+/g, "_")}.docx`;
+  a.download = `${(opts.tmpl.name + " " + (opts.emp.employee_name || "draft")).replace(/\s+/g, "_")}.docx`;
   a.click();
   URL.revokeObjectURL(url);
 }

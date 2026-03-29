@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 export const B = {
   red:"#FC1921", black:"#231F20", white:"#FFFFFF",
@@ -23,6 +23,56 @@ export const BG = (c=B.g3) => ({ padding:"7px 14px", background:"transparent", c
 export const TAG = (bg=B.g1, tc=B.g3) => ({ display:"inline-block", padding:"2px 9px", background:bg, color:tc, borderRadius:20, fontSize:10, fontWeight:600, letterSpacing:"0.04em" });
 
 export function gid() { return Math.random().toString(36).slice(2,8); }
+
+/**
+ * Persistent filter state — reads initial value from localStorage,
+ * writes on every change. Use in place of useState for country/entity filters.
+ */
+export function usePersistedFilter(storageKey) {
+  const [val, setVal] = useState(() => {
+    try { return localStorage.getItem(storageKey) || ""; } catch { return ""; }
+  });
+  const set = useCallback((v) => {
+    setVal(v);
+    try { localStorage.setItem(storageKey, v); } catch {}
+  }, [storageKey]);
+  return [val, set];
+}
+
+/**
+ * Compress an image file to JPEG via canvas.
+ * Returns a data-URL string. Falls back to FileReader for SVGs.
+ */
+export function compressImage(file, maxW = 400, maxH = 200, quality = 0.82) {
+  return new Promise((resolve) => {
+    if (file.type === "image/svg+xml") {
+      const reader = new FileReader();
+      reader.onload = ev => resolve(ev.target.result);
+      reader.readAsDataURL(file);
+      return;
+    }
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let w = img.width, h = img.height;
+      const ratio = Math.min(maxW / w, maxH / h, 1);
+      w = Math.round(w * ratio);
+      h = Math.round(h * ratio);
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      const reader = new FileReader();
+      reader.onload = ev => resolve(ev.target.result);
+      reader.readAsDataURL(file);
+    };
+    img.src = objectUrl;
+  });
+}
 
 export function FI({ label, value, onChange, type="text", placeholder="", as="input", min, rows=4 }) {
   const [f, setF] = useState(false);
@@ -238,7 +288,7 @@ function markdownToHtml(text) {
 }
 
 // ── Rich text editor (contenteditable WYSIWYG) ────────────────────────────────
-export function RichTextEditor({ label, value, onChange }) {
+export function RichTextEditor({ label, value, onChange, variables = [] }) {
   const ref = useRef(null);
 
   // Init innerHTML on mount only
