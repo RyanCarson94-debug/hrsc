@@ -20,7 +20,7 @@ function audit(action, recordType, recordName, detail = {}) {
     action,
     recordType,
     recordName,
-    detail: JSON.stringify(detail),
+    detail,
     userName: getCurrentUser(),
     timestamp: new Date().toISOString(),
   }).catch(() => {}); // fire-and-forget, never block UI
@@ -102,6 +102,18 @@ export function useAppState() {
     audit("delete", "clause", name || id, {});
   }, []);
 
+  const duplicateClause = useCallback(async (clause) => {
+    const copy = {
+      ...JSON.parse(JSON.stringify(clause)),
+      id:   Math.random().toString(36).slice(2, 10),
+      name: `${clause.name} (copy)`,
+    };
+    await api.createClause(copy);
+    setState(s => ({ ...s, clauses: [...s.clauses, copy] }));
+    audit("create", "clause", copy.name, { global: copy.global, tags: copy.tags });
+    return copy;
+  }, []);
+
   const saveRule = useCallback(async (rule, isNew) => {
     if (isNew) {
       await api.createRule(rule);
@@ -118,6 +130,19 @@ export function useAppState() {
     await api.deleteRule(id);
     setState(s => ({ ...s, rules: s.rules.filter(r => r.id !== id) }));
     audit("delete", "rule", name || id, {});
+  }, []);
+
+  const duplicateRule = useCallback(async (rule) => {
+    const copy = {
+      ...JSON.parse(JSON.stringify(rule)),
+      id:       Math.random().toString(36).slice(2, 10),
+      name:     `${rule.name} (copy)`,
+      priority: rule.priority + 1,
+    };
+    await api.createRule(copy);
+    setState(s => ({ ...s, rules: [...s.rules, copy] }));
+    audit("create", "rule", copy.name, { country: copy.country, priority: copy.priority });
+    return copy;
   }, []);
 
   const toggleRule = useCallback(async (id) => {
@@ -162,9 +187,9 @@ export function useAppState() {
   return {
     state, users, loading, error, setState,
     saveSettings,
-    saveTemplate,  removeTemplate, duplicateTemplate,
-    saveClause,    removeClause,
-    saveRule,      removeRule, toggleRule,
-    saveUser,      removeUser,
+    saveTemplate, duplicateTemplate, removeTemplate,
+    saveClause,   duplicateClause,  removeClause,
+    saveRule,     duplicateRule,    removeRule, toggleRule,
+    saveUser,     removeUser,
   };
 }

@@ -267,7 +267,7 @@ export async function generateDocx(opts) {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href     = url;
-  a.download = `${(opts.tmpl.name + " " + (opts.emp.employee_name || "draft")).replace(/\s+/g, "_")}.docx`;
+  a.download = opts.filename || `${(opts.tmpl.name + " " + (opts.emp.employee_name || "draft")).replace(/\s+/g, "_")}.docx`;
   a.click();
   URL.revokeObjectURL(url);
 }

@@ -40,7 +40,28 @@ function AuditLog() {
   const [toDate,       setToDate]       = useState("");
   const [page, setPage]                 = useState(0);
   const [total, setTotal]               = useState(0);
+  const [exporting, setExporting]       = useState(false);
   const PAGE_SIZE = 25;
+
+  async function exportCSV() {
+    setExporting(true);
+    try {
+      const data = await getAuditLog("?limit=10000&offset=0");
+      const rows = data.entries || [];
+      const cols = ["timestamp","action","record_type","record_name","user_name","detail"];
+      const escape = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+      const csv = [cols.join(","), ...rows.map(e => cols.map(c => escape(e[c])).join(","))].join("\n");
+      const blob = new Blob([csv], { type:"text/csv" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url;
+      a.download = `audit_log_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -98,6 +119,9 @@ function AuditLog() {
         {hasFilters && (
           <button style={{ ...BS, padding:"7px 14px", fontSize:12 }} onClick={clearFilters}>Clear all</button>
         )}
+        <button style={{ ...BS, padding:"7px 14px", fontSize:12, marginLeft:"auto", opacity:exporting?0.6:1 }} onClick={exportCSV} disabled={exporting}>
+          {exporting ? "Exporting…" : "↓ Export CSV"}
+        </button>
       </div>
 
       {loading && <div style={{ color:B.g3, fontSize:13 }}>Loading…</div>}

@@ -1,43 +1,80 @@
 import { useState } from "react";
-import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, clauseAvailable, templateMatches, usePersistedFilter, compressImage } from "./shared";
+import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, clauseAvailable, templateMatches, mkInp, Toast, usePersistedFilter, compressImage } from "./shared";
 import { ALL_COUNTRIES } from "../defaults";
 
 function gid() { return Math.random().toString(36).slice(2,8); }
 
-export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
+export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, removeTemplate }) {
   const { settings, clauses, templates } = state;
   const [cf, setCf] = usePersistedFilter("hrsc_tm_cf");
   const [ef, setEf] = usePersistedFilter("hrsc_tm_ef");
   const [sel, setSel]   = useState(null);
   const [draft, setDraft] = useState(null);
+  const [origDraft, setOrigDraft] = useState(null);
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [dragIdx, setDragIdx] = useState(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
+  const [search, setSearch] = useState("");
+  const [sf, setSf] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  const filtered = templates.filter(t => templateMatches(t, cf, ef));
+  const filtered = templates.filter(t => templateMatches(t, cf, ef) && (!search || t.name.toLowerCase().includes(search.toLowerCase())));
   const availClauses = draft ? clauses.filter(c => clauseAvailable(c, draft.country, draft.entityId)) : [];
 
-  function startNew() { setDraft({id:gid(),name:"New Template",country:"United Kingdom",entityId:settings.entities[0]?.id||"",documentType:"contract",description:"",numberingFormat:"hierarchical",sections:[]}); setIsNew(true); setSel(null); }
-  function startEdit(t) { setDraft(JSON.parse(JSON.stringify(t))); setIsNew(false); setSel(t); }
+  const STATUS_COLOURS = { live:{ bg:"#DCFCE7", tc:"#166534" }, draft:{ bg:"#FFF9E6", tc:"#7A5E00" }, archived:{ bg:"#F3F4F6", tc:"#6B7280" } };
+
+  function startNew() { const d = {id:gid(),name:"New Template",country:"United Kingdom",entityId:settings.entities[0]?.id||"",documentType:"contract",description:"",numberingFormat:"hierarchical",status:"live",filenamePattern:"",sections:[]}; setDraft(d); setOrigDraft(d); setIsNew(true); setSel(null); }
+  function startEdit(t) { const d = JSON.parse(JSON.stringify(t)); setDraft(d); setOrigDraft(d); setIsNew(false); setSel(t); }
+  function cancelEdit() {
+    if (!isNew && origDraft && JSON.stringify(draft) !== JSON.stringify(origDraft)) {
+      if (!window.confirm("Discard unsaved changes?")) return;
+    }
+    setDraft(null); setSel(null);
+  }
+  async function duplicate(t) {
+    const copy = await duplicateTemplate(t);
+    setDraft(JSON.parse(JSON.stringify(copy)));
+    setIsNew(false);
+    setSel(copy);
+  }
+
   async function save() {
     if (!draft) return;
     setSaving(true);
-    try { await saveTemplate(draft, isNew); setSel(draft); setIsNew(false); setDraft(null); }
+    try { await saveTemplate(draft, isNew); setSel(draft); setIsNew(false); setDraft(null); setToast("Template saved"); }
     finally { setSaving(false); }
   }
-  async function del(id) {
+  async function del(id, name) {
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
     await removeTemplate(id); setSel(null); setDraft(null);
+  }
+
+  function onDragStart(e, idx) { setDragIdx(idx); e.dataTransfer.effectAllowed = "move"; }
+  function onDragOver(e, idx)  { e.preventDefault(); setDragOverIdx(idx); }
+  function onDragEnd()          { setDragIdx(null); setDragOverIdx(null); }
+  function onDrop(e, idx) {
+    e.preventDefault();
+    if (dragIdx === null || dragIdx === idx) { onDragEnd(); return; }
+    const secs = [...draft.sections];
+    const [moved] = secs.splice(dragIdx, 1);
+    secs.splice(idx, 0, moved);
+    setDraft({ ...draft, sections: secs });
+    onDragEnd();
   }
   function addSec() { if (!draft) return; setDraft({...draft, sections:[...draft.sections,{id:gid(),name:"New Section",clauseId:null,level:1,content:"",required:true,ruleSlot:false}]}); }
   function updSec(idx, patch) { if (!draft) return; setDraft({...draft, sections:draft.sections.map((s,i)=>i===idx?{...s,...patch}:s)}); }
 
   return (
+    <>
     <div style={{display:"grid",gridTemplateColumns:"280px 1fr",gap:20,alignItems:"start"}}>
       <div>
         <FilterBar countries={ALL_COUNTRIES} entities={settings.entities} countryFilter={cf} setCountryFilter={setCf} entityFilter={ef} setEntityFilter={setEf}/>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",color:B.g3}}>{filtered.length} Templates</span>
           <button style={{...BP,padding:"6px 12px",fontSize:11}} onClick={startNew}>+ New</button>
         </div>
+        <input style={{...mkInp(sf),marginBottom:10}} placeholder="Search templates…" value={search} onChange={e=>setSearch(e.target.value)} onFocus={()=>setSf(true)} onBlur={()=>setSf(false)}/>
         {filtered.map(t => {
           const a = sel?.id===t.id || draft?.id===t.id;
           const ent = settings.entities.find(e=>e.id===t.entityId);
@@ -47,6 +84,7 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
               <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                 <span style={TAG()}>{t.country==="__global__"?"Global":t.country}</span>
                 {ent && <span style={TAG(B.g1,"#0E56A5")}>{ent.shortCode}</span>}
+                {t.status && t.status !== "live" && <span style={TAG(STATUS_COLOURS[t.status]?.bg, STATUS_COLOURS[t.status]?.tc)}>{t.status}</span>}
               </div>
             </div>
           );
@@ -81,7 +119,18 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
                   <option value="flat">Flat — 1. 2. 3.</option>
                   <option value="hierarchical">Hierarchical — 1. 1.1 2. 2.1</option>
                 </FS>
+                <FS label="Status" value={draft.status||"live"} onChange={e=>setDraft({...draft,status:e.target.value})}>
+                  <option value="live">Live — visible to advisers</option>
+                  <option value="draft">Draft — admin only</option>
+                  <option value="archived">Archived — hidden</option>
+                </FS>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                 <FI label="Description" value={draft.description} onChange={e=>setDraft({...draft,description:e.target.value})} placeholder="Brief description…"/>
+                <div>
+                  <FI label="Filename pattern (optional)" value={draft.filenamePattern||""} onChange={e=>setDraft({...draft,filenamePattern:e.target.value})} placeholder="{date}_{country}_{employee_last_name}"/>
+                  <div style={{fontSize:10,color:B.g3,marginTop:3}}>Tokens: {"{date} {employee_name} {employee_last_name} {country} {template_name}"}</div>
+                </div>
               </div>
               {/* Per-template header/footer override */}
               <div style={{padding:"10px 12px",background:B.g1,borderRadius:8}}>
@@ -126,8 +175,16 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
               </div>
               {draft.sections.length===0 && <div style={{textAlign:"center",padding:"1.5rem",color:B.g3,fontSize:12}}>No sections yet.</div>}
               {draft.sections.map((s,idx) => (
-                <div key={s.id} style={{background:B.g1,borderRadius:8,padding:"12px",marginBottom:10}}>
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 80px auto",gap:10,alignItems:"end",marginBottom:10}}>
+                <div key={s.id}
+                  draggable
+                  onDragStart={e=>onDragStart(e,idx)}
+                  onDragOver={e=>onDragOver(e,idx)}
+                  onDrop={e=>onDrop(e,idx)}
+                  onDragEnd={onDragEnd}
+                  style={{background:dragOverIdx===idx?B.g2:B.g1,borderRadius:8,padding:"12px",marginBottom:10,transition:"background 0.1s",opacity:dragIdx===idx?0.5:1}}
+                >
+                  <div style={{display:"grid",gridTemplateColumns:"20px 1fr 1fr 80px auto",gap:10,alignItems:"end",marginBottom:10}}>
+                    <div style={{cursor:"grab",color:B.g3,fontSize:16,userSelect:"none",paddingBottom:6,textAlign:"center"}}>⠿</div>
                     <FI label="Section Name" value={s.name} onChange={e=>updSec(idx,{name:e.target.value})}/>
                     <FS label="Linked Clause" value={s.clauseId||""} onChange={e=>updSec(idx,{clauseId:e.target.value||null})}>
                       <option value="">— Free text —</option>
@@ -142,6 +199,7 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
                   {!s.clauseId && <FI label="Content — use {{variable}} for dynamic fields" value={s.content||""} onChange={e=>updSec(idx,{content:e.target.value})} as="textarea" placeholder="Section text…"/>}
                   <div style={{display:"flex",gap:16,marginTop:8}}>
                     <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:B.g3,cursor:"pointer",fontWeight:500}}><input type="checkbox" checked={s.required} onChange={e=>updSec(idx,{required:e.target.checked})} style={{accentColor:B.red}}/>Required</label>
+                    <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:B.g3,cursor:"pointer",fontWeight:500}}><input type="checkbox" checked={!!s.optional} onChange={e=>updSec(idx,{optional:e.target.checked})} style={{accentColor:B.red}}/>Optional (adviser can include/exclude)</label>
                     <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:B.g3,cursor:"pointer",fontWeight:500}}><input type="checkbox" checked={s.ruleSlot} onChange={e=>updSec(idx,{ruleSlot:e.target.checked})} style={{accentColor:B.red}}/>Rules engine can override</label>
                   </div>
                 </div>
@@ -149,8 +207,8 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
             </div>
 
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
-              {!isNew && <button style={BG(B.red)} onClick={()=>del(draft.id)}>Delete Template</button>}
-              <button style={BS} onClick={()=>{setDraft(null);setSel(null);}}>Cancel</button>
+              {!isNew && <button style={BG(B.red)} onClick={()=>del(draft.id, draft.name)}>Delete Template</button>}
+              <button style={BS} onClick={cancelEdit}>Cancel</button>
               <button style={{...BP,opacity:saving?0.6:1}} onClick={save} disabled={saving}>{saving?"Saving…":"Save Template"}</button>
             </div>
           </div>
@@ -166,10 +224,14 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
                   {settings.entities.find(e=>e.id===sel.entityId) && <span style={TAG(B.g1,"#0E56A5")}>{settings.entities.find(e=>e.id===sel.entityId)?.shortCode}</span>}
                   <span style={TAG()}>{sel.documentType}</span>
                   <span style={TAG()}>{sel.numberingFormat} numbering</span>
+                  {sel.status && <span style={TAG(STATUS_COLOURS[sel.status]?.bg, STATUS_COLOURS[sel.status]?.tc)}>{sel.status}</span>}
                 </div>
                 <div style={{fontSize:12,color:B.g3}}>{sel.description}</div>
               </div>
-              <button style={BP} onClick={()=>startEdit(sel)}>Edit Template</button>
+              <div style={{display:"flex",gap:8}}>
+                <button style={BS} onClick={()=>duplicate(sel)}>Duplicate</button>
+                <button style={BP} onClick={()=>startEdit(sel)}>Edit Template</button>
+              </div>
             </div>
             <div style={{borderTop:`1.5px solid ${B.g2}`,paddingTop:14}}>
               {sel.sections.map((s,i) => (
@@ -185,5 +247,7 @@ export default function TemplatesTab({ state, saveTemplate, removeTemplate }) {
         )}
       </div>
     </div>
+    {toast && <Toast message={toast} onDone={() => setToast(null)}/>}
+    </>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, mkInp, usePersistedFilter } from "./shared";
+import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, mkInp, Toast, usePersistedFilter } from "./shared";
 import { ALL_COUNTRIES } from "../defaults";
 import { evalRule, resolveTemplate, detectConflicts } from "../ruleEngine";
 
@@ -109,13 +109,16 @@ function RuleTester({ rules, templates, clauses, settings }) {
 }
 
 // ── Main RulesTab ─────────────────────────────────────────────────────────────
-export default function RulesTab({ state, saveRule, removeRule, toggleRule }) {
+export default function RulesTab({ state, saveRule, removeRule, toggleRule, duplicateRule }) {
   const { settings, clauses, templates, rules } = state;
   const [cf, setCf] = usePersistedFilter("hrsc_rl_cf");
   const [ef, setEf] = usePersistedFilter("hrsc_rl_ef");
   const [draft, setDraft] = useState(null);
+  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
+  const [origDraft, setOrigDraft] = useState(null);
   const [isNew, setIsNew] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const filtered = rules.filter(r => {
     if (cf && r.country && r.country !== "__global__" && r.country !== cf) return false;
@@ -128,17 +131,29 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule }) {
   const conflictRuleIds = useMemo(() => new Set(conflicts.flatMap(c => [c.ruleA.id, c.ruleB.id])), [conflicts]);
 
   function startNew() {
-    setDraft({ id:gid(), name:"New Rule", description:"", conditions:[{ field:"grade", operator:"gte", value:"5" }], conditionLogic:"AND", action:{ type:"replace_clause", targetTemplateId:"", targetSectionId:"", clauseId:"" }, country:"__global__", entityId:"__global__", priority:rules.length + 1, active:true });
-    setIsNew(true);
+    const d = { id:gid(), name:"New Rule", description:"", conditions:[{ field:"grade", operator:"gte", value:"5" }], conditionLogic:"AND", action:{ type:"replace_clause", targetTemplateId:"", targetSectionId:"", clauseId:"" }, country:"__global__", entityId:"__global__", priority:rules.length + 1, active:true };
+    setDraft(d); setOrigDraft(d); setIsNew(true);
   }
-  function startEdit(r) { setDraft(JSON.parse(JSON.stringify(r))); setIsNew(false); }
+  function startEdit(r) {
+    const d = JSON.parse(JSON.stringify(r));
+    setDraft(d); setOrigDraft(d); setIsNew(false);
+  }
+  function cancelEdit() {
+    if (!isNew && origDraft && JSON.stringify(draft) !== JSON.stringify(origDraft)) {
+      if (!window.confirm("Discard unsaved changes?")) return;
+    }
+    setDraft(null);
+  }
   async function save() {
     if (!draft) return;
     setSaving(true);
-    try { await saveRule(draft, isNew); setDraft(null); }
+    try { await saveRule(draft, isNew); setDraft(null); setToast("Rule saved"); }
     finally { setSaving(false); }
   }
-  async function del(id) { await removeRule(id); setDraft(null); }
+  async function del(id, name) {
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    await removeRule(id, name); setDraft(null);
+  }
   function updCond(idx, patch) { if (!draft) return; setDraft({ ...draft, conditions:draft.conditions.map((c, i) => i === idx ? { ...c, ...patch } : c) }); }
 
   const targetTemplateSections = useMemo(() => {
@@ -169,6 +184,7 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule }) {
   };
 
   return (
+    <>
     <div style={{ display:"grid", gridTemplateColumns:draft ? "1fr 480px" : "1fr", gap:20, alignItems:"start" }}>
       <div>
         <FilterBar countries={ALL_COUNTRIES} entities={settings.entities} countryFilter={cf} setCountryFilter={setCf} entityFilter={ef} setEntityFilter={setEf}/>
@@ -201,28 +217,53 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule }) {
         )}
 
         {filtered.length === 0 && <div style={{ ...CARD({ textAlign:"center", padding:"2rem", color:B.g3 }) }}>No rules match your filters.</div>}
-        {[...filtered].sort((a, b) => a.priority - b.priority).map(r => (
-          <div key={r.id} style={{ ...CARD({ marginBottom:10, borderLeft:`4px solid ${r.active ? (conflictRuleIds.has(r.id) ? "#F59E0B" : B.red) : B.g2}`, borderRadius:"0 10px 10px 0", opacity:r.active ? 1 : 0.6 }) }}>
-            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12 }}>
-              <div style={{ flex:1 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:5 }}>
-                  <span style={{ ...TAG(), fontFamily:"'Montserrat',sans-serif", fontWeight:700 }}>P{r.priority}</span>
-                  <span style={{ fontSize:13, fontWeight:700 }}>{r.name}</span>
-                  {!r.active && <span style={TAG("#FEE2E2", "#b91c1c")}>Inactive</span>}
-                  {conflictRuleIds.has(r.id) && r.active && <span style={TAG("#FFF9E6", "#7A5E00")}>⚠ Conflict</span>}
-                  {r.country !== "__global__" && <span style={TAG()}>{r.country}</span>}
-                  {r.entityId !== "__global__" && settings.entities.find(e => e.id === r.entityId) && <span style={TAG(B.g1, "#0E56A5")}>{settings.entities.find(e => e.id === r.entityId)?.shortCode}</span>}
-                </div>
-                {r.description && <div style={{ fontSize:12, color:B.g3, marginBottom:6 }}>{r.description}</div>}
-                <div style={{ fontFamily:"'Courier New',monospace", fontSize:10, color:B.g3, background:B.g1, padding:"7px 10px", borderRadius:6, lineHeight:1.6 }}>{summary(r)}</div>
+        {(() => {
+          const sorted = [...filtered].sort((a, b) => a.priority - b.priority);
+          const groupMap = {};
+          sorted.forEach(r => { const k = r.group || ""; if (!groupMap[k]) groupMap[k] = []; groupMap[k].push(r); });
+          const groupKeys = [...Object.keys(groupMap).filter(k => k).sort(), ""];
+          return groupKeys.map(gk => {
+            const groupRules = groupMap[gk] || [];
+            if (!groupRules.length) return null;
+            const label = gk || "Ungrouped";
+            const isCollapsed = collapsedGroups.has(gk);
+            const toggleGroup = () => setCollapsedGroups(prev => { const n = new Set(prev); n.has(gk) ? n.delete(gk) : n.add(gk); return n; });
+            return (
+              <div key={gk}>
+                {(groupKeys.length > 1 || gk) && (
+                  <div onClick={toggleGroup} style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", padding:"6px 0", marginBottom:4, userSelect:"none" }}>
+                    <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3 }}>{label}</span>
+                    <span style={{ fontSize:10, color:B.g3 }}>{isCollapsed ? "▶" : "▼"}</span>
+                    <span style={TAG()}>{groupRules.length}</span>
+                  </div>
+                )}
+                {!isCollapsed && groupRules.map(r => (
+                  <div key={r.id} style={{ ...CARD({ marginBottom:10, borderLeft:`4px solid ${r.active ? (conflictRuleIds.has(r.id) ? "#F59E0B" : B.red) : B.g2}`, borderRadius:"0 10px 10px 0", opacity:r.active ? 1 : 0.6 }) }}>
+                    <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:12 }}>
+                      <div style={{ flex:1 }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:5 }}>
+                          <span style={{ ...TAG(), fontFamily:"'Montserrat',sans-serif", fontWeight:700 }}>P{r.priority}</span>
+                          <span style={{ fontSize:13, fontWeight:700 }}>{r.name}</span>
+                          {!r.active && <span style={TAG("#FEE2E2", "#b91c1c")}>Inactive</span>}
+                          {conflictRuleIds.has(r.id) && r.active && <span style={TAG("#FFF9E6", "#7A5E00")}>⚠ Conflict</span>}
+                          {r.country !== "__global__" && <span style={TAG()}>{r.country}</span>}
+                          {r.entityId !== "__global__" && settings.entities.find(e => e.id === r.entityId) && <span style={TAG(B.g1, "#0E56A5")}>{settings.entities.find(e => e.id === r.entityId)?.shortCode}</span>}
+                        </div>
+                        {r.description && <div style={{ fontSize:12, color:B.g3, marginBottom:6 }}>{r.description}</div>}
+                        <div style={{ fontFamily:"'Courier New',monospace", fontSize:10, color:B.g3, background:B.g1, padding:"7px 10px", borderRadius:6, lineHeight:1.6 }}>{summary(r)}</div>
+                      </div>
+                      <div style={{ display:"flex", gap:6, flexShrink:0 }}>
+                        <button style={{ ...BS, padding:"5px 12px", fontSize:11 }} onClick={() => toggleRule(r.id)}>{r.active ? "Disable" : "Enable"}</button>
+                        {duplicateRule && <button style={{ ...BS, padding:"5px 12px", fontSize:11 }} onClick={async () => { const copy = await duplicateRule(r); startEdit(copy); }}>Duplicate</button>}
+                        <button style={{ ...BS, padding:"5px 12px", fontSize:11 }} onClick={() => startEdit(r)}>Edit</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div style={{ display:"flex", gap:6, flexShrink:0 }}>
-                <button style={{ ...BS, padding:"5px 12px", fontSize:11 }} onClick={() => toggleRule(r.id)}>{r.active ? "Disable" : "Enable"}</button>
-                <button style={{ ...BS, padding:"5px 12px", fontSize:11 }} onClick={() => startEdit(r)}>Edit</button>
-              </div>
-            </div>
-          </div>
-        ))}
+            );
+          });
+        })()}
 
         <RuleTester rules={rules} templates={templates} clauses={clauses} settings={settings}/>
       </div>
@@ -244,6 +285,10 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule }) {
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
               <FI label="Rule Name"                value={draft.name}     onChange={e => setDraft({ ...draft, name:e.target.value })}/>
               <FI label="Priority (lower = first)" value={String(draft.priority)} onChange={e => setDraft({ ...draft, priority:parseInt(e.target.value) || 1 })} type="number" min="1"/>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginTop:12 }}>
+              <FI label="Group / Folder (optional)" value={draft.group || ""} onChange={e => setDraft({ ...draft, group:e.target.value })} placeholder="e.g. Compensation, Probation…"/>
+              <div/>
             </div>
             <div style={{ marginTop:12 }}><FI label="Description" value={draft.description} onChange={e => setDraft({ ...draft, description:e.target.value })} placeholder="When does this rule apply?"/></div>
             <div style={{ marginTop:10 }}>
@@ -335,12 +380,14 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule }) {
           </div>
 
           <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
-            {!isNew && <button style={BG(B.red)} onClick={() => del(draft.id)}>Delete Rule</button>}
-            <button style={BS} onClick={() => setDraft(null)}>Cancel</button>
+            {!isNew && <button style={BG(B.red)} onClick={() => del(draft.id, draft.name)}>Delete Rule</button>}
+            <button style={BS} onClick={cancelEdit}>Cancel</button>
             <button style={{ ...BP, opacity:saving ? 0.6 : 1 }} onClick={save} disabled={saving}>{saving ? "Saving…" : "Save Rule"}</button>
           </div>
         </div>
       )}
     </div>
+    {toast && <Toast message={toast} onDone={() => setToast(null)}/>}
+    </>
   );
 }

@@ -299,6 +299,17 @@ export async function onRequest(context) {
       }
     }
 
+    // ── IDENTITY (Cloudflare Access) ──────────────────────────────────────────
+    if (resource === "me") {
+      if (request.method === "GET") {
+        const email = request.headers.get("Cf-Access-Authenticated-User-Email") || "";
+        const name  = email
+          ? email.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+          : "";
+        return json({ email, name });
+      }
+    }
+
     return err("Not found", 404);
   } catch (e) {
     console.error(e);

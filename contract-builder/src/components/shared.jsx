@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 export const B = {
   red:"#FC1921", black:"#231F20", white:"#FFFFFF",
@@ -146,6 +146,15 @@ export function renderClauseContent(text, vars={}) {
 
 // Render clause content to React JSX (for in-app preview — handles formatting markers)
 export function renderClauseContentRich(text, vars={}) {
+  if (!text) return null;
+  // HTML path: if content starts with an HTML tag, render as HTML with variable substitution
+  if (text.trim().startsWith("<")) {
+    let html = text.replace(/\{\{(\w+)\}\}/g, (_, k) =>
+      `<span style="color:#FC1921;font-weight:600">${vars[k] || `[${k}]`}</span>`
+    );
+    return <div dangerouslySetInnerHTML={{ __html: html }} style={{ lineHeight:1.85 }}/>;
+  }
+  // Legacy markdown path
   let resolved = text.replace(/\{\{(\w+)\}\}/g, (_,k) => vars[k] || `[${k}]`);
   // numbered lists
   resolved = resolved.replace(/@(num|alpha|ALPHA|roman|ROMAN)\{([^}]+)\}/g, (_, type, inner) => {
@@ -224,118 +233,146 @@ export function templateMatches(t, countryFilter, entityFilter) {
   return cOk && eOk;
 }
 
-// ── Clause content editor with rich text toolbar ───────────────────────────────
-export function ClauseEditor({ label, value, onChange, variables = [] }) {
-  const [f, setF] = useState(false);
-  const [preview, setPreview] = useState(false);
-  const EDITOR_ID = "clause-editor-ta";
-
-  function wrap(before, after="", placeholder="text") {
-    const ta = document.getElementById(EDITOR_ID);
-    if (!ta) return;
-    const start = ta.selectionStart, end = ta.selectionEnd;
-    const sel = value.slice(start, end) || placeholder;
-    const next = value.slice(0,start) + before + sel + after + value.slice(end);
-    onChange({ target:{value:next} });
-    setTimeout(()=>{ ta.focus(); ta.selectionStart=start+before.length; ta.selectionEnd=start+before.length+sel.length; }, 10);
-  }
-
-  function insertLine(prefix) {
-    const ta = document.getElementById(EDITOR_ID);
-    if (!ta) return;
-    const start = ta.selectionStart;
-    const lineStart = value.lastIndexOf("\n", start-1)+1;
-    const before = value.slice(0,lineStart);
-    const after  = value.slice(lineStart);
-    onChange({ target:{value: before + prefix + after} });
-    setTimeout(()=>{ ta.focus(); ta.selectionStart=ta.selectionEnd=lineStart+prefix.length; }, 10);
-  }
-
-  function insertAtCursor(code) {
-    const ta = document.getElementById(EDITOR_ID);
-    if (!ta) { onChange({ target:{value: value+"\n"+code} }); return; }
-    const start=ta.selectionStart, end=ta.selectionEnd;
-    onChange({ target:{value: value.slice(0,start)+"\n"+code+"\n"+value.slice(end)} });
-    setTimeout(()=>{ ta.focus(); ta.selectionStart=ta.selectionEnd=start+code.length+2; }, 10);
-  }
-
-  const FMT_BTNS = [
-    { label:"B",     title:"Bold",           action:()=>wrap("**","**") ,         style:{fontWeight:700} },
-    { label:"I",     title:"Italic",         action:()=>wrap("*","*"),             style:{fontStyle:"italic"} },
-    { label:"U",     title:"Underline",      action:()=>wrap("__","__"),           style:{textDecoration:"underline"} },
-    { label:"H1",    title:"Heading 1",      action:()=>insertLine("# "),          style:{fontWeight:700} },
-    { label:"H2",    title:"Heading 2",      action:()=>insertLine("## "),         style:{fontWeight:700} },
-    { label:"H3",    title:"Heading 3",      action:()=>insertLine("### "),        style:{fontWeight:700} },
-  ];
-  const LIST_BTNS = [
-    { label:"1. 2. 3.",    action:()=>insertAtCursor("@num{\nItem one\nItem two\nItem three\n}") },
-    { label:"a. b. c.",    action:()=>insertAtCursor("@alpha{\nItem one\nItem two\nItem three\n}") },
-    { label:"A. B. C.",    action:()=>insertAtCursor("@ALPHA{\nItem one\nItem two\nItem three\n}") },
-    { label:"i. ii. iii.", action:()=>insertAtCursor("@roman{\nItem one\nItem two\nItem three\n}") },
-    { label:"{{var}}",     action:()=>wrap("{{","}}","variable_name") },
-  ];
-
-  function previewContent() {
-    // Replace {{key}} with [Label] using variables list
-    return value.replace(/\{\{(\w+)\}\}/g, (_, k) => {
-      const v = variables.find(x => x.key === k);
-      return `[${v ? v.label : k}]`;
-    });
-  }
+// ── Toast notification ─────────────────────────────────────────────────────────
+export function Toast({ message, onDone }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 3000);
+    return () => clearTimeout(t);
+  }, [onDone]);
 
   return (
-    <div>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
-        <label style={LBL}>{label}</label>
-        <button
-          onClick={()=>setPreview(p=>!p)}
-          style={{...BS,padding:"2px 10px",fontSize:10,background:preview?B.black:"transparent",color:preview?B.white:B.g3,borderColor:preview?B.black:B.g2}}
-        >
-          {preview ? "✎ Edit" : "◉ Preview"}
-        </button>
-      </div>
-
-      {preview ? (
-        <div style={{...mkInp(false), minHeight:160, borderRadius:6, lineHeight:1.65, whiteSpace:"pre-wrap", color:B.black, overflowY:"auto"}}>
-          {previewContent()}
-        </div>
-      ) : (
-        <>
-          <div style={{background:B.g1,borderRadius:"6px 6px 0 0",border:`1.5px solid ${B.g2}`,borderBottom:"none"}}>
-            {/* Formatting row */}
-            <div style={{display:"flex",gap:4,padding:"6px 8px",borderBottom:`1px solid ${B.g2}`,flexWrap:"wrap",alignItems:"center"}}>
-              <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:B.g3,marginRight:4}}>Format</span>
-              {FMT_BTNS.map(b=>(
-                <button key={b.label} title={b.title} onClick={b.action} style={{...BS,padding:"3px 9px",fontSize:12,background:B.white,borderColor:B.g2,minWidth:32,...b.style}}>
-                  {b.label}
-                </button>
-              ))}
-              <div style={{width:1,height:20,background:B.g2,margin:"0 4px"}}/>
-              <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:B.g3,marginRight:4}}>Lists & vars</span>
-              {LIST_BTNS.map(b=>(
-                <button key={b.label} title={b.label} onClick={b.action} style={{...BS,padding:"3px 9px",fontSize:11,background:B.white,borderColor:B.g2,fontWeight:700}}>
-                  {b.label}
-                </button>
-              ))}
-            </div>
-            {/* Syntax hint */}
-            <div style={{padding:"4px 10px",fontSize:10,color:B.g3,fontStyle:"italic"}}>
-              **bold** &nbsp;·&nbsp; *italic* &nbsp;·&nbsp; __underline__ &nbsp;·&nbsp; # Heading
-            </div>
-          </div>
-          <textarea
-            id={EDITOR_ID}
-            style={{...mkInp(f), minHeight:160, resize:"vertical", lineHeight:1.65, borderRadius:"0 0 6px 6px"}}
-            value={value}
-            onChange={onChange}
-            onFocus={()=>setF(true)}
-            onBlur={()=>setF(false)}
-          />
-        </>
-      )}
+    <div style={{
+      position:"fixed", bottom:28, right:28, zIndex:9999,
+      background:B.teal, color:B.white,
+      padding:"12px 22px", borderRadius:8,
+      fontSize:13, fontWeight:600, fontFamily:"'Montserrat',sans-serif",
+      boxShadow:"0 4px 20px rgba(0,162,138,0.35)",
+      display:"flex", alignItems:"center", gap:10,
+      animation:"hrsc-toast-in 0.2s ease",
+    }}>
+      <span style={{fontSize:16}}>✓</span>
+      {message}
+      <style>{`@keyframes hrsc-toast-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
     </div>
   );
 }
+
+// ── Markdown → HTML helper (for legacy content) ────────────────────────────────
+function applyInline(text) {
+  return text
+    .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+    .replace(/\*\*(.+?)\*\*/g,     "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g,         "<em>$1</em>")
+    .replace(/__(.+?)__/g,          "<u>$1</u>");
+}
+
+function markdownToHtml(text) {
+  if (!text) return "";
+  // @num{} and list variants → <ol>
+  let html = text.replace(/@(?:num|alpha|ALPHA|roman|ROMAN)\{([^}]+)\}/g, (_, inner) => {
+    const items = inner.split("\n").map(s => s.trim()).filter(Boolean);
+    return "<ol>" + items.map(item => `<li>${item}</li>`).join("") + "</ol>";
+  });
+  // Process line by line
+  const lines = html.split("\n");
+  const result = [];
+  for (const line of lines) {
+    if (line.startsWith("<")) { result.push(line); continue; }
+    if (/^### /.test(line)) { result.push(`<h3>${applyInline(line.slice(4))}</h3>`); continue; }
+    if (/^## /.test(line))  { result.push(`<h2>${applyInline(line.slice(3))}</h2>`); continue; }
+    if (/^# /.test(line))   { result.push(`<h1>${applyInline(line.slice(2))}</h1>`); continue; }
+    if (line.trim() === "") continue;
+    result.push(`<p>${applyInline(line)}</p>`);
+  }
+  return result.join("");
+}
+
+// ── Rich text editor (contenteditable WYSIWYG) ────────────────────────────────
+export function RichTextEditor({ label, value, onChange, variables = [] }) {
+  const ref = useRef(null);
+
+  // Init innerHTML on mount only
+  useEffect(() => {
+    if (ref.current) {
+      const initialHtml = value && value.trim().startsWith("<")
+        ? value
+        : markdownToHtml(value || "");
+      ref.current.innerHTML = initialHtml;
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function exec(cmd, val=null) {
+    ref.current?.focus();
+    document.execCommand(cmd, false, val);
+    onChange({ target: { value: ref.current.innerHTML } });
+  }
+
+  function insertVar() {
+    const varName = prompt("Variable key (without {{ }}):", "variable_name");
+    if (!varName) return;
+    ref.current?.focus();
+    document.execCommand("insertText", false, `{{${varName.trim()}}}`);
+    onChange({ target: { value: ref.current.innerHTML } });
+  }
+
+  const FMT_BTNS = [
+    { label:"B",  title:"Bold",        style:{fontWeight:700},           action:()=>exec("bold") },
+    { label:"I",  title:"Italic",      style:{fontStyle:"italic"},        action:()=>exec("italic") },
+    { label:"U",  title:"Underline",   style:{textDecoration:"underline"},action:()=>exec("underline") },
+    { label:"H1", title:"Heading 1",   style:{fontWeight:700},            action:()=>exec("formatBlock","h1") },
+    { label:"H2", title:"Heading 2",   style:{fontWeight:700},            action:()=>exec("formatBlock","h2") },
+  ];
+  const LIST_BTNS = [
+    { label:"1.",  title:"Numbered list", action:()=>exec("insertOrderedList") },
+    { label:"•",   title:"Bullet list",   action:()=>exec("insertUnorderedList") },
+    { label:"{{var}}", title:"Insert variable", action:insertVar, style:{fontWeight:700} },
+  ];
+
+  return (
+    <div>
+      <label style={LBL}>{label}</label>
+      {/* Toolbar */}
+      <div style={{background:B.g1, borderRadius:"6px 6px 0 0", border:`1.5px solid ${B.g2}`, borderBottom:"none"}}>
+        <div style={{display:"flex", gap:4, padding:"6px 8px", borderBottom:`1px solid ${B.g2}`, flexWrap:"wrap", alignItems:"center"}}>
+          <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:B.g3,marginRight:4}}>Format</span>
+          {FMT_BTNS.map(b => (
+            <button key={b.label} title={b.title}
+              onMouseDown={e => { e.preventDefault(); b.action(); }}
+              style={{...BS, padding:"3px 9px", fontSize:12, background:B.white, borderColor:B.g2, minWidth:32, ...(b.style||{})}}>
+              {b.label}
+            </button>
+          ))}
+          <div style={{width:1, height:20, background:B.g2, margin:"0 4px"}}/>
+          <span style={{fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:B.g3,marginRight:4}}>Lists & vars</span>
+          {LIST_BTNS.map(b => (
+            <button key={b.label} title={b.title}
+              onMouseDown={e => { e.preventDefault(); b.action(); }}
+              style={{...BS, padding:"3px 9px", fontSize:11, background:B.white, borderColor:B.g2, fontWeight:700, ...(b.style||{})}}>
+              {b.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* Editable area */}
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={() => onChange({ target: { value: ref.current.innerHTML } })}
+        style={{
+          ...mkInp(false),
+          minHeight:180, lineHeight:1.65,
+          borderRadius:"0 0 6px 6px",
+          resize:"vertical", overflow:"auto",
+          whiteSpace:"pre-wrap",
+        }}
+      />
+    </div>
+  );
+}
+
+// Keep ClauseEditor as an alias so existing imports still work
+export { RichTextEditor as ClauseEditor };
 
 // ── Preview renderer ───────────────────────────────────────────────────────────
 export function DocHeader({ hf }) {
