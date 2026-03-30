@@ -246,7 +246,8 @@ export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, r
                         <div style={{flex:1}}><FI label="Left column label" value={row.label} onChange={e=>updSchedRow(idx,{label:e.target.value})} placeholder="e.g. Employee:"/></div>
                         <button style={{...BG(B.red),fontSize:18,padding:"2px 8px",alignSelf:"flex-end",marginBottom:2}} onClick={()=>delSchedRow(idx)}>×</button>
                       </div>
-                      <RichTextEditor label="Right column content" value={row.content} onChange={e=>updSchedRow(idx,{content:e.target.value})} variables={draft.sections.flatMap(s=>s.variables||[])}/>
+                      <RichTextEditor label="Right column content (default — rules can override via clause)" value={row.content} onChange={e=>updSchedRow(idx,{content:e.target.value})} variables={draft.sections.flatMap(s=>s.variables||[])}/>
+                      <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:B.g3,cursor:"pointer",fontWeight:500,marginTop:8}}><input type="checkbox" checked={!!row.ruleSlot} onChange={e=>updSchedRow(idx,{ruleSlot:e.target.checked})} style={{accentColor:B.red}}/>Rules engine can override this row</label>
                     </div>
                   ))}
                   <div style={{textAlign:"center",marginTop:8}}>

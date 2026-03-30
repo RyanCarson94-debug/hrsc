@@ -87,6 +87,28 @@ export function computeVariables(rules, sections, clauses, data, disabledRuleIds
 }
 
 /**
+ * Resolve schedule rows for a given employee data set.
+ * Returns the modified schedule object (same shape as tmpl.schedule).
+ * Supports actions: remove_schedule_row, replace_schedule_row (via clauseId).
+ */
+export function resolveSchedule(tmpl, rules, data, disabledRuleIds = new Set()) {
+  if (!tmpl.schedule?.enabled || !tmpl.schedule.rows?.length) {
+    return tmpl.schedule || { enabled: false, rows: [] };
+  }
+  const sorted = [...rules].sort((a, b) => a.priority - b.priority);
+  let rows = JSON.parse(JSON.stringify(tmpl.schedule.rows));
+  sorted.forEach(rule => {
+    if (disabledRuleIds.has(rule.id)) return;
+    if (rule.action.targetTemplateId && rule.action.targetTemplateId !== tmpl.id) return;
+    if (!evalRule(rule, data)) return;
+    const { type, targetScheduleRowId, clauseId } = rule.action;
+    if (type === "remove_schedule_row"  && targetScheduleRowId) rows = rows.filter(r => r.id !== targetScheduleRowId);
+    if (type === "replace_schedule_row" && targetScheduleRowId && clauseId) rows = rows.map(r => r.id === targetScheduleRowId ? { ...r, clauseId } : r);
+  });
+  return { ...tmpl.schedule, rows };
+}
+
+/**
  * Detect conflicting rules: two active rules targeting the same
  * template+section but with different clauseIds.
  * Returns array of { ruleA, ruleB, templateId, sectionId }.

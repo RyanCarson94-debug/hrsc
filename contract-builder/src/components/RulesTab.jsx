@@ -4,7 +4,7 @@ import { ALL_COUNTRIES } from "../defaults";
 import { evalRule, resolveTemplate, detectConflicts } from "../ruleEngine";
 
 const OPERATORS    = [{ value:"equals",label:"equals" },{ value:"not_equals",label:"does not equal" },{ value:"gte",label:"is ≥",num:true },{ value:"lte",label:"is ≤",num:true },{ value:"in",label:"is one of" }];
-const ACTION_TYPES = [{ value:"use_clause",label:"Include clause in section" },{ value:"replace_clause",label:"Replace default clause in section" },{ value:"add_clause",label:"Append clause to template" },{ value:"remove_clause",label:"Remove clause from section" },{ value:"set_variable",label:"Set computed variable value" }];
+const ACTION_TYPES = [{ value:"use_clause",label:"Include clause in section" },{ value:"replace_clause",label:"Replace default clause in section" },{ value:"add_clause",label:"Append clause to template" },{ value:"remove_clause",label:"Remove clause from section" },{ value:"set_variable",label:"Set computed variable value" },{ value:"remove_schedule_row",label:"Remove schedule row" },{ value:"replace_schedule_row",label:"Replace schedule row content (via clause)" }];
 const COND_FIELDS  = [{ value:"grade",label:"Job Grade" },{ value:"businessUnit",label:"Business Unit" },{ value:"employmentType",label:"Employment Type" },{ value:"managerLevel",label:"Manager Level" },{ value:"country",label:"Country" }];
 
 function gid() { return Math.random().toString(36).slice(2,8); }
@@ -159,6 +159,11 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule, dupl
   const targetTemplateSections = useMemo(() => {
     if (!draft?.action?.targetTemplateId) return [];
     return templates.find(t => t.id === draft.action.targetTemplateId)?.sections || [];
+  }, [draft?.action?.targetTemplateId, templates]);
+
+  const targetTemplateScheduleRows = useMemo(() => {
+    if (!draft?.action?.targetTemplateId) return [];
+    return templates.find(t => t.id === draft.action.targetTemplateId)?.schedule?.rows || [];
   }, [draft?.action?.targetTemplateId, templates]);
 
   function getCondValueOptions(field, entityId) {
@@ -349,17 +354,26 @@ export default function RulesTab({ state, saveRule, removeRule, toggleRule, dupl
             </div>
             {draft.action.type !== "add_clause" && draft.action.type !== "set_variable" && <>
               <div style={{ marginBottom:10 }}>
-                <FS label="Target Template" value={draft.action.targetTemplateId || ""} onChange={e => setDraft({ ...draft, action:{ ...draft.action, targetTemplateId:e.target.value, targetSectionId:"" } })}>
+                <FS label="Target Template" value={draft.action.targetTemplateId || ""} onChange={e => setDraft({ ...draft, action:{ ...draft.action, targetTemplateId:e.target.value, targetSectionId:"", targetScheduleRowId:"" } })}>
                   <option value="">— Select template —</option>
                   {scopedTemplates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </FS>
               </div>
-              <div style={{ marginBottom:10 }}>
-                <FS label="Target Section" value={draft.action.targetSectionId || ""} onChange={e => setDraft({ ...draft, action:{ ...draft.action, targetSectionId:e.target.value } })} disabled={!draft.action.targetTemplateId}>
-                  <option value="">— Select section —</option>
-                  {targetTemplateSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </FS>
-              </div>
+              {(draft.action.type === "remove_schedule_row" || draft.action.type === "replace_schedule_row") ? (
+                <div style={{ marginBottom:10 }}>
+                  <FS label="Target Schedule Row" value={draft.action.targetScheduleRowId || ""} onChange={e => setDraft({ ...draft, action:{ ...draft.action, targetScheduleRowId:e.target.value } })} disabled={!draft.action.targetTemplateId}>
+                    <option value="">— Select schedule row —</option>
+                    {targetTemplateScheduleRows.map((r, i) => <option key={r.id} value={r.id}>({String.fromCharCode(97+i)}) {r.label || "(unlabelled)"}</option>)}
+                  </FS>
+                </div>
+              ) : (
+                <div style={{ marginBottom:10 }}>
+                  <FS label="Target Section" value={draft.action.targetSectionId || ""} onChange={e => setDraft({ ...draft, action:{ ...draft.action, targetSectionId:e.target.value } })} disabled={!draft.action.targetTemplateId}>
+                    <option value="">— Select section —</option>
+                    {targetTemplateSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </FS>
+                </div>
+              )}
             </>}
             {draft.action.type === "set_variable" && (
               <div style={{ background:B.g1, borderRadius:8, padding:"12px", marginBottom:10 }}>

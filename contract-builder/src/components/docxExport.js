@@ -149,7 +149,7 @@ async function dataUriToArrayBuffer(dataUri) {
 }
 
 // ── Core document builder — returns a Blob ────────────────────────────────────
-export async function generateDocxBlob({ tmpl, resolved, clauses, vars, headerFooter, emp, numberingFormat }) {
+export async function generateDocxBlob({ tmpl, resolved, clauses, vars, headerFooter, emp, numberingFormat, resolvedSchedule }) {
   const nums = buildSectionNumbers(resolved, numberingFormat || "flat");
   const hf   = headerFooter || {};
   const date = new Date().toLocaleDateString("en-GB", { day:"numeric", month:"long", year:"numeric" });
@@ -272,7 +272,7 @@ export async function generateDocxBlob({ tmpl, resolved, clauses, vars, headerFo
   });
 
   // ── Schedule table (optional, appended after body sections) ──────────────────
-  const sched = tmpl.schedule;
+  const sched = resolvedSchedule ?? tmpl.schedule;
   if (sched?.enabled && sched.rows?.length > 0) {
     // Schedule heading
     bodyChildren.push(
@@ -293,7 +293,8 @@ export async function generateDocxBlob({ tmpl, resolved, clauses, vars, headerFo
         rows: sched.rows.map((row, idx) => {
           const letter   = `(${String.fromCharCode(97 + idx)})`;
           const leftText = row.label ? `${letter}    ${row.label}` : letter;
-          const rawRight = renderClauseContent(row.content || "", vars);
+          const rowContent = row.clauseId ? (clauses.find(c => c.id === row.clauseId)?.content || "") : (row.content || "");
+          const rawRight = renderClauseContent(rowContent, vars);
           const rightParas = rawRight.trim().startsWith("<")
             ? htmlToParagraphs(rawRight)
             : textToParagraphs(rawRight);

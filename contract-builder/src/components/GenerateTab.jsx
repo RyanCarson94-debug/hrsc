@@ -7,7 +7,7 @@ import {
 import { generateDocx, generateDocxBlob } from "./docxExport";
 import { saveGeneration, logAudit } from "../api";
 import { ALL_COUNTRIES } from "../defaults";
-import { evalRule, resolveTemplate, computeVariables } from "../ruleEngine";
+import { evalRule, resolveTemplate, resolveSchedule, computeVariables } from "../ruleEngine";
 
 // ── Bulk Generate Modal ────────────────────────────────────────────────────────
 function BulkGenerateModal({ tmpl, rules, clauses, settings, userName, headerFooter, onClose }) {
@@ -76,7 +76,8 @@ function BulkGenerateModal({ tmpl, rules, clauses, settings, userName, headerFoo
         employmentType:row.employmentType|| "Full-time",
         managerLevel:  row.managerLevel  || "Individual Contributor",
       };
-      const res = resolveTemplate(tmpl, rules, emp);
+      const res      = resolveTemplate(tmpl, rules, emp);
+      const resSched = resolveSchedule(tmpl, rules, emp);
       const { computedVars } = computeVariables(rules, res, clauses, emp);
       const vars = {
         employee_name: emp.employee_name,
@@ -95,6 +96,7 @@ function BulkGenerateModal({ tmpl, rules, clauses, settings, userName, headerFoo
           tmpl, resolved: res, clauses, vars,
           headerFooter: hfWithCachedLogo, emp,
           numberingFormat: tmpl.numberingFormat || "flat",
+          resolvedSchedule: resSched,
         });
         const fname = `${emp.employee_name.replace(/\s+/g, "_") || "employee_" + (i + 1)}.docx`;
         zip.file(fname, blob);
@@ -328,6 +330,12 @@ export default function GenerateTab({ state, userName, isAdmin }) {
     return excludedSections.size === 0 ? base : base.filter(s => !excludedSections.has(s.id));
   }, [tmpl, rules, emp, resolved, disabledRules, excludedSections]);
 
+  // Derive effective resolved schedule (rules can remove/replace schedule rows)
+  const effectiveResolvedSchedule = useMemo(() => {
+    if (!tmpl) return null;
+    return resolveSchedule(tmpl, rules, emp, disabledRules);
+  }, [tmpl, rules, emp, disabledRules]);
+
   const computedVarKeys = useMemo(() => {
     const keys = new Set();
     effectiveResolved.forEach(s => {
@@ -367,6 +375,7 @@ export default function GenerateTab({ state, userName, isAdmin }) {
     await generateDocx({
       tmpl, resolved: effectiveResolved, clauses, vars, headerFooter, emp,
       numberingFormat: tmpl?.numberingFormat || "flat",
+      resolvedSchedule: effectiveResolvedSchedule,
       filename,
     });
     localStorage.removeItem(DRAFT_KEY);
