@@ -197,13 +197,17 @@ export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, r
                     <button onClick={()=>setDraft({...draft,sections:draft.sections.filter((_,i)=>i!==idx)})} style={{...BG(B.red),fontSize:18,padding:"2px 8px",marginBottom:2}}>×</button>
                   </div>
                   {!s.clauseId && <FI label="Content — use {{variable}} for dynamic fields" value={s.content||""} onChange={e=>updSec(idx,{content:e.target.value})} as="textarea" placeholder="Section text…"/>}
-                  <div style={{display:"flex",gap:16,marginTop:8}}>
+                  <div style={{display:"flex",gap:16,marginTop:8,flexWrap:"wrap"}}>
                     <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:B.g3,cursor:"pointer",fontWeight:500}}><input type="checkbox" checked={s.required} onChange={e=>updSec(idx,{required:e.target.checked})} style={{accentColor:B.red}}/>Required</label>
                     <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:B.g3,cursor:"pointer",fontWeight:500}}><input type="checkbox" checked={!!s.optional} onChange={e=>updSec(idx,{optional:e.target.checked})} style={{accentColor:B.red}}/>Optional (adviser can include/exclude)</label>
                     <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:B.g3,cursor:"pointer",fontWeight:500}}><input type="checkbox" checked={s.ruleSlot} onChange={e=>updSec(idx,{ruleSlot:e.target.checked})} style={{accentColor:B.red}}/>Rules engine can override</label>
+                    <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:B.g3,cursor:"pointer",fontWeight:500}}><input type="checkbox" checked={s.showHeading !== false} onChange={e=>updSec(idx,{showHeading:e.target.checked})} style={{accentColor:B.red}}/>Show heading in document</label>
                   </div>
                 </div>
               ))}
+              <div style={{textAlign:"center",marginTop:8}}>
+                <button style={{...BS,padding:"7px 20px",fontSize:11}} onClick={addSec}>+ Add Section</button>
+              </div>
             </div>
 
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
