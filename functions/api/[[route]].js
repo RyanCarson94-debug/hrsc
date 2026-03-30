@@ -310,6 +310,313 @@ export async function onRequest(context) {
       }
     }
 
+    // ── KNOWLEDGE BASE ────────────────────────────────────────────────────────
+    if (resource === "kb") {
+      // sub = "articles" | "categories" | "stats" | "next-num" | "search-miss" | "favourites" | "comments"
+      const kbSub    = parts[1]; // e.g. "articles"
+      const kbId     = parts[2]; // e.g. article id or category id
+      const kbAction = parts[3]; // e.g. "status" | "feedback" | "related" | "versions" | "comments"
+      const kbExtra  = parts[4]; // e.g. relatedId for DELETE
+
+      // ── next article number ──
+      if (kbSub === "next-num" && request.method === "GET") {
+        const row = await DB.prepare("SELECT article_num FROM kb_articles ORDER BY rowid DESC LIMIT 1").first();
+        let next = 1;
+        if (row) {
+          const m = row.article_num.match(/KB-(\d+)/);
+          if (m) next = parseInt(m[1], 10) + 1;
+        }
+        return json({ num: `KB-${String(next).padStart(4, "0")}` });
+      }
+
+      // ── search miss logging ──
+      if (kbSub === "search-miss" && request.method === "POST") {
+        const body = await request.json();
+        await DB.prepare("INSERT INTO kb_search_misses (query, user_name, searched_at) VALUES (?, ?, datetime('now'))")
+          .bind(body.query || "", body.userName || "Unknown").run();
+        return json({ ok: true }, 201);
+      }
+
+      // ── stats ──
+      if (kbSub === "stats" && request.method === "GET") {
+        const counts = await DB.prepare(
+          "SELECT status, COUNT(*) as n FROM kb_articles GROUP BY status"
+        ).all();
+        const topViewed = await DB.prepare(
+          "SELECT id, article_num, title, article_type, view_count FROM kb_articles WHERE status='published' ORDER BY view_count DESC LIMIT 5"
+        ).all();
+        const recent = await DB.prepare(
+          "SELECT id, article_num, title, article_type, created_at FROM kb_articles WHERE status='published' ORDER BY created_at DESC LIMIT 5"
+        ).all();
+        const searchMisses = await DB.prepare(
+          "SELECT query, COUNT(*) as n FROM kb_search_misses GROUP BY query ORDER BY n DESC LIMIT 10"
+        ).all();
+        const statusMap = {};
+        for (const r of counts.results) statusMap[r.status] = r.n;
+        return json({ counts: statusMap, topViewed: topViewed.results, recent: recent.results, searchMisses: searchMisses.results });
+      }
+
+      // ── favourites ──
+      if (kbSub === "favourites") {
+        if (request.method === "GET") {
+          const uName = url.searchParams.get("userName") || "";
+          const rows = await DB.prepare(
+            "SELECT f.article_id, a.article_num, a.title, a.article_type, a.status, a.category_id, a.updated_at FROM kb_favourites f JOIN kb_articles a ON a.id = f.article_id WHERE f.user_name = ? ORDER BY f.created_at DESC"
+          ).bind(uName).all();
+          return json(rows.results);
+        }
+        if (request.method === "POST") {
+          const body = await request.json();
+          await DB.prepare("INSERT OR IGNORE INTO kb_favourites (article_id, user_name) VALUES (?, ?)")
+            .bind(body.articleId, body.userName || "Unknown").run();
+          return json({ ok: true }, 201);
+        }
+        // DELETE /api/kb/favourites/:articleId?userName=
+        if (request.method === "DELETE" && kbId) {
+          const uName = url.searchParams.get("userName") || "";
+          await DB.prepare("DELETE FROM kb_favourites WHERE article_id = ? AND user_name = ?")
+            .bind(kbId, uName).run();
+          return json({ ok: true });
+        }
+      }
+
+      // ── categories ──
+      if (kbSub === "categories") {
+        if (request.method === "GET") {
+          // Include article counts
+          const rows = await DB.prepare(
+            "SELECT c.*, (SELECT COUNT(*) FROM kb_articles a WHERE a.category_id = c.id AND a.status = 'published') AS article_count FROM kb_categories c ORDER BY c.sort_order"
+          ).all();
+          return json(rows.results);
+        }
+        if (request.method === "POST") {
+          const body = await request.json();
+          const newId = body.id || crypto.randomUUID();
+          await DB.prepare("INSERT INTO kb_categories (id, name, description, color, icon, sort_order) VALUES (?, ?, ?, ?, ?, ?)")
+            .bind(newId, body.name || "", body.description || "", body.color || "#00A28A", body.icon || "", body.sortOrder || 0).run();
+          return json({ id: newId, ...body }, 201);
+        }
+        if (request.method === "PUT" && kbId) {
+          const body = await request.json();
+          await DB.prepare("UPDATE kb_categories SET name = ?, description = ?, color = ?, icon = ?, sort_order = ? WHERE id = ?")
+            .bind(body.name || "", body.description || "", body.color || "#00A28A", body.icon || "", body.sortOrder || 0, kbId).run();
+          return json({ ok: true });
+        }
+        if (request.method === "DELETE" && kbId) {
+          await DB.prepare("DELETE FROM kb_categories WHERE id = ?").bind(kbId).run();
+          return json({ ok: true });
+        }
+      }
+
+      // ── resolve/unresolve a comment ──
+      if (kbSub === "comments" && kbId && request.method === "PUT") {
+        const body = await request.json();
+        await DB.prepare("UPDATE kb_comments SET resolved = ? WHERE id = ?")
+          .bind(body.resolved ? 1 : 0, kbId).run();
+        return json({ ok: true });
+      }
+
+      // ── articles ──
+      if (kbSub === "articles") {
+
+        // ── sub-actions on a specific article ──
+        if (kbId && kbAction) {
+          // GET /api/kb/articles/:id/related
+          if (kbAction === "related" && request.method === "GET") {
+            const rows = await DB.prepare(
+              "SELECT a.id, a.article_num, a.title, a.article_type, a.status, a.category_id FROM kb_articles a JOIN kb_related r ON a.id = r.related_id WHERE r.article_id = ?"
+            ).bind(kbId).all();
+            return json(rows.results);
+          }
+          // POST /api/kb/articles/:id/related
+          if (kbAction === "related" && request.method === "POST") {
+            const body = await request.json();
+            const relId = body.relatedId;
+            if (!relId || relId === kbId) return err("Invalid relatedId");
+            await DB.prepare("INSERT OR IGNORE INTO kb_related (article_id, related_id) VALUES (?, ?)")
+              .bind(kbId, relId).run();
+            await DB.prepare("INSERT OR IGNORE INTO kb_related (article_id, related_id) VALUES (?, ?)")
+              .bind(relId, kbId).run();
+            return json({ ok: true }, 201);
+          }
+          // DELETE /api/kb/articles/:id/related/:relatedId
+          if (kbAction === "related" && request.method === "DELETE" && kbExtra) {
+            await DB.prepare("DELETE FROM kb_related WHERE (article_id = ? AND related_id = ?) OR (article_id = ? AND related_id = ?)")
+              .bind(kbId, kbExtra, kbExtra, kbId).run();
+            return json({ ok: true });
+          }
+          // GET /api/kb/articles/:id/versions
+          if (kbAction === "versions" && request.method === "GET") {
+            const rows = await DB.prepare(
+              "SELECT id, article_id, saved_by, saved_at, substr(snapshot,1,300) AS preview FROM kb_versions WHERE article_id = ? ORDER BY saved_at DESC LIMIT 20"
+            ).bind(kbId).all();
+            return json(rows.results);
+          }
+          // GET /api/kb/articles/:id/comments
+          if (kbAction === "comments" && request.method === "GET") {
+            const rows = await DB.prepare(
+              "SELECT * FROM kb_comments WHERE article_id = ? ORDER BY created_at ASC"
+            ).bind(kbId).all();
+            return json(rows.results);
+          }
+          // POST /api/kb/articles/:id/comments
+          if (kbAction === "comments" && request.method === "POST") {
+            const body = await request.json();
+            await DB.prepare("INSERT INTO kb_comments (article_id, author_name, comment) VALUES (?, ?, ?)")
+              .bind(kbId, body.authorName || "Unknown", body.comment || "").run();
+            return json({ ok: true }, 201);
+          }
+          // POST /api/kb/articles/:id/feedback
+          if (kbAction === "feedback" && request.method === "POST") {
+            const body = await request.json();
+            await DB.prepare("INSERT INTO kb_feedback (article_id, helpful, comment, user_name) VALUES (?, ?, ?, ?)")
+              .bind(kbId, body.helpful ? 1 : 0, body.comment || "", body.userName || "Unknown").run();
+            if (body.helpful) {
+              await DB.prepare("UPDATE kb_articles SET helpful_yes = helpful_yes + 1 WHERE id = ?").bind(kbId).run();
+            } else {
+              await DB.prepare("UPDATE kb_articles SET helpful_no = helpful_no + 1 WHERE id = ?").bind(kbId).run();
+            }
+            return json({ ok: true }, 201);
+          }
+          // POST /api/kb/articles/:id/status
+          if (kbAction === "status" && request.method === "POST") {
+            const body = await request.json();
+            const newStatus = body.status;
+            const allowed = ["draft", "review", "published", "archived"];
+            if (!allowed.includes(newStatus)) return err("Invalid status");
+            const updates = { status: newStatus };
+            if (newStatus === "published") {
+              updates.reviewedBy = body.reviewedBy || "";
+              updates.lastReviewedAt = new Date().toISOString();
+              await DB.prepare("UPDATE kb_articles SET status = ?, reviewed_by = ?, last_reviewed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?")
+                .bind(newStatus, updates.reviewedBy, kbId).run();
+            } else {
+              await DB.prepare("UPDATE kb_articles SET status = ?, updated_at = datetime('now') WHERE id = ?")
+                .bind(newStatus, kbId).run();
+            }
+            return json({ ok: true });
+          }
+        }
+
+        // ── GET /api/kb/articles/:id (single article) ──
+        if (request.method === "GET" && kbId && !kbAction) {
+          const row = await DB.prepare("SELECT * FROM kb_articles WHERE id = ?").bind(kbId).first();
+          if (!row) return err("Not found", 404);
+          await DB.prepare("UPDATE kb_articles SET view_count = view_count + 1 WHERE id = ?").bind(kbId).run();
+          return json(row);
+        }
+
+        // ── GET /api/kb/articles (list) ──
+        if (request.method === "GET" && !kbId) {
+          const limit    = parseInt(url.searchParams.get("limit")  || "20", 10);
+          const offset   = parseInt(url.searchParams.get("offset") || "0",  10);
+          const search   = url.searchParams.get("search")   || "";
+          const status   = url.searchParams.get("status")   || "";
+          const category = url.searchParams.get("category") || "";
+          const country  = url.searchParams.get("country")  || "";
+          const type     = url.searchParams.get("type")     || "";
+          const role     = url.searchParams.get("role")     || "";
+          const userName = url.searchParams.get("userName") || "";
+
+          const conds = [], args = [];
+          // Non-admins only see published (or their own drafts)
+          if (role !== "Admin") {
+            conds.push("(status = 'published' OR author_name = ?)");
+            args.push(userName || "__nobody__");
+          }
+          if (status)   { conds.push("status = ?");         args.push(status); }
+          if (category) { conds.push("category_id = ?");    args.push(category); }
+          if (type)     { conds.push("article_type = ?");   args.push(type); }
+          if (country)  { conds.push("countries LIKE ?");   args.push(`%${country}%`); }
+          if (search) {
+            conds.push("(title LIKE ? OR section1 LIKE ? OR section2 LIKE ? OR section3 LIKE ? OR section4 LIKE ? OR tags LIKE ?)");
+            const s = `%${search}%`;
+            args.push(s, s, s, s, s, s);
+          }
+          const where = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
+          const rows = await DB.prepare(
+            `SELECT id, article_num, article_type, title, section1, category_id, countries, tags, status, author_name, view_count, helpful_yes, helpful_no, workday_path, created_at, updated_at FROM kb_articles ${where} ORDER BY updated_at DESC LIMIT ? OFFSET ?`
+          ).bind(...args, limit, offset).all();
+          const total = await DB.prepare(`SELECT COUNT(*) AS n FROM kb_articles ${where}`).bind(...args).first();
+          return json({ articles: rows.results, total: total.n });
+        }
+
+        // ── POST /api/kb/articles ──
+        if (request.method === "POST" && !kbId) {
+          const body = await request.json();
+          const newId = body.id || crypto.randomUUID();
+          await DB.prepare(
+            "INSERT INTO kb_articles (id, article_num, article_type, title, section1, section2, section3, section4, workday_path, category_id, countries, tags, status, author_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          ).bind(
+            newId,
+            body.articleNum || "KB-0001",
+            body.articleType || "kcs",
+            body.title || "",
+            body.section1 || "",
+            body.section2 || "",
+            body.section3 || "",
+            body.section4 || "",
+            body.workdayPath || "",
+            body.categoryId || "",
+            JSON.stringify(body.countries || ["All EMEA"]),
+            JSON.stringify(body.tags || []),
+            body.status || "draft",
+            body.authorName || "Unknown"
+          ).run();
+          return json({ id: newId, ...body }, 201);
+        }
+
+        // ── PUT /api/kb/articles/:id ──
+        if (request.method === "PUT" && kbId && !kbAction) {
+          const body = await request.json();
+          const savedBy = body._savedBy || "Unknown";
+          const { _savedBy: _, ...clean } = body;
+
+          // Snapshot previous version if content changed
+          const old = await DB.prepare("SELECT * FROM kb_articles WHERE id = ?").bind(kbId).first();
+          if (old) {
+            const contentChanged =
+              old.section1 !== (clean.section1 || "") ||
+              old.section2 !== (clean.section2 || "") ||
+              old.section3 !== (clean.section3 || "") ||
+              old.section4 !== (clean.section4 || "");
+            if (contentChanged) {
+              await DB.prepare("INSERT INTO kb_versions (id, article_id, snapshot, saved_by) VALUES (?, ?, ?, ?)")
+                .bind(crypto.randomUUID(), kbId, JSON.stringify(old), savedBy).run();
+            }
+          }
+
+          await DB.prepare(
+            "UPDATE kb_articles SET article_type=?, title=?, section1=?, section2=?, section3=?, section4=?, workday_path=?, category_id=?, countries=?, tags=?, updated_at=datetime('now') WHERE id=?"
+          ).bind(
+            clean.articleType || "kcs",
+            clean.title || "",
+            clean.section1 || "",
+            clean.section2 || "",
+            clean.section3 || "",
+            clean.section4 || "",
+            clean.workdayPath || "",
+            clean.categoryId || "",
+            JSON.stringify(clean.countries || ["All EMEA"]),
+            JSON.stringify(clean.tags || []),
+            kbId
+          ).run();
+          return json({ ok: true });
+        }
+
+        // ── DELETE /api/kb/articles/:id ──
+        if (request.method === "DELETE" && kbId && !kbAction) {
+          await DB.prepare("DELETE FROM kb_articles WHERE id = ?").bind(kbId).run();
+          await DB.prepare("DELETE FROM kb_related WHERE article_id = ? OR related_id = ?").bind(kbId, kbId).run();
+          await DB.prepare("DELETE FROM kb_versions WHERE article_id = ?").bind(kbId).run();
+          await DB.prepare("DELETE FROM kb_comments WHERE article_id = ?").bind(kbId).run();
+          await DB.prepare("DELETE FROM kb_favourites WHERE article_id = ?").bind(kbId).run();
+          await DB.prepare("DELETE FROM kb_feedback WHERE article_id = ?").bind(kbId).run();
+          return json({ ok: true });
+        }
+      }
+    }
+
     // ── IDENTITY (Cloudflare Access) ──────────────────────────────────────────
     if (resource === "me") {
       if (request.method === "GET") {
