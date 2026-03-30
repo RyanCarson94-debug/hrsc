@@ -1,44 +1,38 @@
 import { useState, useEffect, useCallback } from "react";
-import { B, CARD, BS, BG, TAG, LBL, TypeBadge, StatusBadge, typeMeta, EMEA_COUNTRIES } from "./shared.jsx";
+import { B, SH, CARD, BS, TAG, LBL, TypeBadge, StatusBadge, typeMeta, EMEA_COUNTRIES, Skeleton, EmptyState } from "./shared.jsx";
 import * as api from "../api.js";
+import { ArticleCard } from "./HomeView.jsx";
 
 const TYPE_OPTIONS = [
   { key: "", label: "All Types" },
   { key: "kcs", label: "KCS Articles" },
-  { key: "qrg", label: "QRGs" },
+  { key: "qrg", label: "Quick Reference Guides" },
   { key: "sop", label: "SOPs" },
 ];
 
-const STATUS_OPTIONS_ADMIN   = ["", "draft", "review", "published", "archived"];
-const STATUS_OPTIONS_ADVISER = ["published"];
+const LIMIT = 20;
 
 export default function BrowseView({ user, categories, initialCategoryId, onOpenArticle, onNewArticle, isFavourited, toggleFavourite }) {
-  const [articles, setArticles] = useState([]);
-  const [total, setTotal]       = useState(0);
-  const [loading, setLoading]   = useState(true);
-  const [page, setPage]         = useState(0);
+  const [articles, setArticles]   = useState([]);
+  const [total, setTotal]         = useState(0);
+  const [loading, setLoading]     = useState(true);
+  const [page, setPage]           = useState(0);
 
   const [categoryFilter, setCategoryFilter] = useState(initialCategoryId || "");
   const [typeFilter, setTypeFilter]         = useState("");
   const [statusFilter, setStatusFilter]     = useState(user.role === "Admin" ? "" : "published");
   const [countryFilter, setCountryFilter]   = useState("");
   const [searchFilter, setSearchFilter]     = useState("");
+  const [searchInput, setSearchInput]       = useState("");
 
-  const LIMIT = 20;
-
-  const load = useCallback(async (pg=0) => {
+  const load = useCallback(async (pg = 0) => {
     setLoading(true);
     try {
       const r = await api.listArticles({
-        category: categoryFilter,
-        type:     typeFilter,
-        status:   statusFilter,
-        country:  countryFilter,
-        search:   searchFilter,
-        role:     user.role,
-        userName: user.name,
-        limit:    LIMIT,
-        offset:   pg * LIMIT,
+        category: categoryFilter, type: typeFilter,
+        status: statusFilter, country: countryFilter,
+        search: searchFilter, role: user.role, userName: user.name,
+        limit: LIMIT, offset: pg * LIMIT,
       });
       setArticles(r.articles || []);
       setTotal(r.total || 0);
@@ -49,179 +43,195 @@ export default function BrowseView({ user, categories, initialCategoryId, onOpen
 
   useEffect(() => { load(0); }, [load]);
 
-  // When initialCategoryId changes (from home category click)
   useEffect(() => {
     if (initialCategoryId) setCategoryFilter(initialCategoryId);
   }, [initialCategoryId]);
 
-  const statusOptions = user.role === "Admin" ? STATUS_OPTIONS_ADMIN : STATUS_OPTIONS_ADVISER;
   const totalPages = Math.ceil(total / LIMIT);
-  const catById = (id) => categories.find(c => c.id === id);
+  const isAdmin = user.role === "Admin";
+
+  const hasFilters = !!(categoryFilter || typeFilter || countryFilter || searchFilter ||
+    (isAdmin && statusFilter !== "") || (!isAdmin && statusFilter !== "published"));
+
+  const clearFilters = () => {
+    setCategoryFilter(""); setTypeFilter(""); setCountryFilter("");
+    setSearchFilter(""); setSearchInput("");
+    setStatusFilter(isAdmin ? "" : "published");
+  };
+
+  const selectedCat = categories.find(c => c.id === categoryFilter);
 
   return (
-    <div style={{maxWidth:1100, margin:"0 auto", padding:"28px 24px"}}>
-      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20, flexWrap:"wrap", gap:12}}>
-        <h2 style={{fontSize:18, fontWeight:700, color:B.black}}>Browse Articles</h2>
-        <button style={{...BS, borderColor:B.teal, color:B.teal}} onClick={onNewArticle}>
-          + New Article
-        </button>
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 24px 48px" }}>
+
+      {/* Page header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: B.black, margin: 0 }}>
+            {selectedCat ? selectedCat.name : "Browse Articles"}
+          </h2>
+          <div style={{ fontSize: 11, color: B.g3, marginTop: 3 }}>
+            {loading ? "Loading…" : `${total} article${total !== 1 ? "s" : ""}${hasFilters ? " · filtered" : ""}`}
+          </div>
+        </div>
       </div>
 
-      <div style={{display:"grid", gridTemplateColumns:"220px 1fr", gap:20, alignItems:"start"}}>
+      <div style={{ display: "grid", gridTemplateColumns: "228px 1fr", gap: 20, alignItems: "start" }}>
 
-        {/* ── Sidebar filters ── */}
-        <div style={{display:"flex", flexDirection:"column", gap:12}}>
+        {/* ── Sidebar ── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
           {/* Search */}
-          <div style={CARD({ padding:"12px 14px" })}>
+          <div style={{ background: B.white, borderRadius: 12, border: `1px solid ${B.g2}`, padding: "12px 14px", boxShadow: SH.xs }}>
             <label style={LBL}>Search</label>
-            <input
-              value={searchFilter} onChange={e=>setSearchFilter(e.target.value)}
-              onKeyDown={e=>e.key==="Enter"&&load(0)}
-              placeholder="Keywords…"
-              style={{
-                width:"100%",boxSizing:"border-box",padding:"8px 10px",
-                borderRadius:6,border:`1.5px solid ${B.g2}`,fontSize:12,
-                fontFamily:"'Montserrat',sans-serif",outline:"none",
-              }}
-            />
+            <div style={{ display: "flex", gap: 6 }}>
+              <input
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { setSearchFilter(searchInput); } }}
+                placeholder="Keywords…"
+                style={{
+                  flex: 1, padding: "8px 10px", borderRadius: 6,
+                  border: `1.5px solid ${B.g2}`, fontSize: 12,
+                  fontFamily: "'Montserrat',sans-serif", outline: "none",
+                  boxSizing: "border-box",
+                }}
+                onFocus={e => e.target.style.borderColor = B.teal}
+                onBlur={e => e.target.style.borderColor = B.g2}
+              />
+              <button onClick={() => setSearchFilter(searchInput)} style={{
+                padding: "8px 10px", background: B.teal, color: B.white,
+                border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13,
+              }}>⌕</button>
+            </div>
           </div>
 
           {/* Category */}
-          <div style={CARD({ padding:"12px 14px" })}>
+          <div style={{ background: B.white, borderRadius: 12, border: `1px solid ${B.g2}`, padding: "12px 14px", boxShadow: SH.xs }}>
             <label style={LBL}>Category</label>
-            <div style={{display:"flex", flexDirection:"column", gap:3}}>
-              <FilterItem label="All Categories" active={!categoryFilter} onClick={()=>setCategoryFilter("")} />
-              {categories.map(c => (
-                <FilterItem key={c.id} label={c.name} count={c.article_count}
-                  active={categoryFilter===c.id} color={c.color}
-                  onClick={()=>setCategoryFilter(categoryFilter===c.id?"":c.id)} />
-              ))}
-            </div>
+            <FilterItem label="All Categories" active={!categoryFilter} onClick={() => setCategoryFilter("")} />
+            {categories.map(c => (
+              <FilterItem key={c.id} label={c.name} count={c.article_count}
+                active={categoryFilter === c.id} color={c.color}
+                onClick={() => setCategoryFilter(categoryFilter === c.id ? "" : c.id)} />
+            ))}
           </div>
 
           {/* Type */}
-          <div style={CARD({ padding:"12px 14px" })}>
-            <label style={LBL}>Type</label>
-            <div style={{display:"flex", flexDirection:"column", gap:3}}>
-              {TYPE_OPTIONS.map(t => (
-                <FilterItem key={t.key} label={t.label} active={typeFilter===t.key} onClick={()=>setTypeFilter(t.key)} />
-              ))}
-            </div>
+          <div style={{ background: B.white, borderRadius: 12, border: `1px solid ${B.g2}`, padding: "12px 14px", boxShadow: SH.xs }}>
+            <label style={LBL}>Article Type</label>
+            {TYPE_OPTIONS.map(t => (
+              <FilterItem key={t.key} label={t.label} active={typeFilter === t.key} onClick={() => setTypeFilter(t.key)} />
+            ))}
           </div>
 
-          {/* Status */}
-          {user.role === "Admin" && (
-            <div style={CARD({ padding:"12px 14px" })}>
+          {/* Status (admin only) */}
+          {isAdmin && (
+            <div style={{ background: B.white, borderRadius: 12, border: `1px solid ${B.g2}`, padding: "12px 14px", boxShadow: SH.xs }}>
               <label style={LBL}>Status</label>
-              <div style={{display:"flex", flexDirection:"column", gap:3}}>
-                {statusOptions.map(s => (
-                  <FilterItem key={s||"all"} label={s?s.charAt(0).toUpperCase()+s.slice(1):"All Statuses"} active={statusFilter===s} onClick={()=>setStatusFilter(s)} />
-                ))}
-              </div>
+              {[
+                { key: "", label: "All Statuses" },
+                { key: "draft", label: "Draft" },
+                { key: "review", label: "In Review" },
+                { key: "published", label: "Published" },
+                { key: "archived", label: "Archived" },
+              ].map(s => (
+                <FilterItem key={s.key} label={s.label} active={statusFilter === s.key} onClick={() => setStatusFilter(s.key)} />
+              ))}
             </div>
           )}
 
           {/* Country */}
-          <div style={CARD({ padding:"12px 14px" })}>
+          <div style={{ background: B.white, borderRadius: 12, border: `1px solid ${B.g2}`, padding: "12px 14px", boxShadow: SH.xs }}>
             <label style={LBL}>Country</label>
-            <div style={{display:"flex", flexWrap:"wrap", gap:4}}>
-              {["", ...EMEA_COUNTRIES.slice(1)].map(c => (
-                <button key={c||"all"} onClick={() => setCountryFilter(c)} style={{
-                  padding:"3px 8px", borderRadius:12,
-                  border:`1px solid ${countryFilter===c ? B.blue : B.g2}`,
-                  background: countryFilter===c ? B.blue : B.white,
-                  color: countryFilter===c ? B.white : B.g3,
-                  fontSize:9, fontWeight:600, cursor:"pointer", fontFamily:"'Montserrat',sans-serif",
-                }}>
-                  {c||"All"}
-                </button>
-              ))}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 2 }}>
+              {["", ...EMEA_COUNTRIES.slice(1)].map(c => {
+                const active = countryFilter === c;
+                return (
+                  <button key={c || "all"} onClick={() => setCountryFilter(c)} style={{
+                    padding: "3px 8px", borderRadius: 10,
+                    border: `1px solid ${active ? B.blue : B.g2}`,
+                    background: active ? B.blue : "transparent",
+                    color: active ? B.white : B.g4,
+                    fontSize: 9, fontWeight: active ? 700 : 400,
+                    fontFamily: "'Montserrat',sans-serif", cursor: "pointer",
+                    transition: "all 0.1s",
+                  }}>
+                    {c || "All"}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Clear */}
-          {(categoryFilter||typeFilter||countryFilter||searchFilter||(statusFilter&&statusFilter!=="published")) && (
-            <button style={{...BS, fontSize:11}} onClick={()=>{
-              setCategoryFilter(""); setTypeFilter(""); setCountryFilter(""); setSearchFilter("");
-              setStatusFilter(user.role==="Admin"?"":"published");
+          {/* Clear filters */}
+          {hasFilters && (
+            <button onClick={clearFilters} style={{
+              padding: "8px 12px", background: "transparent",
+              border: `1px solid ${B.g2}`, borderRadius: 8,
+              cursor: "pointer", fontSize: 11, fontWeight: 600,
+              fontFamily: "'Montserrat',sans-serif", color: B.g3,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
             }}>
-              ✕ Clear Filters
+              <span>×</span> Clear all filters
             </button>
           )}
         </div>
 
-        {/* ── Main article list ── */}
+        {/* ── Article list ── */}
         <div>
-          <div style={{fontSize:11, color:B.g3, marginBottom:14, fontWeight:600}}>
-            {loading ? "Loading…" : `${total} article${total!==1?"s":""}`}
-          </div>
-
-          {!loading && articles.length === 0 && (
-            <div style={{...CARD(), textAlign:"center", padding:"40px", color:B.g3}}>
-              <div style={{fontSize:32, marginBottom:12}}>📭</div>
-              <div style={{fontWeight:700, marginBottom:6}}>No articles found</div>
-              <div style={{fontSize:12}}>Try adjusting your filters or create a new article.</div>
+          {loading ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[0, 1, 2, 3, 4].map(i => (
+                <div key={i} style={{ background: B.white, borderRadius: 12, border: `1px solid ${B.g2}`, padding: "16px 18px" }}>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                    <Skeleton w={70} h={18} r={6} /><Skeleton w={90} h={18} r={10} /><Skeleton w={80} h={18} r={10} />
+                  </div>
+                  <Skeleton h={16} mb={8} /><Skeleton w="65%" h={13} />
+                </div>
+              ))}
+            </div>
+          ) : articles.length === 0 ? (
+            <EmptyState
+              icon="📭"
+              title="No articles found"
+              body="Try adjusting your filters or search terms. Admins can create new articles to fill gaps."
+              action={isAdmin ? "Create New Article" : undefined}
+              onAction={onNewArticle}
+            />
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {articles.map(a => (
+                <ArticleCard key={a.id} article={a} categories={categories}
+                  onOpen={onOpenArticle} isFav={isFavourited(a.id)}
+                  onToggleFav={() => toggleFavourite(a.id)} />
+              ))}
             </div>
           )}
 
-          <div style={{display:"flex", flexDirection:"column", gap:10}}>
-            {articles.map(a => {
-              const cat = catById(a.category_id);
-              const tags = (() => { try { return JSON.parse(a.tags||"[]"); } catch { return []; } })();
-              const snippet = (a.section1||"").replace(/<[^>]+>/g,"").slice(0,140);
-              const [hov, setHov] = useState(false);
-              return (
-                <div key={a.id}
-                  style={{...CARD({ padding:"16px 18px", border:`1.5px solid ${hov?B.teal:B.g2}`, cursor:"pointer", transition:"all 0.15s" })}}
-                  onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}>
-                  <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12}}>
-                    <div style={{flex:1, minWidth:0}} onClick={() => onOpenArticle({ _openId: a.id })}>
-                      <div style={{display:"flex", gap:6, alignItems:"center", flexWrap:"wrap", marginBottom:6}}>
-                        <span style={{fontSize:11, fontWeight:700, color:typeMeta(a.article_type).color}}>
-                          {a.article_num}
-                        </span>
-                        <TypeBadge type={a.article_type} />
-                        <StatusBadge status={a.status} />
-                        {cat && <span style={{...TAG(cat.color+"18", cat.color), fontSize:9}}>{cat.name}</span>}
-                      </div>
-                      <div style={{fontSize:14, fontWeight:600, color:B.black, marginBottom:6, lineHeight:1.4}}>
-                        {a.title}
-                      </div>
-                      {snippet && (
-                        <div style={{fontSize:12, color:B.g3, lineHeight:1.5, marginBottom:8}}>
-                          {snippet}{snippet.length >= 140 ? "…" : ""}
-                        </div>
-                      )}
-                      <div style={{display:"flex", gap:6, flexWrap:"wrap", alignItems:"center"}}>
-                        {tags.map(t => <span key={t} style={TAG()}>{t}</span>)}
-                        <span style={{fontSize:10, color:B.g3, marginLeft:4}}>
-                          👁 {a.view_count||0} · {new Date(a.updated_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}
-                        </span>
-                      </div>
-                    </div>
-                    <button title={isFavourited(a.id) ? "Remove bookmark" : "Bookmark"}
-                      onClick={e=>{e.stopPropagation();toggleFavourite(a.id);}} style={{
-                      background:"none", border:"none", cursor:"pointer",
-                      fontSize:18, color: isFavourited(a.id) ? B.yellow : B.g2,
-                      flexShrink:0, padding:2,
-                    }}>
-                      {isFavourited(a.id) ? "★" : "☆"}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div style={{display:"flex", gap:6, justifyContent:"center", marginTop:20}}>
-              <button style={{...BS, padding:"6px 14px", fontSize:12}} disabled={page===0} onClick={()=>load(page-1)}>← Prev</button>
-              <span style={{padding:"8px 14px", fontSize:12, color:B.g3}}>
-                Page {page+1} of {totalPages}
+          {!loading && totalPages > 1 && (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              gap: 8, marginTop: 24,
+            }}>
+              <button
+                style={{ ...BS, padding: "7px 16px", fontSize: 12 }}
+                disabled={page === 0}
+                onClick={() => load(page - 1)}
+              >
+                ← Previous
+              </button>
+              <span style={{ fontSize: 12, color: B.g3, padding: "0 8px" }}>
+                Page {page + 1} of {totalPages}
               </span>
-              <button style={{...BS, padding:"6px 14px", fontSize:12}} disabled={page>=totalPages-1} onClick={()=>load(page+1)}>Next →</button>
+              <button
+                style={{ ...BS, padding: "7px 16px", fontSize: 12 }}
+                disabled={page >= totalPages - 1}
+                onClick={() => load(page + 1)}
+              >
+                Next →
+              </button>
             </div>
           )}
         </div>
@@ -230,19 +240,32 @@ export default function BrowseView({ user, categories, initialCategoryId, onOpen
   );
 }
 
+// ─── Filter item ───────────────────────────────────────────────────────────────
 function FilterItem({ label, active, onClick, count, color }) {
+  const [hov, setHov] = useState(false);
+  const ac = color || B.teal;
   return (
-    <button onClick={onClick} style={{
-      textAlign:"left", padding:"6px 8px", borderRadius:6,
-      background: active ? (color ? color+"18" : B.teal+"18") : "transparent",
-      border:"none", cursor:"pointer",
-      color: active ? (color || B.teal) : B.black,
-      fontSize:12, fontWeight: active ? 700 : 400,
-      fontFamily:"'Montserrat',sans-serif",
-      display:"flex", justifyContent:"space-between", alignItems:"center",
-    }}>
+    <button onClick={onClick}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        width: "100%", textAlign: "left", padding: "6px 8px", borderRadius: 6, border: "none",
+        background: active ? ac + "15" : hov ? B.g0 : "transparent",
+        color: active ? ac : B.black,
+        fontSize: 12, fontWeight: active ? 700 : 400,
+        fontFamily: "'Montserrat',sans-serif", cursor: "pointer",
+        transition: "all 0.1s",
+      }}>
       <span>{label}</span>
-      {count !== undefined && <span style={{fontSize:10, color:active?(color||B.teal):B.g3}}>{count}</span>}
+      {count !== undefined && (
+        <span style={{
+          fontSize: 10, color: active ? ac : B.g3,
+          background: active ? ac + "20" : B.g1,
+          padding: "1px 6px", borderRadius: 8,
+        }}>
+          {count}
+        </span>
+      )}
     </button>
   );
 }
