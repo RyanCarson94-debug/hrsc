@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, RichTextEditor, renderClauseContent, renderClauseContentRich, mkInp, Toast, usePersistedFilter } from "./shared";
 import { getClauseUsage, getClauseVersions } from "../api";
 import { ALL_COUNTRIES } from "../defaults";
@@ -95,7 +95,7 @@ function DeleteConfirmModal({ clause, onConfirm, onClose }) {
 }
 
 // ── Main ClausesTab ───────────────────────────────────────────────────────────
-export default function ClausesTab({ state, saveClause, removeClause }) {
+export default function ClausesTab({ state, saveClause, removeClause, duplicateClause }) {
   const { settings, clauses } = state;
   const [cf, setCf] = usePersistedFilter("hrsc_cl_cf");
   const [ef, setEf] = usePersistedFilter("hrsc_cl_ef");
@@ -104,14 +104,21 @@ export default function ClausesTab({ state, saveClause, removeClause }) {
   const [origDraft, setOrigDraft] = useState(null);
   const [isNew, setIsNew] = useState(false);
   const [search, setSearch]           = useState("");
+  const [activeTag, setActiveTag]     = useState("");
   const [sf, setSf]                   = useState(false);
   const [saving, setSaving]           = useState(false);
   const [toast, setToast]             = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showVersions, setShowVersions]       = useState(false);
 
+  const allTags = useMemo(() => [...new Set(clauses.flatMap(c => c.tags || []))].sort(), [clauses]);
+
   const filtered = clauses.filter(c => {
-    if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !c.tags.some(t => t.includes(search.toLowerCase()))) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!c.name.toLowerCase().includes(q) && !c.tags.some(t => t.toLowerCase().includes(q)) && !(c.content || "").toLowerCase().includes(q)) return false;
+    }
+    if (activeTag && !c.tags.includes(activeTag)) return false;
     if (c.global) return true;
     if (cf && !c.countries.includes(cf)) return false;
     if (ef && !c.entityIds.includes(ef)) return false;
@@ -183,7 +190,16 @@ export default function ClausesTab({ state, saveClause, removeClause }) {
             <span style={{ fontSize:10, fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase", color:B.g3 }}>{filtered.length} Clauses</span>
             <button style={{ ...BP, padding:"6px 12px", fontSize:11 }} onClick={startNew}>+ New</button>
           </div>
-          <input style={{ ...mkInp(sf), marginBottom:10 }} placeholder="Search clauses…" value={search} onChange={e => setSearch(e.target.value)} onFocus={() => setSf(true)} onBlur={() => setSf(false)}/>
+          <input style={{ ...mkInp(sf), marginBottom:6 }} placeholder="Search name, content, or tags…" value={search} onChange={e => setSearch(e.target.value)} onFocus={() => setSf(true)} onBlur={() => setSf(false)}/>
+          {allTags.length > 0 && (
+            <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:10 }}>
+              {allTags.map(t => (
+                <button key={t} onClick={() => setActiveTag(activeTag === t ? "" : t)} style={{ ...TAG(activeTag === t ? B.red : B.g1, activeTag === t ? B.white : B.g3), border:"none", cursor:"pointer", fontFamily:"'Montserrat',sans-serif" }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
           {filtered.map(c => {
             const a = sel?.id === c.id || draft?.id === c.id;
             return (
@@ -293,6 +309,7 @@ export default function ClausesTab({ state, saveClause, removeClause }) {
                 </div>
                 <div style={{ display:"flex", gap:8 }}>
                   <button style={{ ...BS, padding:"6px 12px", fontSize:11 }} onClick={() => setShowVersions(true)}>⏱ History</button>
+                  {duplicateClause && <button style={{ ...BS, padding:"6px 12px", fontSize:11 }} onClick={async () => { const copy = await duplicateClause(sel); startEdit(copy); }}>Duplicate</button>}
                   <button style={BP} onClick={() => startEdit(sel)}>Edit Clause</button>
                 </div>
               </div>

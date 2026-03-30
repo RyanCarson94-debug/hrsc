@@ -76,18 +76,6 @@ export function useAppState() {
     }
   }, []);
 
-  const duplicateTemplate = useCallback(async (tmpl) => {
-    const copy = {
-      ...JSON.parse(JSON.stringify(tmpl)),
-      id: Math.random().toString(36).slice(2, 10),
-      name: `${tmpl.name} (copy)`,
-    };
-    await api.createTemplate(copy);
-    setState(s => ({ ...s, templates: [...s.templates, copy] }));
-    audit("create", "template", copy.name, { country: copy.country, entityId: copy.entityId });
-    return copy;
-  }, []);
-
   const removeTemplate = useCallback(async (id, name) => {
     await api.deleteTemplate(id);
     setState(s => ({ ...s, templates: s.templates.filter(t => t.id !== id) }));
@@ -114,6 +102,18 @@ export function useAppState() {
     audit("delete", "clause", name || id, {});
   }, []);
 
+  const duplicateClause = useCallback(async (clause) => {
+    const copy = {
+      ...JSON.parse(JSON.stringify(clause)),
+      id:   Math.random().toString(36).slice(2, 10),
+      name: `${clause.name} (copy)`,
+    };
+    await api.createClause(copy);
+    setState(s => ({ ...s, clauses: [...s.clauses, copy] }));
+    audit("create", "clause", copy.name, { global: copy.global, tags: copy.tags });
+    return copy;
+  }, []);
+
   const saveRule = useCallback(async (rule, isNew) => {
     if (isNew) {
       await api.createRule(rule);
@@ -130,6 +130,19 @@ export function useAppState() {
     await api.deleteRule(id);
     setState(s => ({ ...s, rules: s.rules.filter(r => r.id !== id) }));
     audit("delete", "rule", name || id, {});
+  }, []);
+
+  const duplicateRule = useCallback(async (rule) => {
+    const copy = {
+      ...JSON.parse(JSON.stringify(rule)),
+      id:       Math.random().toString(36).slice(2, 10),
+      name:     `${rule.name} (copy)`,
+      priority: rule.priority + 1,
+    };
+    await api.createRule(copy);
+    setState(s => ({ ...s, rules: [...s.rules, copy] }));
+    audit("create", "rule", copy.name, { country: copy.country, priority: copy.priority });
+    return copy;
   }, []);
 
   const toggleRule = useCallback(async (id) => {
@@ -175,8 +188,8 @@ export function useAppState() {
     state, users, loading, error, setState,
     saveSettings,
     saveTemplate, duplicateTemplate, removeTemplate,
-    saveClause,   removeClause,
-    saveRule,     removeRule, toggleRule,
+    saveClause,   duplicateClause,  removeClause,
+    saveRule,     duplicateRule,    removeRule, toggleRule,
     saveUser,     removeUser,
   };
 }

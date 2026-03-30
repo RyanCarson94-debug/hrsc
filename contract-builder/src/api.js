@@ -57,3 +57,6 @@ export const getUsers    = ()       => request("GET",    "/users");
 export const createUser  = (data)   => request("POST",   "/users",       data);
 export const updateUser  = (id, d)  => request("PUT",    `/users/${id}`, d);
 export const deleteUser  = (id)     => request("DELETE", `/users/${id}`);
+
+// ── Identity (Cloudflare Access) ──────────────────────────────────────────────
+export const getMe = () => request("GET", "/me");

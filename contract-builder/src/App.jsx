@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppState } from "./useAppState";
+import { getMe } from "./api";
 import GenerateTab  from "./components/GenerateTab";
 import TemplatesTab from "./components/TemplatesTab";
 import ClausesTab   from "./components/ClausesTab";
@@ -22,9 +23,20 @@ function RoleToggle({ role, setRole }) {
 export default function App() {
   const [tab, setTab]   = useState("generate");
   const [role, setRole] = useState(() => localStorage.getItem("hrsc_role") || "Adviser");
+  const [userName, setUserName] = useState(() => localStorage.getItem("hrsc_user_name") || "");
   const appState        = useAppState();
   const { loading, error } = appState;
   const isAdmin = role === "Admin";
+
+  // Fetch identity from Cloudflare Access on load
+  useEffect(() => {
+    getMe().then(({ email, name }) => {
+      if (email) {
+        localStorage.setItem("hrsc_user_name", email);
+        setUserName(email);
+      }
+    }).catch(() => {}); // not behind CF Access in dev — ignore
+  }, []);
 
   function handleRoleChange(r) {
     setRole(r);
@@ -35,8 +47,6 @@ export default function App() {
   const TABS = isAdmin
     ? [{id:"generate",label:"Generate Document"},{id:"templates",label:"Templates"},{id:"clauses",label:"Clause Library"},{id:"rules",label:"Rules Engine"},{id:"settings",label:"Settings"},{id:"history",label:"History"}]
     : [{id:"generate",label:"Generate Document"}];
-
-  const userName = localStorage.getItem("hrsc_user_name") || "";
 
   return (
     <div style={{ minHeight:"100vh", background:B.g1, fontFamily:"'Montserrat',sans-serif", color:B.black }}>
@@ -66,11 +76,11 @@ export default function App() {
       <div style={{ maxWidth:1240, margin:"0 auto", padding:"2rem" }}>
         {loading && <div style={{ textAlign:"center", padding:"4rem", color:B.g3, fontSize:13 }}>Loading…</div>}
         {error && <div style={{ padding:"1rem", background:"#FEE2E2", border:`1.5px solid ${B.red}`, borderRadius:8, color:"#b91c1c", fontSize:13, marginBottom:16 }}>⚠ Could not connect to API: {error}. Changes will not be saved until the API is available.</div>}
-        {!loading && tab==="generate"  && <GenerateTab  {...appState} userName={userName}/>}
+        {!loading && tab==="generate"  && <GenerateTab  {...appState} userName={userName} isAdmin={isAdmin}/>}
         {!loading && isAdmin && tab==="templates" && <TemplatesTab {...appState}/>}
-        {!loading && isAdmin && tab==="clauses"   && <ClausesTab   {...appState}/>}
-        {!loading && isAdmin && tab==="rules"     && <RulesTab     {...appState}/>}
-        {!loading && isAdmin && tab==="settings"  && <SettingsTab  {...appState} users={appState.users} saveUser={appState.saveUser} removeUser={appState.removeUser}/>}
+        {!loading && isAdmin && tab==="clauses"   && <ClausesTab   {...appState} duplicateClause={appState.duplicateClause}/>}
+        {!loading && isAdmin && tab==="rules"     && <RulesTab     {...appState} duplicateRule={appState.duplicateRule}/>}
+        {!loading && isAdmin && tab==="settings"  && <SettingsTab  {...appState} users={appState.users} saveUser={appState.saveUser} removeUser={appState.removeUser} userName={userName}/>}
         {!loading && isAdmin && tab==="history"   && <HistoryTab/>}
       </div>
     </div>

@@ -315,6 +315,21 @@ export function RichTextEditor({ label, value, onChange, variables = [] }) {
     onChange({ target: { value: ref.current.innerHTML } });
   }
 
+  function insertAlphaList() {
+    ref.current?.focus();
+    document.execCommand("insertOrderedList", false, null);
+    // Find the <ol> containing the cursor and set lower-alpha style
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      let node = sel.getRangeAt(0).startContainer;
+      while (node && node !== ref.current) {
+        if (node.nodeName === "OL") { node.style.listStyleType = "lower-alpha"; break; }
+        node = node.parentNode;
+      }
+    }
+    onChange({ target: { value: ref.current.innerHTML } });
+  }
+
   const FMT_BTNS = [
     { label:"B",  title:"Bold",        style:{fontWeight:700},           action:()=>exec("bold") },
     { label:"I",  title:"Italic",      style:{fontStyle:"italic"},        action:()=>exec("italic") },
@@ -323,9 +338,12 @@ export function RichTextEditor({ label, value, onChange, variables = [] }) {
     { label:"H2", title:"Heading 2",   style:{fontWeight:700},            action:()=>exec("formatBlock","h2") },
   ];
   const LIST_BTNS = [
-    { label:"1.",  title:"Numbered list", action:()=>exec("insertOrderedList") },
-    { label:"•",   title:"Bullet list",   action:()=>exec("insertUnorderedList") },
-    { label:"{{var}}", title:"Insert variable", action:insertVar, style:{fontWeight:700} },
+    { label:"1.",  title:"Numbered list (1. 2. 3.)", action:()=>exec("insertOrderedList") },
+    { label:"a.",  title:"Alpha list (a. b. c.)",    action:insertAlphaList },
+    { label:"•",   title:"Bullet list",              action:()=>exec("insertUnorderedList") },
+    { label:"→",   title:"Indent",                   action:()=>exec("indent") },
+    { label:"←",   title:"Outdent",                  action:()=>exec("outdent") },
+    { label:"{{var}}", title:"Insert variable",      action:insertVar, style:{fontWeight:700} },
   ];
 
   return (

@@ -200,7 +200,23 @@ function BulkGenerateModal({ tmpl, rules, clauses, settings, userName, headerFoo
 }
 
 // ── Main GenerateTab ───────────────────────────────────────────────────────────
-export default function GenerateTab({ state, userName }) {
+const DRAFT_KEY = "hrsc_gen_draft";
+
+function resolveFilename(pattern, tmpl, emp) {
+  if (!pattern) return null;
+  const date     = new Date().toISOString().slice(0, 10);
+  const lastName = (emp.employee_name || "").split(" ").filter(Boolean).pop() || "draft";
+  return pattern
+    .replace(/\{date\}/g,               date)
+    .replace(/\{employee_name\}/g,      emp.employee_name || "draft")
+    .replace(/\{employee_last_name\}/g, lastName)
+    .replace(/\{country\}/g,            emp.country || "")
+    .replace(/\{template_name\}/g,      tmpl.name || "")
+    .replace(/[^a-zA-Z0-9._-]+/g,       "_")
+    .replace(/^_+|_+$/g,               "") + ".docx";
+}
+
+export default function GenerateTab({ state, userName, isAdmin }) {
   const { settings, clauses, templates, rules } = state;
   const [cf, setCf] = usePersistedFilter("hrsc_gen_cf");
   const [ef, setEf] = usePersistedFilter("hrsc_gen_ef");
@@ -213,13 +229,48 @@ export default function GenerateTab({ state, userName }) {
   const [resolved, setResolved] = useState([]);
   const [blockedVars, setBlockedVars] = useState([]);
   const [disabledRules, setDisabledRules] = useState(new Set());
+  const [excludedSections, setExcludedSections] = useState(new Set());
   const [validationError, setValidationError] = useState("");
   const [downloadMsg, setDownloadMsg]         = useState("");
   const [showBulk, setShowBulk] = useState(false);
+  const [savedDraft, setSavedDraft] = useState(() => { try { return JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch { return null; } });
+
+  function saveDraft() {
+    const d = { tmplId: tmpl?.id, emp, vars, step };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+    setSavedDraft(d);
+    setDownloadMsg("Draft saved");
+    setTimeout(() => setDownloadMsg(""), 2000);
+  }
+
+  function resumeDraft() {
+    if (!savedDraft) return;
+    const t = templates.find(x => x.id === savedDraft.tmplId);
+    if (!t) return;
+    setTmpl(t);
+    setEmp(savedDraft.emp || emp);
+    setVars(savedDraft.vars || {});
+    setStep(savedDraft.step || "employee");
+    setSavedDraft(null);
+  }
+
+  function discardDraft() {
+    localStorage.removeItem(DRAFT_KEY);
+    setSavedDraft(null);
+  }
+
+  function resetAll() {
+    setStep("select"); setTmpl(null); setVars({}); setDownloadMsg("");
+    setEmp({ country:"United Kingdom", entityId:"e1", grade:"4", businessUnit:"", employmentType:"Full-time", managerLevel:"Individual Contributor", employee_name:"", job_title:"", company_name:"" });
+    setFired([]); setResolved([]); setDisabledRules(new Set()); setExcludedSections(new Set());
+  }
 
   const filteredTemplates = templates.filter(t => {
     if (!templateMatches(t, cf, ef)) return false;
     if (tmplSearch && !t.name.toLowerCase().includes(tmplSearch.toLowerCase())) return false;
+    const status = t.status || "live";
+    if (status === "archived") return false;
+    if (!isAdmin && status === "draft") return false;
     return true;
   });
   const contracts  = filteredTemplates.filter(t => t.documentType === "contract");
@@ -252,6 +303,7 @@ export default function GenerateTab({ state, userName }) {
     setFired(fr);
     setResolved(res);
     setDisabledRules(new Set());
+    setExcludedSections(new Set());
 
     const { computedVars, unresolved } = computeVariables(rules, res, clauses, emp);
     if (unresolved.length > 0) { setBlockedVars(unresolved); return; }
@@ -270,11 +322,11 @@ export default function GenerateTab({ state, userName }) {
     setStep("variables");
   }
 
-  // Derive effective resolved sections based on which rules are disabled
+  // Derive effective resolved sections based on which rules are disabled and optional sections excluded
   const effectiveResolved = useMemo(() => {
-    if (!tmpl || disabledRules.size === 0) return resolved;
-    return resolveTemplate(tmpl, rules, emp, disabledRules);
-  }, [tmpl, rules, emp, resolved, disabledRules]);
+    const base = (!tmpl || disabledRules.size === 0) ? resolved : resolveTemplate(tmpl, rules, emp, disabledRules);
+    return excludedSections.size === 0 ? base : base.filter(s => !excludedSections.has(s.id));
+  }, [tmpl, rules, emp, resolved, disabledRules, excludedSections]);
 
   const computedVarKeys = useMemo(() => {
     const keys = new Set();
@@ -311,10 +363,13 @@ export default function GenerateTab({ state, userName }) {
   }
 
   async function downloadDoc() {
+    const filename = resolveFilename(tmpl?.filenamePattern, tmpl, emp);
     await generateDocx({
       tmpl, resolved: effectiveResolved, clauses, vars, headerFooter, emp,
       numberingFormat: tmpl?.numberingFormat || "flat",
+      filename,
     });
+    localStorage.removeItem(DRAFT_KEY);
     const userName_ = userName || localStorage.getItem("hrsc_user_name") || "Unknown";
     saveGeneration({
       id: Math.random().toString(36).slice(2, 10),
@@ -352,6 +407,16 @@ export default function GenerateTab({ state, userName }) {
           headerFooter={headerFooter}
           onClose={() => setShowBulk(false)}
         />
+      )}
+
+      {savedDraft && templates.find(t => t.id === savedDraft.tmplId) && (
+        <div style={{ marginBottom:16, padding:"12px 16px", background:"#DBEAFE", border:"1.5px solid #93C5FD", borderRadius:8, display:"flex", alignItems:"center", gap:12 }}>
+          <span style={{ fontSize:13, flex:1, fontWeight:600, color:"#1e40af" }}>
+            📋 Saved draft: <strong>{templates.find(t => t.id === savedDraft.tmplId)?.name}</strong> for {savedDraft.emp?.employee_name || "employee"}
+          </span>
+          <button style={{ ...BP, padding:"6px 14px", fontSize:12 }} onClick={resumeDraft}>Resume Draft</button>
+          <button style={{ ...BS, padding:"6px 14px", fontSize:12 }} onClick={discardDraft}>Discard</button>
+        </div>
       )}
 
       <FilterBar countries={ALL_COUNTRIES} entities={settings.entities} countryFilter={cf} setCountryFilter={setCf} entityFilter={ef} setEntityFilter={setEf}/>
@@ -470,6 +535,7 @@ export default function GenerateTab({ state, userName }) {
             )}
             <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
               <button style={BS} onClick={() => setStep("select")}>Back</button>
+              <button style={{ ...BS, fontSize:11 }} onClick={saveDraft}>Save Draft</button>
               <button style={BP} onClick={onEmpNext}>Evaluate Rules</button>
             </div>
           </div>
@@ -524,8 +590,21 @@ export default function GenerateTab({ state, userName }) {
               ))}
             </div>
           </div>
+          {resolved.some(s => s.optional) && (
+            <div style={{ ...CARD({ marginBottom:18, borderLeft:`4px solid ${B.blue}`, borderRadius:"0 10px 10px 0" }) }}>
+              <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.07em", textTransform:"uppercase", color:B.g3, marginBottom:10 }}>Optional Sections</div>
+              {resolved.filter(s => s.optional).map(s => (
+                <div key={s.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 0", borderBottom:`1px solid ${B.g1}` }}>
+                  <input type="checkbox" checked={!excludedSections.has(s.id)} onChange={() => setExcludedSections(prev => { const n = new Set(prev); n.has(s.id) ? n.delete(s.id) : n.add(s.id); return n; })} style={{ accentColor:B.blue, width:14, height:14 }}/>
+                  <span style={{ fontSize:12, fontWeight:600 }}>{s.name}</span>
+                  {excludedSections.has(s.id) && <span style={{ ...TAG("#F3F4F6","#6B7280"), fontSize:10 }}>Excluded</span>}
+                </div>
+              ))}
+            </div>
+          )}
           <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
             <button style={BS} onClick={() => setStep("employee")}>Back</button>
+            <button style={{ ...BS, fontSize:11 }} onClick={saveDraft}>Save Draft</button>
             <button style={BP} onClick={() => setStep("preview")}>Preview Document</button>
           </div>
         </div>
@@ -540,11 +619,6 @@ export default function GenerateTab({ state, userName }) {
             </div>
             <button style={BP} onClick={downloadDoc}>↓ Download .docx</button>
           </div>
-          {downloadMsg && (
-            <div style={{ marginBottom:14, padding:"10px 16px", background:"#DCFCE7", border:`1.5px solid #86EFAC`, borderRadius:8, fontSize:12, color:"#166534", fontWeight:600 }}>
-              {downloadMsg}
-            </div>
-          )}
           <div style={{ ...CARD({ padding:"2rem", maxHeight:540, overflowY:"auto" }) }}>
             <div style={{ borderBottom:`3px solid ${B.red}`, paddingBottom:14, marginBottom:22 }}>
               <div style={{ fontSize:16, fontWeight:700 }}>{tmpl.name}</div>
@@ -559,7 +633,7 @@ export default function GenerateTab({ state, userName }) {
           )}
           <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginTop:14 }}>
             <button style={BS} onClick={() => setStep("variables")}>Back</button>
-            <button style={BS} onClick={() => { setStep("select"); setTmpl(null); setVars({}); setDownloadMsg(""); }}>New Document</button>
+            <button style={BS} onClick={resetAll}>New Document</button>
             <button style={BP} onClick={downloadDoc}>↓ Download .docx</button>
           </div>
         </div>

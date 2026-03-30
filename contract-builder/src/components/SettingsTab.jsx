@@ -4,27 +4,13 @@ import { ALL_COUNTRIES } from "../defaults";
 
 function gid() { return Math.random().toString(36).slice(2,8); }
 
-export default function SettingsTab({ state, saveSettings, users = [], saveUser, removeUser }) {
+export default function SettingsTab({ state, saveSettings, users = [], saveUser, removeUser, userName = "" }) {
   const { settings } = state;
   const [tab, setTab]           = useState("entities");
   const [entDraft, setEntDraft] = useState(null);
   const [entNew, setEntNew]     = useState(false);
   const [saving, setSaving]     = useState(false);
-  const [userName, setUserName] = useState(() => localStorage.getItem("hrsc_user_name") || "");
-  const [userNameDraft, setUserNameDraft] = useState(() => localStorage.getItem("hrsc_user_name") || "");
-  const [userNameSaved, setUserNameSaved] = useState(false);
   const [toast, setToast] = useState(null);
-
-  function saveUserName() {
-    const trimmed = userNameDraft.trim();
-    if (trimmed) {
-      localStorage.setItem("hrsc_user_name", trimmed);
-      setUserName(trimmed);
-      setUserNameSaved(true);
-      setTimeout(() => setUserNameSaved(false), 2000);
-      setToast("Name saved");
-    }
-  }
 
   async function updateSettings(patch) {
     const next = { ...settings, ...patch };
@@ -131,23 +117,12 @@ export default function SettingsTab({ state, saveSettings, users = [], saveUser,
       {/* User identity card */}
       <div style={{ ...CARD({ marginBottom:20, display:"flex", alignItems:"center", gap:16, borderLeft:`4px solid ${B.red}`, borderRadius:"0 10px 10px 0" }) }}>
         <div style={{ width:40, height:40, borderRadius:"50%", background:B.red, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:B.white, flexShrink:0 }}>
-          {userName ? userName.trim().split(/\s+/).map(w=>w[0].toUpperCase()).slice(0,2).join("") : "?"}
+          {userName ? userName.split("@")[0].split(/[._-]/).map(w=>w[0]?.toUpperCase()||"").slice(0,2).join("") : "?"}
         </div>
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, marginBottom:5 }}>You are logged in as</div>
-          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-            <input
-              style={{ ...mkInp(false), maxWidth:280, padding:"7px 10px" }}
-              value={userNameDraft}
-              onChange={e => setUserNameDraft(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && saveUserName()}
-              placeholder="Enter your full name…"
-            />
-            <button style={{ ...BP, padding:"7px 16px", fontSize:12 }} onClick={saveUserName}>
-              {userNameSaved ? "✓ Saved" : "Save"}
-            </button>
-          </div>
-          <div style={{ fontSize:11, color:B.g3, marginTop:5 }}>This name appears in the audit log against all changes you make.</div>
+          <div style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, marginBottom:4 }}>Signed in via Cloudflare Access</div>
+          <div style={{ fontSize:14, fontWeight:700, color:B.black }}>{userName || "Not authenticated"}</div>
+          <div style={{ fontSize:11, color:B.g3, marginTop:3 }}>Your identity is automatically applied to all audit log entries.</div>
         </div>
       </div>
 
@@ -212,6 +187,8 @@ export default function SettingsTab({ state, saveSettings, users = [], saveUser,
       {tab==="headers_footers"  && <HeaderFooterSettings settings={settings} updateSettings={updateSettings}/>}
       {tab==="users"            && <UserManagement users={users} saveUser={saveUser} removeUser={removeUser}/>}
     </div>
+    {toast && <Toast message={toast} onDone={() => setToast(null)}/>}
+    </>
   );
 }
 
@@ -290,11 +267,9 @@ function UserManagement({ users, saveUser, removeUser }) {
       ))}
 
       <div style={{ marginTop:16, padding:"10px 14px", background:B.g1, borderRadius:8, fontSize:11, color:B.g3 }}>
-        ℹ️ Role is enforced via the role selector in the top navigation bar. Users can identify themselves by entering their name in the "You are logged in as" field above.
+        ℹ️ Role is enforced via the role selector in the top navigation bar. Users can identify themselves via their Cloudflare Access identity shown above.
       </div>
     </div>
-    {toast && <Toast message={toast} onDone={() => setToast(null)}/>}
-    </>
   );
 }
 
@@ -375,9 +350,13 @@ function HeaderFooterSettings({ settings, updateSettings }) {
               <div><label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Address line 2</label><input style={{ width:"100%", boxSizing:"border-box", padding:"9px 12px", background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:13, fontFamily:"'Montserrat',sans-serif", color:B.black, outline:"none" }} value={draft.addressLine2||""} onChange={e=>setDraft({...draft,addressLine2:e.target.value})} placeholder="Liverpool, L1 1AA"/></div>
               <div><label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Phone</label><input style={{ width:"100%", boxSizing:"border-box", padding:"9px 12px", background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:13, fontFamily:"'Montserrat',sans-serif", color:B.black, outline:"none" }} value={draft.phone||""} onChange={e=>setDraft({...draft,phone:e.target.value})} placeholder="+44 151 000 0000"/></div>
             </div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
               <div><label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Email</label><input style={{ width:"100%", boxSizing:"border-box", padding:"9px 12px", background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:13, fontFamily:"'Montserrat',sans-serif", color:B.black, outline:"none" }} value={draft.email||""} onChange={e=>setDraft({...draft,email:e.target.value})} placeholder="hr@cslbehring.com"/></div>
-              <div><label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Website</label><input style={{ width:"100%", boxSizing:"border-box", padding:"9px 12px", background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:13, fontFamily:"'Montserrat',sans-serif", color:B.black, outline:"none" }} value={draft.website||""} onChange={e=>setDraft({...draft,website:e.target.value})} placeholder="www.cslbehring.com"/></div>
+              <div><label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Registration line (centre of header)</label><input style={{ width:"100%", boxSizing:"border-box", padding:"9px 12px", background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:13, fontFamily:"'Montserrat',sans-serif", color:B.black, outline:"none" }} value={draft.registrationLine||""} onChange={e=>setDraft({...draft,registrationLine:e.target.value})} placeholder="Registered in England and Wales No. 9614642"/></div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+              <div><label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Website line 1 (shown in red, right of header)</label><input style={{ width:"100%", boxSizing:"border-box", padding:"9px 12px", background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:13, fontFamily:"'Montserrat',sans-serif", color:B.black, outline:"none" }} value={draft.websiteLine1||draft.website||""} onChange={e=>setDraft({...draft,websiteLine1:e.target.value,website:e.target.value})} placeholder="CSL.com"/></div>
+              <div><label style={{ fontSize:10, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", color:B.g3, display:"block", marginBottom:5 }}>Website line 2 (shown in red, right of header)</label><input style={{ width:"100%", boxSizing:"border-box", padding:"9px 12px", background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:6, fontSize:13, fontFamily:"'Montserrat',sans-serif", color:B.black, outline:"none" }} value={draft.websiteLine2||""} onChange={e=>setDraft({...draft,websiteLine2:e.target.value})} placeholder="CSLSeqirus.com"/></div>
             </div>
           </div>
           <div style={{ background:B.white, border:`1.5px solid ${B.g2}`, borderRadius:10, padding:"1.25rem" }}>

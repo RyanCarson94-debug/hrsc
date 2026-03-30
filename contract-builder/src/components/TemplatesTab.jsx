@@ -22,7 +22,9 @@ export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, r
   const filtered = templates.filter(t => templateMatches(t, cf, ef) && (!search || t.name.toLowerCase().includes(search.toLowerCase())));
   const availClauses = draft ? clauses.filter(c => clauseAvailable(c, draft.country, draft.entityId)) : [];
 
-  function startNew() { const d = {id:gid(),name:"New Template",country:"United Kingdom",entityId:settings.entities[0]?.id||"",documentType:"contract",description:"",numberingFormat:"hierarchical",sections:[]}; setDraft(d); setOrigDraft(d); setIsNew(true); setSel(null); }
+  const STATUS_COLOURS = { live:{ bg:"#DCFCE7", tc:"#166534" }, draft:{ bg:"#FFF9E6", tc:"#7A5E00" }, archived:{ bg:"#F3F4F6", tc:"#6B7280" } };
+
+  function startNew() { const d = {id:gid(),name:"New Template",country:"United Kingdom",entityId:settings.entities[0]?.id||"",documentType:"contract",description:"",numberingFormat:"hierarchical",status:"live",filenamePattern:"",sections:[]}; setDraft(d); setOrigDraft(d); setIsNew(true); setSel(null); }
   function startEdit(t) { const d = JSON.parse(JSON.stringify(t)); setDraft(d); setOrigDraft(d); setIsNew(false); setSel(t); }
   function cancelEdit() {
     if (!isNew && origDraft && JSON.stringify(draft) !== JSON.stringify(origDraft)) {
@@ -82,6 +84,7 @@ export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, r
               <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
                 <span style={TAG()}>{t.country==="__global__"?"Global":t.country}</span>
                 {ent && <span style={TAG(B.g1,"#0E56A5")}>{ent.shortCode}</span>}
+                {t.status && t.status !== "live" && <span style={TAG(STATUS_COLOURS[t.status]?.bg, STATUS_COLOURS[t.status]?.tc)}>{t.status}</span>}
               </div>
             </div>
           );
@@ -116,7 +119,18 @@ export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, r
                   <option value="flat">Flat — 1. 2. 3.</option>
                   <option value="hierarchical">Hierarchical — 1. 1.1 2. 2.1</option>
                 </FS>
+                <FS label="Status" value={draft.status||"live"} onChange={e=>setDraft({...draft,status:e.target.value})}>
+                  <option value="live">Live — visible to advisers</option>
+                  <option value="draft">Draft — admin only</option>
+                  <option value="archived">Archived — hidden</option>
+                </FS>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
                 <FI label="Description" value={draft.description} onChange={e=>setDraft({...draft,description:e.target.value})} placeholder="Brief description…"/>
+                <div>
+                  <FI label="Filename pattern (optional)" value={draft.filenamePattern||""} onChange={e=>setDraft({...draft,filenamePattern:e.target.value})} placeholder="{date}_{country}_{employee_last_name}"/>
+                  <div style={{fontSize:10,color:B.g3,marginTop:3}}>Tokens: {"{date} {employee_name} {employee_last_name} {country} {template_name}"}</div>
+                </div>
               </div>
               {/* Per-template header/footer override */}
               <div style={{padding:"10px 12px",background:B.g1,borderRadius:8}}>
@@ -183,12 +197,17 @@ export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, r
                     <button onClick={()=>setDraft({...draft,sections:draft.sections.filter((_,i)=>i!==idx)})} style={{...BG(B.red),fontSize:18,padding:"2px 8px",marginBottom:2}}>×</button>
                   </div>
                   {!s.clauseId && <FI label="Content — use {{variable}} for dynamic fields" value={s.content||""} onChange={e=>updSec(idx,{content:e.target.value})} as="textarea" placeholder="Section text…"/>}
-                  <div style={{display:"flex",gap:16,marginTop:8}}>
+                  <div style={{display:"flex",gap:16,marginTop:8,flexWrap:"wrap"}}>
                     <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:B.g3,cursor:"pointer",fontWeight:500}}><input type="checkbox" checked={s.required} onChange={e=>updSec(idx,{required:e.target.checked})} style={{accentColor:B.red}}/>Required</label>
+                    <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:B.g3,cursor:"pointer",fontWeight:500}}><input type="checkbox" checked={!!s.optional} onChange={e=>updSec(idx,{optional:e.target.checked})} style={{accentColor:B.red}}/>Optional (adviser can include/exclude)</label>
                     <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:B.g3,cursor:"pointer",fontWeight:500}}><input type="checkbox" checked={s.ruleSlot} onChange={e=>updSec(idx,{ruleSlot:e.target.checked})} style={{accentColor:B.red}}/>Rules engine can override</label>
+                    <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:B.g3,cursor:"pointer",fontWeight:500}}><input type="checkbox" checked={s.showHeading !== false} onChange={e=>updSec(idx,{showHeading:e.target.checked})} style={{accentColor:B.red}}/>Show heading in document</label>
                   </div>
                 </div>
               ))}
+              <div style={{textAlign:"center",marginTop:8}}>
+                <button style={{...BS,padding:"7px 20px",fontSize:11}} onClick={addSec}>+ Add Section</button>
+              </div>
             </div>
 
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
@@ -209,6 +228,7 @@ export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, r
                   {settings.entities.find(e=>e.id===sel.entityId) && <span style={TAG(B.g1,"#0E56A5")}>{settings.entities.find(e=>e.id===sel.entityId)?.shortCode}</span>}
                   <span style={TAG()}>{sel.documentType}</span>
                   <span style={TAG()}>{sel.numberingFormat} numbering</span>
+                  {sel.status && <span style={TAG(STATUS_COLOURS[sel.status]?.bg, STATUS_COLOURS[sel.status]?.tc)}>{sel.status}</span>}
                 </div>
                 <div style={{fontSize:12,color:B.g3}}>{sel.description}</div>
               </div>

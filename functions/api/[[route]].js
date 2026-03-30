@@ -61,6 +61,17 @@ export async function onRequest(context) {
     return new Response(null, { headers: CORS });
   }
 
+  // Guard: D1 binding must be present
+  if (!DB) {
+    return json({
+      error: "Database not available. The D1 binding 'DB' is not configured. " +
+             "Go to Cloudflare Dashboard → Pages project → Settings → Functions → " +
+             "D1 database bindings and add: Variable name = DB, Database = hrsc-contract-builder. " +
+             "Then redeploy. If the database does not exist yet, run: " +
+             "npx wrangler d1 create hrsc-contract-builder && npx wrangler d1 execute hrsc-contract-builder --remote --file=schema.sql"
+    }, 503);
+  }
+
   const url = new URL(request.url);
   // Strip /api/ prefix, split into parts
   const parts = url.pathname.replace(/^\/api\/?/, "").split("/").filter(Boolean);
@@ -296,6 +307,17 @@ export async function onRequest(context) {
       if (request.method === "DELETE" && id) {
         await DB.prepare("DELETE FROM users WHERE id = ?").bind(id).run();
         return json({ ok: true });
+      }
+    }
+
+    // ── IDENTITY (Cloudflare Access) ──────────────────────────────────────────
+    if (resource === "me") {
+      if (request.method === "GET") {
+        const email = request.headers.get("Cf-Access-Authenticated-User-Email") || "";
+        const name  = email
+          ? email.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+          : "";
+        return json({ email, name });
       }
     }
 
