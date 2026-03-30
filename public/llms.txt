@@ -1,0 +1,65 @@
+# HRSC Knowledge Base
+
+> Internal knowledge base for the HR Service Centre covering EMEA HR processes,
+> Workday Quick Reference Guides, and Standard Operating Procedures.
+> Maintained by HRSC advisers and administrators.
+
+## About this knowledge base
+
+The HRSC Knowledge Base contains three types of articles:
+
+- **KCS Articles** — Problem/resolution pairs following KCS v6 structure (Issue, Environment, Resolution, Cause)
+- **QRGs (Quick Reference Guides)** — Step-by-step Workday how-to guides with navigation paths
+- **SOPs (Standard Operating Procedures)** — Formal process documents with roles, responsibilities and procedures
+
+All articles are tagged with applicable EMEA countries and HR categories.
+
+## Machine-readable data
+
+Full structured export of all published articles (plain text, semantically labelled sections):
+
+    GET /api/kb/export
+
+Returns JSON with all published articles. Each article includes:
+- `article_num` — unique reference (KB-0001 format)
+- `article_type` — kcs | qrg | sop
+- `type_label` — human-readable type name
+- `title` — article title
+- `category` — HR category name
+- `countries` — applicable EMEA countries
+- `tags` — keyword tags
+- `sections` — object with named sections (e.g. {"Resolution": "...", "Issue": "..."})
+- `workday_path` — Workday navigation path (QRGs only)
+
+### Filters
+
+    GET /api/kb/export?type=kcs               # KCS articles only
+    GET /api/kb/export?type=qrg               # Quick Reference Guides only
+    GET /api/kb/export?type=sop               # SOPs only
+    GET /api/kb/export?updated_since=2025-01-01T00:00:00Z  # incremental sync
+
+### Search
+
+    GET /api/kb/articles?search=QUERY&status=published&limit=20
+
+Returns articles matching QUERY across title, all section content and tags.
+
+## Categories
+
+- Onboarding & Offboarding
+- Payroll & Compensation
+- Benefits & Wellbeing
+- Leave & Absence
+- Performance & Development
+- Policies & Compliance
+- Workday Guides & QRGs
+- SOPs
+- Recruitment & Hiring
+- EMEA Country Guides
+- General HR Queries
+
+## Coverage
+
+EMEA countries: United Kingdom, Germany, France, Netherlands, Switzerland, Austria,
+Belgium, Ireland, Sweden, Norway, Denmark, Finland, Italy, Spain, Portugal, Poland,
+Czech Republic, Hungary, Romania, Turkey, South Africa, UAE, Saudi Arabia.

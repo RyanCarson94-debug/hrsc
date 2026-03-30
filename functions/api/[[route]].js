@@ -337,6 +337,94 @@ export async function onRequest(context) {
         return json({ ok: true }, 201);
       }
 
+      // ── export (AI / RAG friendly bulk dump) ──
+      if (kbSub === "export" && request.method === "GET") {
+        // Returns all published articles as clean, semantically-labelled JSON.
+        // Sections are renamed to their article-type label (e.g. "Resolution" not "section3").
+        // HTML tags are stripped so content is plain readable text.
+        // Optional ?type= filter; optional ?updated_since=ISO8601 for incremental sync.
+        const exportUrl     = new URL(request.url);
+        const typeFilter    = exportUrl.searchParams.get("type")          || "";
+        const updatedSince  = exportUrl.searchParams.get("updated_since") || "";
+
+        const SECTION_LABELS = {
+          kcs: ["Issue", "Environment", "Resolution", "Cause"],
+          qrg: ["Purpose", "Prerequisites", "Steps", "Notes"],
+          sop: ["Purpose & Scope", "Roles & Responsibilities", "Procedure", "Related Documents"],
+        };
+        const TYPE_LABELS = {
+          kcs: "KCS Article",
+          qrg: "Quick Reference Guide",
+          sop: "Standard Operating Procedure",
+        };
+
+        function stripHtml(html) {
+          if (!html) return "";
+          return html
+            .replace(/<br\s*\/?>/gi, "\n")
+            .replace(/<\/p>/gi, "\n")
+            .replace(/<\/li>/gi, "\n")
+            .replace(/<\/h[1-6]>/gi, "\n")
+            .replace(/<[^>]+>/g, "")
+            .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+            .replace(/&nbsp;/g, " ").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim();
+        }
+
+        let q = "SELECT a.*, c.name as category_name FROM kb_articles a LEFT JOIN kb_categories c ON a.category_id = c.id WHERE a.status = 'published'";
+        const binds = [];
+        if (typeFilter)   { q += " AND a.article_type = ?"; binds.push(typeFilter); }
+        if (updatedSince) { q += " AND a.updated_at >= ?"; binds.push(updatedSince); }
+        q += " ORDER BY a.article_num ASC";
+
+        const rows = await DB.prepare(q).bind(...binds).all();
+        const exportedArticles = (rows.results || []).map(a => {
+          const labels = SECTION_LABELS[a.article_type] || SECTION_LABELS.kcs;
+          const sections = {};
+          [a.section1, a.section2, a.section3, a.section4].forEach((raw, i) => {
+            const text = stripHtml(raw);
+            if (text) sections[labels[i]] = text;
+          });
+
+          let countries; try { countries = JSON.parse(a.countries || '["All EMEA"]'); } catch { countries = ["All EMEA"]; }
+          let tags;      try { tags      = JSON.parse(a.tags      || "[]");            } catch { tags      = []; }
+
+          const out = {
+            id:            a.id,
+            article_num:   a.article_num,
+            article_type:  a.article_type,
+            type_label:    TYPE_LABELS[a.article_type] || a.article_type,
+            title:         a.title,
+            category:      a.category_name || "",
+            countries,
+            tags,
+            author:        a.author_name,
+            reviewed_by:   a.reviewed_by || "",
+            last_reviewed: a.last_reviewed_at || "",
+            updated_at:    a.updated_at,
+            view_count:    a.view_count || 0,
+            sections,
+          };
+          if (a.article_type === "qrg" && a.workday_path) out.workday_path = a.workday_path;
+          return out;
+        });
+
+        return new Response(JSON.stringify({
+          source:      "HRSC Knowledge Base",
+          description: "HRSC internal knowledge base covering EMEA HR processes, Workday guides and standard operating procedures.",
+          exported_at: new Date().toISOString(),
+          total:       exportedArticles.length,
+          articles:    exportedArticles,
+        }, null, 2), {
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "public, max-age=300",
+          },
+        });
+      }
+
       // ── stats ──
       if (kbSub === "stats" && request.method === "GET") {
         const counts = await DB.prepare(
