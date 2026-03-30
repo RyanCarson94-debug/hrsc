@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, clauseAvailable, templateMatches, mkInp, Toast, usePersistedFilter, compressImage } from "./shared";
+import { B, CARD, BP, BS, BG, TAG, FI, FS, FilterBar, clauseAvailable, templateMatches, mkInp, Toast, usePersistedFilter, compressImage, RichTextEditor } from "./shared";
 import { ALL_COUNTRIES } from "../defaults";
 
 function gid() { return Math.random().toString(36).slice(2,8); }
@@ -62,8 +62,22 @@ export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, r
     setDraft({ ...draft, sections: secs });
     onDragEnd();
   }
-  function addSec() { if (!draft) return; setDraft({...draft, sections:[...draft.sections,{id:gid(),name:"New Section",clauseId:null,level:1,content:"",required:true,ruleSlot:false}]}); }
+  function addSec() { if (!draft) return; setDraft({...draft, sections:[...draft.sections,{id:gid(),name:"New Section",clauseId:null,level:1,content:"",required:true,ruleSlot:false,showHeading:true}]}); }
   function updSec(idx, patch) { if (!draft) return; setDraft({...draft, sections:draft.sections.map((s,i)=>i===idx?{...s,...patch}:s)}); }
+
+  // Schedule helpers
+  function addSchedRow() {
+    const sched = draft.schedule || { enabled: true, title: "Schedule", rows: [] };
+    setDraft({ ...draft, schedule: { ...sched, rows: [...sched.rows, { id: gid(), label: "", content: "" }] } });
+  }
+  function updSchedRow(idx, patch) {
+    const sched = draft.schedule;
+    setDraft({ ...draft, schedule: { ...sched, rows: sched.rows.map((r,i) => i===idx ? { ...r, ...patch } : r) } });
+  }
+  function delSchedRow(idx) {
+    const sched = draft.schedule;
+    setDraft({ ...draft, schedule: { ...sched, rows: sched.rows.filter((_,i) => i!==idx) } });
+  }
 
   return (
     <>
@@ -208,6 +222,38 @@ export default function TemplatesTab({ state, saveTemplate, duplicateTemplate, r
               <div style={{textAlign:"center",marginTop:8}}>
                 <button style={{...BS,padding:"7px 20px",fontSize:11}} onClick={addSec}>+ Add Section</button>
               </div>
+            </div>
+
+            {/* ── Schedule ──────────────────────────────────────────────────── */}
+            <div style={CARD()}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:draft.schedule?.enabled?12:0}}>
+                <div>
+                  <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.07em",textTransform:"uppercase",color:B.g3}}>Schedule (optional — appended as a table)</div>
+                  {draft.schedule?.enabled && <div style={{fontSize:11,color:B.g3,marginTop:3}}>Two-column table with letter labels (a)(b)(c) on the left and rich content on the right.</div>}
+                </div>
+                <label style={{display:"flex",alignItems:"center",gap:7,fontSize:12,fontWeight:600,cursor:"pointer",flexShrink:0}}>
+                  <input type="checkbox" checked={!!draft.schedule?.enabled} onChange={e => setDraft({...draft, schedule: { title:"Schedule", rows:[], ...(draft.schedule||{}), enabled:e.target.checked }})} style={{accentColor:B.red,width:14,height:14}}/>
+                  Include in document
+                </label>
+              </div>
+              {draft.schedule?.enabled && (
+                <>
+                  <FI label="Schedule heading" value={draft.schedule.title||"Schedule"} onChange={e=>setDraft({...draft,schedule:{...draft.schedule,title:e.target.value}})} style={{marginBottom:12}}/>
+                  {(draft.schedule.rows||[]).map((row,idx) => (
+                    <div key={row.id} style={{background:B.g1,borderRadius:8,padding:"12px",marginBottom:10}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                        <span style={{...TAG(),fontWeight:700,minWidth:26,textAlign:"center"}}>({String.fromCharCode(97+idx)})</span>
+                        <div style={{flex:1}}><FI label="Left column label" value={row.label} onChange={e=>updSchedRow(idx,{label:e.target.value})} placeholder="e.g. Employee:"/></div>
+                        <button style={{...BG(B.red),fontSize:18,padding:"2px 8px",alignSelf:"flex-end",marginBottom:2}} onClick={()=>delSchedRow(idx)}>×</button>
+                      </div>
+                      <RichTextEditor label="Right column content" value={row.content} onChange={e=>updSchedRow(idx,{content:e.target.value})} variables={draft.sections.flatMap(s=>s.variables||[])}/>
+                    </div>
+                  ))}
+                  <div style={{textAlign:"center",marginTop:8}}>
+                    <button style={{...BS,padding:"7px 20px",fontSize:11}} onClick={addSchedRow}>+ Add Row</button>
+                  </div>
+                </>
+              )}
             </div>
 
             <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>

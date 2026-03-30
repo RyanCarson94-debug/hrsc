@@ -271,6 +271,57 @@ export async function generateDocxBlob({ tmpl, resolved, clauses, vars, headerFo
     bodyChildren.push(...sectionParas);
   });
 
+  // ── Schedule table (optional, appended after body sections) ──────────────────
+  const sched = tmpl.schedule;
+  if (sched?.enabled && sched.rows?.length > 0) {
+    // Schedule heading
+    bodyChildren.push(
+      new Paragraph({
+        children: [new TextRun({ text: sched.title || "Schedule", bold: true, size: H1_SIZE, font: BODY_FONT, color: BLACK })],
+        spacing: { before: pt(20), after: pt(8) },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "C0BDBA" } },
+      })
+    );
+
+    const CB = { style: BorderStyle.SINGLE, size: 4, color: "C0BDBA" };
+    const allCB = { top: CB, bottom: CB, left: CB, right: CB };
+
+    bodyChildren.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: { top: CB, bottom: CB, left: CB, right: CB, insideH: CB, insideV: CB },
+        rows: sched.rows.map((row, idx) => {
+          const letter   = `(${String.fromCharCode(97 + idx)})`;
+          const leftText = row.label ? `${letter}    ${row.label}` : letter;
+          const rawRight = renderClauseContent(row.content || "", vars);
+          const rightParas = rawRight.trim().startsWith("<")
+            ? htmlToParagraphs(rawRight)
+            : textToParagraphs(rawRight);
+
+          return new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 30, type: WidthType.PERCENTAGE },
+                borders: allCB,
+                margins: { top: pt(4), bottom: pt(4), left: twip(0.2), right: twip(0.2) },
+                children: [new Paragraph({
+                  children: [new TextRun({ text: leftText, size: BODY_SIZE, font: BODY_FONT, color: BLACK })],
+                  spacing: { before: pt(2), after: pt(2) },
+                })],
+              }),
+              new TableCell({
+                width: { size: 70, type: WidthType.PERCENTAGE },
+                borders: allCB,
+                margins: { top: pt(4), bottom: pt(4), left: twip(0.2), right: twip(0.2) },
+                children: rightParas.length ? rightParas : [new Paragraph({ children: [] })],
+              }),
+            ],
+          });
+        }),
+      })
+    );
+  }
+
   // ── Assemble document ─────────────────────────────────────────────────────────
   const doc = new Document({
     sections: [{
