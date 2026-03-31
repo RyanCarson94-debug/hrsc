@@ -4,6 +4,7 @@ import * as api from "./api.js";
 export function useKbState() {
   const [user, setUser]           = useState({ name: "", email: "", role: "Adviser" });
   const [categories, setCategories] = useState([]);
+  const [countries, setCountries] = useState([]);
   const [favourites, setFavourites] = useState([]);
   const [stats, setStats]         = useState(null);
   const [loading, setLoading]     = useState(true);
@@ -22,9 +23,11 @@ export function useKbState() {
       const resolvedUser = { name, email: me.email || "", role };
       setUser(resolvedUser);
 
-      // Load categories
+      // Load categories + countries
       const cats = await api.listCategories();
       setCategories(cats);
+      const ctrs = await api.listCountries();
+      setCountries(ctrs.map(c => c.name));
 
       // Load favourites
       if (name && name !== "Unknown") {
@@ -62,6 +65,11 @@ export function useKbState() {
     setCategories(cats);
   }, []);
 
+  const refreshCountries = useCallback(async () => {
+    const ctrs = await api.listCountries();
+    setCountries(ctrs.map(c => c.name));
+  }, []);
+
   const refreshStats = useCallback(async () => {
     const s = await api.getStats();
     setStats(s);
@@ -74,6 +82,7 @@ export function useKbState() {
   return {
     user,
     categories,
+    countries,
     favourites,
     stats,
     loading,
@@ -82,6 +91,7 @@ export function useKbState() {
     toggleFavourite,
     isFavourited,
     refreshCategories,
+    refreshCountries,
     refreshStats,
   };
 }

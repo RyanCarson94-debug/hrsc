@@ -498,6 +498,33 @@ export async function onRequest(context) {
         }
       }
 
+      // ── countries ──
+      if (kbSub === "countries") {
+        if (request.method === "GET") {
+          const rows = await DB.prepare("SELECT * FROM kb_countries ORDER BY sort_order, name").all();
+          return json(rows.results);
+        }
+        if (request.method === "POST") {
+          const body = await request.json();
+          if (!body.name?.trim()) return json({ error: "name required" }, 400);
+          const maxRow = await DB.prepare("SELECT MAX(sort_order) as m FROM kb_countries").first();
+          const nextOrder = (maxRow?.m || 0) + 1;
+          const result = await DB.prepare("INSERT INTO kb_countries (name, sort_order) VALUES (?, ?)")
+            .bind(body.name.trim(), body.sortOrder ?? nextOrder).run();
+          return json({ id: result.meta.last_row_id, name: body.name.trim() }, 201);
+        }
+        if (request.method === "PUT" && kbId) {
+          const body = await request.json();
+          await DB.prepare("UPDATE kb_countries SET name = ?, sort_order = ? WHERE id = ?")
+            .bind(body.name?.trim() || "", body.sortOrder ?? 0, kbId).run();
+          return json({ ok: true });
+        }
+        if (request.method === "DELETE" && kbId) {
+          await DB.prepare("DELETE FROM kb_countries WHERE id = ?").bind(kbId).run();
+          return json({ ok: true });
+        }
+      }
+
       // ── resolve/unresolve a comment ──
       if (kbSub === "comments" && kbId && request.method === "PUT") {
         const body = await request.json();

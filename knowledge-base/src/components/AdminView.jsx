@@ -3,13 +3,14 @@ import { B, SH, CARD, BP, BPR, BS, BG, TAG, LBL, FI, TypeBadge, StatusBadge, Sta
 import * as api from "../api.js";
 
 const TABS = [
-  { key: "queue",   label: "Review Queue",   icon: "⏳" },
-  { key: "cats",    label: "Categories",     icon: "⊞" },
-  { key: "health",  label: "Article Health", icon: "◎" },
-  { key: "gaps",    label: "Search Gaps",    icon: "🔍" },
+  { key: "queue",     label: "Review Queue",   icon: "⏳" },
+  { key: "cats",      label: "Categories",     icon: "⊞" },
+  { key: "countries", label: "Countries",      icon: "🌍" },
+  { key: "health",    label: "Article Health", icon: "◎" },
+  { key: "gaps",      label: "Search Gaps",    icon: "🔍" },
 ];
 
-export default function AdminView({ user, categories, onOpenArticle, onNewArticle, refreshCategories, refreshStats }) {
+export default function AdminView({ user, categories, countries = [], onOpenArticle, onNewArticle, refreshCategories, refreshCountries, refreshStats }) {
   const [tab, setTab]   = useState("queue");
   const [stats, setStats] = useState(null);
 
@@ -74,9 +75,10 @@ export default function AdminView({ user, categories, onOpenArticle, onNewArticl
         ))}
       </div>
 
-      {tab === "queue"  && <ReviewQueue user={user} onOpenArticle={onOpenArticle} />}
-      {tab === "cats"   && <CategoriesAdmin categories={categories} refreshCategories={refreshCategories} />}
-      {tab === "health" && <ArticleHealth onOpenArticle={onOpenArticle} />}
+      {tab === "queue"     && <ReviewQueue user={user} onOpenArticle={onOpenArticle} />}
+      {tab === "cats"      && <CategoriesAdmin categories={categories} refreshCategories={refreshCategories} />}
+      {tab === "countries" && <CountriesAdmin countries={countries} refreshCountries={refreshCountries} />}
+      {tab === "health"    && <ArticleHealth onOpenArticle={onOpenArticle} />}
       {tab === "gaps"   && <SearchGaps onNewArticle={onNewArticle} />}
     </div>
   );
@@ -491,6 +493,155 @@ function SearchGaps({ onNewArticle }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Countries Admin ───────────────────────────────────────────────────────────
+function CountriesAdmin({ countries = [], refreshCountries }) {
+  const [adding, setAdding]     = useState(false);
+  const [newName, setNewName]   = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [saving, setSaving]     = useState(false);
+  const [toast, setToast]       = useState(null);
+  // We need full country rows (with id) so fetch directly
+  const [rows, setRows]         = useState([]);
+
+  const load = useCallback(async () => {
+    try {
+      const data = await api.listCountries();
+      setRows(data);
+    } catch {}
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleAdd = async () => {
+    if (!newName.trim()) return;
+    setSaving(true);
+    try {
+      await api.createCountry({ name: newName.trim() });
+      setNewName(""); setAdding(false);
+      await load(); await refreshCountries();
+      showToast("Country added");
+    } catch (e) { showToast("Error: " + e.message, "error"); }
+    setSaving(false);
+  };
+
+  const handleUpdate = async (id) => {
+    if (!editName.trim()) return;
+    setSaving(true);
+    try {
+      await api.updateCountry(id, { name: editName.trim(), sortOrder: rows.find(r => r.id === id)?.sort_order || 0 });
+      setEditingId(null);
+      await load(); await refreshCountries();
+      showToast("Country updated");
+    } catch (e) { showToast("Error: " + e.message, "error"); }
+    setSaving(false);
+  };
+
+  const handleDelete = async (id, name) => {
+    if (!confirm(`Remove "${name}"? Articles tagged to this country will keep the tag but it won't appear in filters.`)) return;
+    await api.deleteCountry(id);
+    await load(); await refreshCountries();
+    showToast("Country removed");
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <span style={{ fontSize: 12, color: B.g3 }}>{rows.length} countries · "All EMEA" is always available</span>
+        <button style={{ ...BP, padding: "8px 16px", fontSize: 12 }} onClick={() => { setAdding(true); setNewName(""); }}>
+          + Add Country
+        </button>
+      </div>
+
+      {/* Add form */}
+      {adding && (
+        <div style={{
+          background: B.white, borderRadius: 10, border: `1.5px solid ${B.teal}`,
+          padding: "14px 16px", marginBottom: 14, display: "flex", gap: 8, alignItems: "center",
+          boxShadow: `0 0 0 3px ${B.teal}15`,
+        }}>
+          <input
+            autoFocus
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") handleAdd(); if (e.key === "Escape") setAdding(false); }}
+            placeholder="Country name…"
+            style={{
+              flex: 1, padding: "8px 12px", borderRadius: 7,
+              border: `1.5px solid ${B.g2}`, fontSize: 13,
+              fontFamily: "'Montserrat',sans-serif", outline: "none",
+            }}
+            onFocus={e => e.target.style.borderColor = B.teal}
+            onBlur={e => e.target.style.borderColor = B.g2}
+          />
+          <button style={{ ...BP, padding: "8px 16px", fontSize: 12 }} onClick={handleAdd} disabled={saving || !newName.trim()}>
+            {saving ? "…" : "Add"}
+          </button>
+          <button style={{ ...BS, padding: "8px 12px", fontSize: 12 }} onClick={() => setAdding(false)}>Cancel</button>
+        </div>
+      )}
+
+      {/* Country list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {/* Always-present "All EMEA" row */}
+        <div style={{
+          background: B.tealLight, borderRadius: 9, border: `1px solid ${B.teal}25`,
+          padding: "10px 14px", display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <span style={{ fontSize: 14 }}>🌍</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: B.teal, flex: 1 }}>All EMEA</span>
+          <span style={{ fontSize: 10, color: B.teal, opacity: 0.7 }}>Built-in · always shown</span>
+        </div>
+
+        {rows.map(row => (
+          <div key={row.id} style={{
+            background: B.white, borderRadius: 9, border: `1px solid ${B.g2}`,
+            padding: "10px 14px", display: "flex", alignItems: "center", gap: 10,
+            boxShadow: SH.xs,
+          }}>
+            {editingId === row.id ? (
+              <>
+                <input
+                  autoFocus
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") handleUpdate(row.id); if (e.key === "Escape") setEditingId(null); }}
+                  style={{
+                    flex: 1, padding: "6px 10px", borderRadius: 6,
+                    border: `1.5px solid ${B.teal}`, fontSize: 13,
+                    fontFamily: "'Montserrat',sans-serif", outline: "none",
+                  }}
+                />
+                <button style={{ ...BP, padding: "6px 12px", fontSize: 11 }} onClick={() => handleUpdate(row.id)} disabled={saving}>
+                  Save
+                </button>
+                <button style={{ ...BS, padding: "6px 10px", fontSize: 11 }} onClick={() => setEditingId(null)}>Cancel</button>
+              </>
+            ) : (
+              <>
+                <span style={{ fontSize: 13, fontWeight: 500, color: B.black, flex: 1 }}>{row.name}</span>
+                <button style={{ ...BS, padding: "5px 12px", fontSize: 11 }} onClick={() => { setEditingId(row.id); setEditName(row.name); }}>
+                  Rename
+                </button>
+                <button style={{ ...BG(B.g3), padding: "5px 10px", fontSize: 11 }} onClick={() => handleDelete(row.id, row.name)}>
+                  Remove
+                </button>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <ToastNotif toast={toast} onDone={() => setToast(null)} />
     </div>
   );
 }

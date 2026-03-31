@@ -54,6 +54,12 @@ export const createCategory  = (body)       => post("/categories", body);
 export const updateCategory  = (id, body)   => put(`/categories/${id}`, body);
 export const deleteCategory  = (id)         => del(`/categories/${id}`);
 
+// ── Countries ─────────────────────────────────────────────────────────────────
+export const listCountries   = ()           => get("/countries");
+export const createCountry   = (body)       => post("/countries", body);
+export const updateCountry   = (id, body)   => put(`/countries/${id}`, body);
+export const deleteCountry   = (id)         => del(`/countries/${id}`);
+
 // ── Misc ──────────────────────────────────────────────────────────────────────
 export const getStats        = ()           => get("/stats");
 export const getNextNum      = ()           => get("/next-num");

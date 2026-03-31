@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { B, SH, CARD, BP, BS, BG, LBL, TAG, FI, FS, RichTextEditor, typeMeta, ARTICLE_TYPES, EMEA_COUNTRIES, StatusBadge } from "./shared.jsx";
+import { B, SH, CARD, BP, BS, BG, LBL, TAG, FI, FS, RichTextEditor, typeMeta, ARTICLE_TYPES, StatusBadge } from "./shared.jsx";
 import * as api from "../api.js";
 
 const BLANK = {
@@ -8,7 +8,7 @@ const BLANK = {
   workdayPath: "", categoryId: "", countries: ["All EMEA"], tags: [], status: "draft",
 };
 
-export default function ArticleEditor({ articleId, prefillTitle, user, categories, onSaved, onCancel }) {
+export default function ArticleEditor({ articleId, prefillTitle, user, categories, countries = [], onSaved, onCancel }) {
   const [form, setForm]           = useState({ ...BLANK, title: prefillTitle || "" });
   const [loading, setLoading]     = useState(!!articleId);
   const [saving, setSaving]       = useState(false);
@@ -344,7 +344,7 @@ export default function ArticleEditor({ articleId, prefillTitle, user, categorie
           <div style={{ background: B.white, borderRadius: 12, border: `1px solid ${B.g2}`, padding: "14px 16px", boxShadow: SH.xs }}>
             <label style={LBL}>Applicability</label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-              {["All EMEA", ...EMEA_COUNTRIES.slice(1)].map(c => {
+              {["All EMEA", ...countries].map(c => {
                 const sel = form.countries.includes(c);
                 return (
                   <button key={c} onClick={() => handleCountryToggle(c)} style={{

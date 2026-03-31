@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { B, SH, CARD, BS, TAG, LBL, TypeBadge, StatusBadge, typeMeta, EMEA_COUNTRIES, Skeleton, EmptyState } from "./shared.jsx";
+import { B, SH, CARD, BS, TAG, LBL, TypeBadge, StatusBadge, typeMeta, Skeleton, EmptyState } from "./shared.jsx";
 import * as api from "../api.js";
 import { ArticleCard } from "./HomeView.jsx";
 
@@ -12,7 +12,7 @@ const TYPE_OPTIONS = [
 
 const LIMIT = 20;
 
-export default function BrowseView({ user, categories, initialCategoryId, onOpenArticle, onNewArticle, isFavourited, toggleFavourite }) {
+export default function BrowseView({ user, categories, countries = [], initialCategoryId, onOpenArticle, onNewArticle, isFavourited, toggleFavourite }) {
   const [articles, setArticles]   = useState([]);
   const [total, setTotal]         = useState(0);
   const [loading, setLoading]     = useState(true);
@@ -145,7 +145,7 @@ export default function BrowseView({ user, categories, initialCategoryId, onOpen
           <div style={{ background: B.white, borderRadius: 12, border: `1px solid ${B.g2}`, padding: "12px 14px", boxShadow: SH.xs }}>
             <label style={LBL}>Country</label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 2 }}>
-              {["", ...EMEA_COUNTRIES.slice(1)].map(c => {
+              {["", ...countries].map(c => {
                 const active = countryFilter === c;
                 return (
                   <button key={c || "all"} onClick={() => setCountryFilter(c)} style={{

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { B, SH, CARD, BP, TAG, TypeBadge, StatusBadge, EMEA_COUNTRIES, typeMeta, Skeleton } from "./shared.jsx";
+import { B, SH, CARD, BP, TAG, TypeBadge, StatusBadge, typeMeta, Skeleton } from "./shared.jsx";
 import * as api from "../api.js";
 
 const TYPE_TABS = [
@@ -9,7 +9,7 @@ const TYPE_TABS = [
   { key: "sop", label: "SOPs" },
 ];
 
-export default function HomeView({ user, categories, favourites, onOpenArticle, onNewArticle, isFavourited, toggleFavourite }) {
+export default function HomeView({ user, categories, countries = [], favourites, onOpenArticle, onNewArticle, isFavourited, toggleFavourite }) {
   const [search, setSearch]       = useState("");
   const [typeTab, setTypeTab]     = useState("");
   const [country, setCountry]     = useState("");
@@ -178,7 +178,7 @@ export default function HomeView({ user, categories, favourites, onOpenArticle, 
         <span style={{ fontSize: 10, fontWeight: 700, color: B.g3, textTransform: "uppercase", letterSpacing: "0.07em", alignSelf: "center", marginRight: 4, flexShrink: 0 }}>
           Country:
         </span>
-        {["", ...EMEA_COUNTRIES.slice(1)].map(c => {
+        {["", ...countries].map(c => {
           const active = country === c || (c === "" && !country);
           return (
             <button key={c || "all"} onClick={() => handleCountry(c)} style={{

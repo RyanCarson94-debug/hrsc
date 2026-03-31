@@ -187,6 +187,7 @@ export default function App() {
           <HomeView
             user={kb.user}
             categories={kb.categories}
+            countries={kb.countries}
             favourites={kb.favourites}
             onOpenArticle={handleOpenArticle}
             onNewArticle={handleNewArticle}
@@ -198,6 +199,7 @@ export default function App() {
           <BrowseView
             user={kb.user}
             categories={kb.categories}
+            countries={kb.countries}
             initialCategoryId={view.categoryId}
             onOpenArticle={handleOpenArticle}
             onNewArticle={handleNewArticle}
@@ -230,6 +232,7 @@ export default function App() {
             prefillTitle={view.prefillTitle}
             user={kb.user}
             categories={kb.categories}
+            countries={kb.countries}
             onSaved={handleEditorSaved}
             onCancel={() =>
               view.id
@@ -242,9 +245,11 @@ export default function App() {
           <AdminView
             user={kb.user}
             categories={kb.categories}
+            countries={kb.countries}
             onOpenArticle={handleOpenArticle}
             onNewArticle={handleNewArticle}
             refreshCategories={kb.refreshCategories}
+            refreshCountries={kb.refreshCountries}
             refreshStats={kb.refreshStats}
           />
         )}
