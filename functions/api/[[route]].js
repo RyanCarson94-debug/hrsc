@@ -346,7 +346,7 @@ export async function onRequest(context) {
         const exportUrl     = new URL(request.url);
         const typeFilter    = exportUrl.searchParams.get("type")          || "";
         const updatedSince  = exportUrl.searchParams.get("updated_since") || "";
-        const baseOrigin    = exportUrl.origin; // e.g. https://hrsc.pages.dev
+        const baseOrigin    = "https://hrscgpt.com";
 
         const SECTION_LABELS = {
           kcs: ["Issue", "Environment", "Resolution", "Cause"],
