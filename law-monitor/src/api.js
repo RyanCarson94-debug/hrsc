@@ -36,5 +36,8 @@ export const listSources   = ()              => get("/sources");
 export const toggleSource  = (id, active)    => put(`/sources/${id}`, { active });
 
 // ── Scan ──────────────────────────────────────────────────────────────────────
-export const triggerScan = () => post("/scan", {});
+export const triggerScan  = ()  => post("/scan", {});
 export const getScanStatus = () => get("/scan/status");
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+export const initDB = () => post("/init", {});
