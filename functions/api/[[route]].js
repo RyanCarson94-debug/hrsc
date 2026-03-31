@@ -41,6 +41,280 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
+// ─── EMEA Law Monitor — Official source definitions ───────────────────────────
+const LAW_SOURCES = [
+  // ── EU ───────────────────────────────────────────────────────────────────────
+  { id: "eurlex-social",      country: "EU", region: "Europe",        name: "EUR-Lex – Employment & Social Policy",            url: "https://eur-lex.europa.eu/search.html?scope=EURLEX&type=quick&lang=en&SUBDOM_INIT=ALL_ALL&DTS_DOM=ALL&typeDocument=REGULATION&DTS_SUBDOM=EMPLOYMENT_SOCIAL", feed_url: "https://eur-lex.europa.eu/RSSONE.do?locale=en&ihmlang=en&type=OJ&DD_YEAR=2025", feed_type: "rss" },
+  // ── UK ───────────────────────────────────────────────────────────────────────
+  { id: "uk-legislation",     country: "GB", region: "Europe",        name: "UK Legislation – New Acts & SIs",                 url: "https://www.legislation.gov.uk", feed_url: "https://www.legislation.gov.uk/new/data.feed", feed_type: "atom" },
+  { id: "uk-gov-employment",  country: "GB", region: "Europe",        name: "GOV.UK – Employment Guidance & Consultations",    url: "https://www.gov.uk/employment", feed_url: "https://www.gov.uk/search/all.atom?keywords=employment+law&order=updated", feed_type: "atom" },
+  { id: "uk-acas",            country: "GB", region: "Europe",        name: "Acas – Guidance Updates",                        url: "https://www.acas.org.uk", feed_url: "https://www.acas.org.uk/feeds/news", feed_type: "rss" },
+  // ── Germany ──────────────────────────────────────────────────────────────────
+  { id: "de-bmas",            country: "DE", region: "Europe",        name: "BMAS – Federal Ministry of Labour (Germany)",     url: "https://www.bmas.de/EN/Home/home.html", feed_url: "https://www.bmas.de/SiteGlobals/Forms/Webs/BMAS/rss-en/rss.html", feed_type: "rss" },
+  { id: "de-bgbl",            country: "DE", region: "Europe",        name: "Bundesgesetzblatt – Federal Law Gazette",         url: "https://www.bgbl.de", feed_url: null, feed_type: "html" },
+  // ── France ───────────────────────────────────────────────────────────────────
+  { id: "fr-legifrance",      country: "FR", region: "Europe",        name: "Légifrance – Journal Officiel (Labour)",          url: "https://www.legifrance.gouv.fr", feed_url: "https://www.legifrance.gouv.fr/rss/jorf.xml", feed_type: "rss" },
+  { id: "fr-travail",         country: "FR", region: "Europe",        name: "Ministère du Travail (France)",                   url: "https://travail-emploi.gouv.fr", feed_url: null, feed_type: "html" },
+  // ── Spain ────────────────────────────────────────────────────────────────────
+  { id: "es-boe-labour",      country: "ES", region: "Europe",        name: "BOE – Boletín Oficial del Estado (Labour)",       url: "https://www.boe.es", feed_url: "https://www.boe.es/rss/boe.php?s=3", feed_type: "rss" },
+  { id: "es-mites",           country: "ES", region: "Europe",        name: "Ministerio de Trabajo (Spain)",                   url: "https://www.mites.gob.es", feed_url: null, feed_type: "html" },
+  // ── Italy ────────────────────────────────────────────────────────────────────
+  { id: "it-gazzetta",        country: "IT", region: "Europe",        name: "Gazzetta Ufficiale (Italy)",                      url: "https://www.gazzettaufficiale.it", feed_url: "https://www.gazzettaufficiale.it/rss/homepage.xml", feed_type: "rss" },
+  // ── Netherlands ──────────────────────────────────────────────────────────────
+  { id: "nl-officieel",       country: "NL", region: "Europe",        name: "Officiële bekendmakingen (Netherlands)",          url: "https://zoek.officielebekendmakingen.nl", feed_url: "https://zoek.officielebekendmakingen.nl/rss/staatscourant", feed_type: "rss" },
+  // ── Belgium ──────────────────────────────────────────────────────────────────
+  { id: "be-ejustice",        country: "BE", region: "Europe",        name: "Belgian Official Gazette (Moniteur/Staatsblad)",  url: "https://www.ejustice.just.fgov.be/cgi/welcome.pl", feed_url: null, feed_type: "html" },
+  // ── Ireland ──────────────────────────────────────────────────────────────────
+  { id: "ie-legislation",     country: "IE", region: "Europe",        name: "Irish Statute Book – Employment Acts",            url: "https://www.irishstatutebook.ie/eli/IsAct.html", feed_url: null, feed_type: "html" },
+  { id: "ie-workplace",       country: "IE", region: "Europe",        name: "Workplace Relations Commission (Ireland)",        url: "https://www.workplacerelations.ie/en/news-media/", feed_url: null, feed_type: "html" },
+  // ── Poland ───────────────────────────────────────────────────────────────────
+  { id: "pl-dziennikustaw",   country: "PL", region: "Europe",        name: "Dziennik Ustaw – Polish Journal of Laws",         url: "https://dziennikustaw.gov.pl", feed_url: "https://dziennikustaw.gov.pl/DU/rss.xml", feed_type: "rss" },
+  // ── Sweden ───────────────────────────────────────────────────────────────────
+  { id: "se-riksdagen",       country: "SE", region: "Europe",        name: "Riksdagen – Labour Committee (Sweden)",           url: "https://www.riksdagen.se/sv/arbete-lagar-och-regler/", feed_url: "https://riksdagen.se/sv/RSS/Dokument/?organ=AU&type=bet", feed_type: "rss" },
+  // ── Denmark ──────────────────────────────────────────────────────────────────
+  { id: "dk-retsinformation", country: "DK", region: "Europe",        name: "Retsinformation.dk (Denmark)",                   url: "https://www.retsinformation.dk/eli/lta/", feed_url: null, feed_type: "html" },
+  // ── Switzerland ──────────────────────────────────────────────────────────────
+  { id: "ch-fedlex",          country: "CH", region: "Europe",        name: "Fedlex – Swiss Federal Law",                     url: "https://www.fedlex.admin.ch/en/home", feed_url: "https://www.fedlex.admin.ch/feed/recent", feed_type: "atom" },
+  // ── Norway ───────────────────────────────────────────────────────────────────
+  { id: "no-arbeidstilsynet", country: "NO", region: "Europe",        name: "Arbeidstilsynet – Norwegian Labour Inspectorate", url: "https://www.arbeidstilsynet.no/en/news/", feed_url: null, feed_type: "html" },
+  // ── Austria ──────────────────────────────────────────────────────────────────
+  { id: "at-ris",             country: "AT", region: "Europe",        name: "RIS – Austrian Federal Law Register",             url: "https://www.ris.bka.gv.at/default.aspx", feed_url: null, feed_type: "html" },
+  // ── Portugal ─────────────────────────────────────────────────────────────────
+  { id: "pt-dre",             country: "PT", region: "Europe",        name: "DRE – Diário da República (Portugal)",            url: "https://dre.pt", feed_url: "https://dre.pt/rss/rss.html", feed_type: "rss" },
+  // ── Finland ──────────────────────────────────────────────────────────────────
+  { id: "fi-finlex",          country: "FI", region: "Europe",        name: "Finlex – Finnish Legislation",                   url: "https://www.finlex.fi/en/", feed_url: null, feed_type: "html" },
+  // ── International ────────────────────────────────────────────────────────────
+  { id: "ilo-news",           country: "INT", region: "International", name: "ILO – International Labour Organization News",   url: "https://www.ilo.org/global/news-and-events/news/lang--en/index.htm", feed_url: "https://www.ilo.org/rss/news-en.xml", feed_type: "rss" },
+  { id: "ilo-natlex",         country: "INT", region: "International", name: "ILO NATLEX – New Legislation Database",          url: "https://natlex.ilo.org/dyn/natlex2/natlex2.home?p_lang=en", feed_url: null, feed_type: "html" },
+  // ── UAE ──────────────────────────────────────────────────────────────────────
+  { id: "ae-mohre",           country: "AE", region: "Middle East",   name: "UAE MOHRE – Ministry of HR & Emiratisation",     url: "https://www.mohre.gov.ae/en/laws-and-regulations/federal-laws.aspx", feed_url: null, feed_type: "html" },
+  { id: "ae-uaelegislation",  country: "AE", region: "Middle East",   name: "UAE Legislation – Official Portal",              url: "https://uaelegislation.gov.ae/en/legislations", feed_url: null, feed_type: "html" },
+  // ── Saudi Arabia ─────────────────────────────────────────────────────────────
+  { id: "sa-hrsd",            country: "SA", region: "Middle East",   name: "HRSD Saudi Arabia – Ministry of HR",             url: "https://www.hrsd.gov.sa/en/news", feed_url: null, feed_type: "html" },
+  { id: "sa-ncar",            country: "SA", region: "Middle East",   name: "Saudi NCAR – National Centre for Labour Regs",   url: "https://ncar.hrsd.gov.sa/En/Home", feed_url: null, feed_type: "html" },
+  // ── Qatar ────────────────────────────────────────────────────────────────────
+  { id: "qa-mol",             country: "QA", region: "Middle East",   name: "Qatar Ministry of Labour",                       url: "https://www.mol.gov.qa/en/news/", feed_url: null, feed_type: "html" },
+  { id: "qa-adlsaq",          country: "QA", region: "Middle East",   name: "Qatar Legal Portal – Labour Laws",               url: "https://www.almeezan.qa/LawPage.aspx?id=3971&language=en", feed_url: null, feed_type: "html" },
+  // ── Bahrain ──────────────────────────────────────────────────────────────────
+  { id: "bh-lmra",            country: "BH", region: "Middle East",   name: "Bahrain LMRA – Labour Regulations",              url: "https://www.lmra.gov.bh/en/page/show/regulation-and-procedures", feed_url: null, feed_type: "html" },
+  // ── Kuwait ───────────────────────────────────────────────────────────────────
+  { id: "kw-msal",            country: "KW", region: "Middle East",   name: "Kuwait Ministry of Social Affairs & Labour",     url: "https://www.msal.gov.kw/index.php/en/msal-news", feed_url: null, feed_type: "html" },
+  // ── Oman ─────────────────────────────────────────────────────────────────────
+  { id: "om-mol",             country: "OM", region: "Middle East",   name: "Oman Ministry of Labour",                        url: "https://mol.gov.om/en/laws-and-regulations/", feed_url: null, feed_type: "html" },
+  // ── Israel ───────────────────────────────────────────────────────────────────
+  { id: "il-labour",          country: "IL", region: "Middle East",   name: "Israel Ministry of Labour",                     url: "https://www.gov.il/en/departments/ministry_of_labor", feed_url: null, feed_type: "html" },
+  // ── South Africa ─────────────────────────────────────────────────────────────
+  { id: "za-labour",          country: "ZA", region: "Africa",        name: "South Africa – Dept Employment & Labour",        url: "https://www.labour.gov.za/legislation/acts/labour-relations-act", feed_url: null, feed_type: "html" },
+  { id: "za-gazette",         country: "ZA", region: "Africa",        name: "South Africa Government Gazette",                url: "https://www.gpwonline.co.za/Gazettes/Pages/Government-Gazettes.aspx", feed_url: null, feed_type: "html" },
+  // ── Nigeria ──────────────────────────────────────────────────────────────────
+  { id: "ng-fml",             country: "NG", region: "Africa",        name: "Nigeria Federal Ministry of Labour & Employment",url: "https://labour.gov.ng/ministry/media/news", feed_url: null, feed_type: "html" },
+  // ── Kenya ────────────────────────────────────────────────────────────────────
+  { id: "ke-labour",          country: "KE", region: "Africa",        name: "Kenya Ministry of Labour & Social Protection",   url: "https://www.labour.go.ke/laws-and-regulations", feed_url: null, feed_type: "html" },
+  // ── Egypt ────────────────────────────────────────────────────────────────────
+  { id: "eg-manpower",        country: "EG", region: "Africa",        name: "Egypt Ministry of Manpower",                     url: "https://www.manpower.gov.eg/en-us/", feed_url: null, feed_type: "html" },
+  // ── Morocco ──────────────────────────────────────────────────────────────────
+  { id: "ma-emploi",          country: "MA", region: "Africa",        name: "Morocco Ministry of Employment (ANAPEC)",        url: "https://www.emploi.gov.ma/index.php/en/actualites.html", feed_url: null, feed_type: "html" },
+  // ── Ghana ────────────────────────────────────────────────────────────────────
+  { id: "gh-melr",            country: "GH", region: "Africa",        name: "Ghana Ministry of Employment & Labour Relations",url: "https://www.melr.gov.gh/legislation/", feed_url: null, feed_type: "html" },
+];
+
+// Keywords that indicate employment law relevance (used to filter general feeds like EUR-Lex)
+const EMPLOYMENT_KEYWORDS = [
+  "employ", "labour", "labor", "worker", "working time", "wage", "salary", "pay ",
+  "dismissal", "redundan", "termination", "annual leave", "maternity", "paternity",
+  "parental leave", "discriminat", "equal pay", "minimum wage", "overtime", "collective",
+  "trade union", "pension", "social securi", "health and safety", "contract of employ",
+  "flexible working", "zero hour", "gig economy", "platform work", "posted worker",
+  "agency work", "apprentice", "internship", "remuneration",
+];
+
+// Sources that are broad (not employment-specific) — need keyword filtering
+const BROAD_FEED_SOURCES = new Set([
+  "eurlex-social", "fr-legifrance", "es-boe-labour", "it-gazzetta", "pl-dziennikustaw",
+  "nl-officieel", "pt-dre", "se-riksdagen", "ch-fedlex",
+]);
+
+function needsKeywordFilter(sourceId) {
+  return BROAD_FEED_SOURCES.has(sourceId);
+}
+
+function isEmploymentRelated(title, summary) {
+  const text = ((title || "") + " " + (summary || "")).toLowerCase();
+  return EMPLOYMENT_KEYWORDS.some(kw => text.includes(kw));
+}
+
+function detectCategory(title, summary) {
+  const text = ((title || "") + " " + (summary || "")).toLowerCase();
+  if (/minimum.?wage|pay.?rate|wage.?floor|wage.?increase|national.?living.?wage/.test(text)) return "minimum_wage";
+  if (/working.?time|working.?hour|overtime|rest.?period|right.?to.?disconnect/.test(text))   return "working_time";
+  if (/dismissal|redundanc|termination|unfair.?dismiss|severance/.test(text))                  return "termination";
+  if (/annual.?leave|holiday|maternity|paternity|parental.?leave|sick.?leave|carer/.test(text)) return "leave";
+  if (/discriminat|equal.?pay|equalit|harassment|diversity|inclusion/.test(text))             return "equality";
+  if (/health.?safety|accident|injury|workplace.?safe|occupational/.test(text))               return "health_safety";
+  if (/pension|retirement|social.?securi|auto.?enrol/.test(text))                             return "pensions";
+  if (/trade.?union|collective.?bargain|industrial.?action|strike/.test(text))                return "collective_rights";
+  if (/immigrat|visa|work.?permit|right.?to.?work|sponsorship/.test(text))                   return "immigration";
+  return "general";
+}
+
+async function hashContent(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function makeChangeId(sourceId, link) {
+  const key = `${sourceId}:${link}`;
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(key));
+  return Array.from(new Uint8Array(buf)).slice(0, 10).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function extractXmlTag(xml, tag) {
+  const m = new RegExp(`<${tag}(?:[^>]*)><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}(?:[^>]*)>([\\s\\S]*?)<\\/${tag}>`, "i").exec(xml);
+  if (!m) return "";
+  return ((m[1] || m[2] || "").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, " ")).trim();
+}
+
+function extractXmlAttr(xml, tag, attr) {
+  const m = new RegExp(`<${tag}[^>]+${attr}=["']([^"']+)["']`, "i").exec(xml);
+  return m ? m[1].trim() : "";
+}
+
+function parseFeedItems(xml, feedType) {
+  const items = [];
+  const isAtom  = feedType === "atom";
+  const itemTag  = isAtom ? "entry" : "item";
+  const regex    = new RegExp(`<${itemTag}[\\s>]([\\s\\S]*?)<\\/${itemTag}>`, "gi");
+  let m;
+  while ((m = regex.exec(xml)) !== null) {
+    const block = m[1];
+    const title   = extractXmlTag(block, "title");
+    const link    = extractXmlAttr(block, "link", "href") || extractXmlTag(block, "link");
+    const summary = extractXmlTag(block, isAtom ? "summary" : "description") ||
+                    extractXmlTag(block, isAtom ? "content" : "summary");
+    const pubDate = extractXmlTag(block, isAtom ? "published" : "pubDate") ||
+                    extractXmlTag(block, "updated") ||
+                    extractXmlTag(block, "dc:date");
+    if (title || link) items.push({ title, link, summary, pubDate });
+  }
+  return items;
+}
+
+async function scanFeedSource(source) {
+  const res = await fetch(source.feed_url, {
+    headers: { "User-Agent": "HRSC-EMEA-LawMonitor/1.0 (employment law compliance monitoring)" },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const xml   = await res.text();
+  const items = parseFeedItems(xml, source.feed_type);
+  return items.filter(item => {
+    if (!needsKeywordFilter(source.id)) return true;
+    return isEmploymentRelated(item.title, item.summary);
+  });
+}
+
+async function scanHtmlSource(source, storedHash) {
+  const res = await fetch(source.url, {
+    headers: { "User-Agent": "HRSC-EMEA-LawMonitor/1.0 (employment law compliance monitoring)" },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const body = await res.text();
+  const newHash = await hashContent(body.slice(0, 50000)); // first 50 KB for stability
+  return { changed: newHash !== storedHash, newHash };
+}
+
+async function ensureSourcesSeeded(DB) {
+  const existing = await DB.prepare("SELECT id FROM law_sources").all();
+  const existingIds = new Set((existing.results || []).map(r => r.id));
+
+  const toInsert = LAW_SOURCES.filter(s => !existingIds.has(s.id));
+  if (toInsert.length === 0) return;
+
+  // Batch insert (D1 has 100-statement limit per batch)
+  for (const s of toInsert) {
+    await DB.prepare(
+      "INSERT OR IGNORE INTO law_sources (id, country, region, name, url, feed_url, feed_type) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ).bind(s.id, s.country, s.region, s.name, s.url, s.feed_url || null, s.feed_type).run();
+  }
+}
+
+async function runLawMonitorScan(DB) {
+  await ensureSourcesSeeded(DB);
+
+  const rows   = await DB.prepare("SELECT * FROM law_sources WHERE active = 1").all();
+  const sources = rows.results || [];
+  let newItems = 0;
+  let sourcesScanned = 0;
+  const errors = [];
+
+  for (const source of sources) {
+    try {
+      const now = new Date().toISOString();
+
+      if (source.feed_url && (source.feed_type === "rss" || source.feed_type === "atom")) {
+        // ── Feed-based source ──────────────────────────────────────────────────
+        const items = await scanFeedSource(source);
+        for (const item of items.slice(0, 50)) { // cap at 50 per source per scan
+          if (!item.title && !item.link) continue;
+          const id = await makeChangeId(source.id, item.link || item.title);
+          const existing = await DB.prepare("SELECT id FROM law_changes WHERE id = ?").bind(id).first();
+          if (!existing) {
+            const pubDate = item.pubDate ? new Date(item.pubDate).toISOString() : null;
+            await DB.prepare(
+              "INSERT OR IGNORE INTO law_changes (id, source_id, title, summary, link, published_at, category) VALUES (?, ?, ?, ?, ?, ?, ?)"
+            ).bind(
+              id, source.id,
+              (item.title || "").slice(0, 500),
+              (item.summary || "").slice(0, 1000),
+              (item.link || "").slice(0, 2000),
+              pubDate,
+              detectCategory(item.title, item.summary),
+            ).run();
+            newItems++;
+          }
+        }
+      } else {
+        // ── HTML hash-based source ─────────────────────────────────────────────
+        const { changed, newHash } = await scanHtmlSource(source, source.content_hash);
+        if (changed) {
+          const id = await makeChangeId(source.id, now);
+          await DB.prepare(
+            "INSERT OR IGNORE INTO law_changes (id, source_id, title, summary, link, category) VALUES (?, ?, ?, ?, ?, ?)"
+          ).bind(
+            id, source.id,
+            `${source.name} — page updated`,
+            "The official source page has changed. Review for new legislation, guidance, or circulars.",
+            source.url,
+            "general",
+          ).run();
+          newItems++;
+        }
+        await DB.prepare("UPDATE law_sources SET content_hash = ? WHERE id = ?")
+          .bind(newHash, source.id).run();
+      }
+
+      await DB.prepare("UPDATE law_sources SET last_checked = ? WHERE id = ?")
+        .bind(now, source.id).run();
+      sourcesScanned++;
+    } catch (e) {
+      errors.push({ source: source.id, error: e.message });
+    }
+  }
+
+  return { sources_scanned: sourcesScanned, new_items: newItems, errors };
+}
+
+// ─── Cloudflare Cron Trigger — runs every 4 hours ─────────────────────────────
+export async function onScheduled(event, env) {
+  if (!env.DB) return;
+  try {
+    await runLawMonitorScan(env.DB);
+  } catch (e) {
+    console.error("Law monitor scheduled scan failed:", e);
+  }
+}
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -742,6 +1016,98 @@ export async function onRequest(context) {
           ? email.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, c => c.toUpperCase())
           : "";
         return json({ email, name });
+      }
+    }
+
+    // ── LAW MONITOR ──────────────────────────────────────────────────────────
+    if (resource === "law-monitor") {
+      const lmSection = parts[1]; // changes | sources | scan
+      const lmId      = parts[2]; // change id or source id
+      const lmAction  = parts[3]; // read | unread | star | unstar
+
+      // GET /api/law-monitor/scan/status
+      if (lmSection === "scan" && lmId === "status" && request.method === "GET") {
+        const [last, total, unread, active] = await Promise.all([
+          DB.prepare("SELECT MAX(detected_at) as ts FROM law_changes").first(),
+          DB.prepare("SELECT COUNT(*) as n FROM law_changes").first(),
+          DB.prepare("SELECT COUNT(*) as n FROM law_changes WHERE is_read = 0").first(),
+          DB.prepare("SELECT COUNT(*) as n FROM law_sources WHERE active = 1").first(),
+        ]);
+        return json({
+          last_scan:      last?.ts || null,
+          total_changes:  total?.n || 0,
+          unread_count:   unread?.n || 0,
+          sources_active: active?.n || 0,
+        });
+      }
+
+      // POST /api/law-monitor/scan
+      if (lmSection === "scan" && request.method === "POST") {
+        const result = await runLawMonitorScan(DB);
+        return json(result);
+      }
+
+      // GET /api/law-monitor/sources
+      if (lmSection === "sources" && request.method === "GET") {
+        const rows = await DB.prepare(
+          "SELECT * FROM law_sources ORDER BY region, country, name"
+        ).all();
+        return json({ sources: rows.results || [] });
+      }
+
+      // PUT /api/law-monitor/sources/:id  (toggle active)
+      if (lmSection === "sources" && lmId && request.method === "PUT") {
+        const body = await request.json();
+        await DB.prepare("UPDATE law_sources SET active = ? WHERE id = ?")
+          .bind(body.active ? 1 : 0, lmId).run();
+        return json({ ok: true });
+      }
+
+      // GET /api/law-monitor/changes
+      if (lmSection === "changes" && !lmId && request.method === "GET") {
+        const qp      = url.searchParams;
+        const region   = qp.get("region")   || "";
+        const country  = qp.get("country")  || "";
+        const category = qp.get("category") || "";
+        const search   = qp.get("search")   || "";
+        const limit    = Math.min(parseInt(qp.get("limit") || "500"), 1000);
+
+        let q = `
+          SELECT lc.*, ls.name AS source_name, ls.country, ls.region, ls.feed_type
+          FROM law_changes lc
+          JOIN law_sources ls ON lc.source_id = ls.id
+          WHERE 1=1`;
+        const binds = [];
+        if (region)   { q += " AND ls.region = ?";   binds.push(region); }
+        if (country)  { q += " AND ls.country = ?";  binds.push(country); }
+        if (category) { q += " AND lc.category = ?"; binds.push(category); }
+        if (search)   { q += " AND (lc.title LIKE ? OR lc.summary LIKE ?)"; binds.push(`%${search}%`, `%${search}%`); }
+        q += " ORDER BY lc.detected_at DESC LIMIT ?";
+        binds.push(limit);
+
+        const rows = await DB.prepare(q).bind(...binds).all();
+        return json({ changes: rows.results || [] });
+      }
+
+      // POST /api/law-monitor/changes/mark-all-read
+      if (lmSection === "changes" && lmId === "mark-all-read" && request.method === "POST") {
+        await DB.prepare("UPDATE law_changes SET is_read = 1").run();
+        return json({ ok: true });
+      }
+
+      // PUT /api/law-monitor/changes/:id/:action
+      if (lmSection === "changes" && lmId && lmAction && request.method === "PUT") {
+        if (lmAction === "read")   { await DB.prepare("UPDATE law_changes SET is_read = 1 WHERE id = ?").bind(lmId).run(); }
+        if (lmAction === "unread") { await DB.prepare("UPDATE law_changes SET is_read = 0 WHERE id = ?").bind(lmId).run(); }
+        if (lmAction === "star")   { await DB.prepare("UPDATE law_changes SET is_starred = 1 WHERE id = ?").bind(lmId).run(); }
+        if (lmAction === "unstar") { await DB.prepare("UPDATE law_changes SET is_starred = 0 WHERE id = ?").bind(lmId).run(); }
+        return json({ ok: true });
+      }
+
+      // DELETE /api/law-monitor/changes/:id
+      if (lmSection === "changes" && lmId && !lmAction && request.method === "DELETE") {
+        await DB.prepare("DELETE FROM law_changes WHERE id = ?").bind(lmId).run();
+        return json({ ok: true });
       }
     }
 
