@@ -501,14 +501,18 @@ export default function App() {
 
   const loadAll = useCallback(async () => {
     try {
-      const [c, s, st] = await Promise.all([
+      const st = await api.getScanStatus();
+      if (st.needs_init) {
+        await api.initDB();
+      }
+      const [c, s, st2] = await Promise.all([
         api.listChanges({ limit: 200 }),
         api.listSources(),
-        api.getScanStatus(),
+        st.needs_init ? api.getScanStatus() : Promise.resolve(st),
       ]);
       setChanges(c.changes || c || []);
       setSources(s.sources || s || []);
-      setStatus(st);
+      setStatus(st2);
     } catch (e) {
       showToast(e.message, "error");
     } finally {

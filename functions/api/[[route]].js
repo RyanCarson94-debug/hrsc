@@ -1027,18 +1027,69 @@ export async function onRequest(context) {
 
       // GET /api/law-monitor/scan/status
       if (lmSection === "scan" && lmId === "status" && request.method === "GET") {
-        const [last, total, unread, active] = await Promise.all([
-          DB.prepare("SELECT MAX(detected_at) as ts FROM law_changes").first(),
-          DB.prepare("SELECT COUNT(*) as n FROM law_changes").first(),
-          DB.prepare("SELECT COUNT(*) as n FROM law_changes WHERE is_read = 0").first(),
-          DB.prepare("SELECT COUNT(*) as n FROM law_sources WHERE active = 1").first(),
-        ]);
-        return json({
-          last_scan:      last?.ts || null,
-          total_changes:  total?.n || 0,
-          unread_count:   unread?.n || 0,
-          sources_active: active?.n || 0,
-        });
+        try {
+          const [last, total, unread, active] = await Promise.all([
+            DB.prepare("SELECT MAX(detected_at) as ts FROM law_changes").first(),
+            DB.prepare("SELECT COUNT(*) as n FROM law_changes").first(),
+            DB.prepare("SELECT COUNT(*) as n FROM law_changes WHERE is_read = 0").first(),
+            DB.prepare("SELECT COUNT(*) as n FROM law_sources WHERE active = 1").first(),
+          ]);
+          return json({
+            last_scan:      last?.ts || null,
+            total_changes:  total?.n || 0,
+            unread_count:   unread?.n || 0,
+            sources_active: active?.n || 0,
+            needs_init:     false,
+          });
+        } catch {
+          return json({ last_scan: null, total_changes: 0, unread_count: 0, sources_active: 0, needs_init: true });
+        }
+      }
+
+      // POST /api/law-monitor/init  — create tables + seed sources (idempotent)
+      if (lmSection === "init" && request.method === "POST") {
+        await DB.prepare(`CREATE TABLE IF NOT EXISTS law_sources (
+          id           TEXT PRIMARY KEY,
+          country      TEXT NOT NULL,
+          region       TEXT NOT NULL,
+          name         TEXT NOT NULL,
+          url          TEXT NOT NULL,
+          feed_url     TEXT,
+          feed_type    TEXT NOT NULL,
+          last_checked TEXT,
+          content_hash TEXT,
+          active       INTEGER DEFAULT 1,
+          created_at   TEXT DEFAULT (datetime('now'))
+        )`).run();
+        await DB.prepare(`CREATE TABLE IF NOT EXISTS law_changes (
+          id           TEXT PRIMARY KEY,
+          source_id    TEXT NOT NULL,
+          title        TEXT NOT NULL,
+          summary      TEXT,
+          link         TEXT,
+          published_at TEXT,
+          detected_at  TEXT DEFAULT (datetime('now')),
+          category     TEXT DEFAULT 'general',
+          is_read      INTEGER DEFAULT 0,
+          is_starred   INTEGER DEFAULT 0
+        )`).run();
+        await DB.prepare(`CREATE INDEX IF NOT EXISTS idx_law_changes_detected ON law_changes(detected_at DESC)`).run();
+        await DB.prepare(`CREATE INDEX IF NOT EXISTS idx_law_changes_source   ON law_changes(source_id)`).run();
+        await DB.prepare(`CREATE INDEX IF NOT EXISTS idx_law_changes_read     ON law_changes(is_read)`).run();
+        await DB.prepare(`CREATE INDEX IF NOT EXISTS idx_law_sources_region   ON law_sources(region)`).run();
+        await DB.prepare(`CREATE INDEX IF NOT EXISTS idx_law_sources_country  ON law_sources(country)`).run();
+        // Seed sources if none exist
+        const existing = await DB.prepare("SELECT COUNT(*) as n FROM law_sources").first();
+        let seeded = 0;
+        if (!existing?.n) {
+          for (const s of LAW_SOURCES) {
+            await DB.prepare(
+              "INSERT OR IGNORE INTO law_sources (id,country,region,name,url,feed_url,feed_type) VALUES (?,?,?,?,?,?,?)"
+            ).bind(s.id, s.country, s.region, s.name, s.url, s.feed_url ?? null, s.feed_type).run();
+            seeded++;
+          }
+        }
+        return json({ ok: true, tables_created: true, sources_seeded: seeded });
       }
 
       // POST /api/law-monitor/scan
