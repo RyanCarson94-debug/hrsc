@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useKbState } from "./useKbState.js";
 import { B, SH, BP } from "./components/shared.jsx";
 import HomeView from "./components/HomeView.jsx";
@@ -16,9 +16,41 @@ import AdminView from "./components/AdminView.jsx";
 
 export default function App() {
   const kb = useKbState();
-  const [view, setView] = useState({ type: "home" });
 
-  const navigate = useCallback((v) => setView(v), []);
+  // Initialise view from URL ?article= param (for AI-generated deep links)
+  const [view, setView] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const articleId = params.get("article");
+    if (articleId) return { type: "article", id: articleId };
+    return { type: "home" };
+  });
+
+  // Keep URL in sync with view so article links are shareable / bookmarkable
+  const navigate = useCallback((v) => {
+    setView(v);
+    const url = new URL(window.location.href);
+    if (v.type === "article" && v.id) {
+      url.searchParams.set("article", v.id);
+    } else {
+      url.searchParams.delete("article");
+    }
+    window.history.pushState(null, "", url.toString());
+  }, []);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const onPop = () => {
+      const params = new URLSearchParams(window.location.search);
+      const articleId = params.get("article");
+      if (articleId) {
+        setView({ type: "article", id: articleId });
+      } else {
+        setView({ type: "home" });
+      }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   const handleOpenArticle = useCallback((sig) => {
     if (sig._openId) {

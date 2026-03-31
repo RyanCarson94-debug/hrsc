@@ -346,6 +346,7 @@ export async function onRequest(context) {
         const exportUrl     = new URL(request.url);
         const typeFilter    = exportUrl.searchParams.get("type")          || "";
         const updatedSince  = exportUrl.searchParams.get("updated_since") || "";
+        const baseOrigin    = exportUrl.origin; // e.g. https://hrsc.pages.dev
 
         const SECTION_LABELS = {
           kcs: ["Issue", "Environment", "Resolution", "Cause"],
@@ -393,6 +394,7 @@ export async function onRequest(context) {
           const out = {
             id:            a.id,
             article_num:   a.article_num,
+            url:           `${baseOrigin}/knowledge?article=${a.id}`,
             article_type:  a.article_type,
             type_label:    TYPE_LABELS[a.article_type] || a.article_type,
             title:         a.title,

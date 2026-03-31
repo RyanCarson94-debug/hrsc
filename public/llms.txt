@@ -28,6 +28,7 @@ Returns JSON with all published articles. Each article includes:
 - `category` — HR category name
 - `countries` — applicable EMEA countries
 - `tags` — keyword tags
+- `url` — direct link to the article (e.g. https://yoursite.com/knowledge?article=UUID)
 - `sections` — object with named sections (e.g. {"Resolution": "...", "Issue": "..."})
 - `workday_path` — Workday navigation path (QRGs only)
 
