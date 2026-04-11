@@ -1,0 +1,15 @@
+{
+  "originHash" : "parkmate-grdb-dependency",
+  "pins" : [
+    {
+      "identity" : "grdb.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/groue/GRDB.swift.git",
+      "state" : {
+        "revision" : "3d03ac0a4c7b4c62890c01a48b13de4a5ae7e3ce",
+        "version" : "6.29.3"
+      }
+    }
+  ],
+  "version" : 3
+}

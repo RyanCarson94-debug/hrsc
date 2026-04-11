@@ -1,0 +1,733 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA000000000000000000004D /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000002C /* AppDelegate.swift */; };
+		AA000000000000000000004E /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000002D /* AppSettings.swift */; };
+		AA000000000000000000004F /* ParkMateApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000002E /* ParkMateApp.swift */; };
+		AA0000000000000000000050 /* ParkingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000002F /* ParkingSession.swift */; };
+		AA0000000000000000000051 /* Provider.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000030 /* Provider.swift */; };
+		AA0000000000000000000052 /* Vehicle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000031 /* Vehicle.swift */; };
+		AA0000000000000000000053 /* Zone.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000032 /* Zone.swift */; };
+		AA0000000000000000000054 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000033 /* LocationService.swift */; };
+		AA0000000000000000000055 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000034 /* NotificationService.swift */; };
+		AA0000000000000000000056 /* ParkingDetectionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000035 /* ParkingDetectionEngine.swift */; };
+		AA0000000000000000000057 /* SMSComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000036 /* SMSComposer.swift */; };
+		AA0000000000000000000058 /* SecureStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000037 /* SecureStorage.swift */; };
+		AA0000000000000000000059 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000038 /* SessionManager.swift */; };
+		AA000000000000000000005A /* ZoneDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000039 /* ZoneDatabase.swift */; };
+		AA000000000000000000005B /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000003A /* DesignSystem.swift */; };
+		AA000000000000000000005C /* DurationFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000003B /* DurationFormatter.swift */; };
+		AA000000000000000000005D /* HaversineDistance.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000003C /* HaversineDistance.swift */; };
+		AA000000000000000000005E /* SMSFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000003D /* SMSFormatter.swift */; };
+		AA000000000000000000005F /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000003E /* MainTabView.swift */; };
+		AA0000000000000000000060 /* NearbyZonesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000003F /* NearbyZonesView.swift */; };
+		AA0000000000000000000061 /* PaymentConfirmationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000040 /* PaymentConfirmationView.swift */; };
+		AA0000000000000000000062 /* PaymentPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000041 /* PaymentPreviewView.swift */; };
+		AA0000000000000000000063 /* ActiveSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000042 /* ActiveSessionView.swift */; };
+		AA0000000000000000000064 /* NoSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000043 /* NoSessionView.swift */; };
+		AA0000000000000000000065 /* SessionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000044 /* SessionHistoryView.swift */; };
+		AA0000000000000000000066 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000045 /* SettingsView.swift */; };
+		AA0000000000000000000067 /* VehicleSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000046 /* VehicleSettingsView.swift */; };
+		AA0000000000000000000068 /* ZoneManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000047 /* ZoneManagementView.swift */; };
+		AA0000000000000000000069 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000048 /* Assets.xcassets */; };
+		AA000000000000000000006A /* seed_zones.json in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000004A /* seed_zones.json */; };
+		AA000000000000000000006B /* ParkMateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000004B /* ParkMateTests.swift */; };
+		AA000000000000000000006C /* ParkMateUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000004C /* ParkMateUITests.swift */; };
+		AA000000000000000000006D /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = AA0000000000000000000028 /* GRDB */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AA0000000000000000000029 /* ParkMate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ParkMate.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000000000000000000002A /* ParkMateTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ParkMateTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000000000000000000002B /* ParkMateUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ParkMateUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000000000000000000002C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		AA000000000000000000002D /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		AA000000000000000000002E /* ParkMateApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkMateApp.swift; sourceTree = "<group>"; };
+		AA000000000000000000002F /* ParkingSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkingSession.swift; sourceTree = "<group>"; };
+		AA0000000000000000000030 /* Provider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Provider.swift; sourceTree = "<group>"; };
+		AA0000000000000000000031 /* Vehicle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vehicle.swift; sourceTree = "<group>"; };
+		AA0000000000000000000032 /* Zone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Zone.swift; sourceTree = "<group>"; };
+		AA0000000000000000000033 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		AA0000000000000000000034 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		AA0000000000000000000035 /* ParkingDetectionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkingDetectionEngine.swift; sourceTree = "<group>"; };
+		AA0000000000000000000036 /* SMSComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMSComposer.swift; sourceTree = "<group>"; };
+		AA0000000000000000000037 /* SecureStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureStorage.swift; sourceTree = "<group>"; };
+		AA0000000000000000000038 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
+		AA0000000000000000000039 /* ZoneDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoneDatabase.swift; sourceTree = "<group>"; };
+		AA000000000000000000003A /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		AA000000000000000000003B /* DurationFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationFormatter.swift; sourceTree = "<group>"; };
+		AA000000000000000000003C /* HaversineDistance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HaversineDistance.swift; sourceTree = "<group>"; };
+		AA000000000000000000003D /* SMSFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SMSFormatter.swift; sourceTree = "<group>"; };
+		AA000000000000000000003E /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		AA000000000000000000003F /* NearbyZonesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearbyZonesView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000040 /* PaymentConfirmationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentConfirmationView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000041 /* PaymentPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentPreviewView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000042 /* ActiveSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveSessionView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000043 /* NoSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoSessionView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000044 /* SessionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionHistoryView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000045 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000046 /* VehicleSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VehicleSettingsView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000047 /* ZoneManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoneManagementView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000048 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AA0000000000000000000049 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA000000000000000000004A /* seed_zones.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = seed_zones.json; sourceTree = "<group>"; };
+		AA000000000000000000004B /* ParkMateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkMateTests.swift; sourceTree = "<group>"; };
+		AA000000000000000000004C /* ParkMateUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParkMateUITests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AA0000000000000000000016 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000000000000000000006D /* GRDB in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000018 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA000000000000000000001A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AA0000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000004 /* ParkMate */,
+				AA000000000000000000000F /* ParkMateTests */,
+				AA0000000000000000000010 /* ParkMateUITests */,
+				AA0000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000029 /* ParkMate.app */,
+				AA000000000000000000002A /* ParkMateTests.xctest */,
+				AA000000000000000000002B /* ParkMateUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000004 /* ParkMate */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000005 /* App */,
+				AA0000000000000000000006 /* Models */,
+				AA0000000000000000000007 /* Services */,
+				AA0000000000000000000008 /* Utilities */,
+				AA0000000000000000000009 /* Views */,
+				AA000000000000000000000E /* Resources */,
+			);
+			path = ParkMate;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000005 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				AA000000000000000000002C /* AppDelegate.swift */,
+				AA000000000000000000002D /* AppSettings.swift */,
+				AA000000000000000000002E /* ParkMateApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000006 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AA000000000000000000002F /* ParkingSession.swift */,
+				AA0000000000000000000030 /* Provider.swift */,
+				AA0000000000000000000031 /* Vehicle.swift */,
+				AA0000000000000000000032 /* Zone.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000007 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000033 /* LocationService.swift */,
+				AA0000000000000000000034 /* NotificationService.swift */,
+				AA0000000000000000000035 /* ParkingDetectionEngine.swift */,
+				AA0000000000000000000036 /* SMSComposer.swift */,
+				AA0000000000000000000037 /* SecureStorage.swift */,
+				AA0000000000000000000038 /* SessionManager.swift */,
+				AA0000000000000000000039 /* ZoneDatabase.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000008 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				AA000000000000000000003A /* DesignSystem.swift */,
+				AA000000000000000000003B /* DurationFormatter.swift */,
+				AA000000000000000000003C /* HaversineDistance.swift */,
+				AA000000000000000000003D /* SMSFormatter.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000009 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				AA000000000000000000003E /* MainTabView.swift */,
+				AA000000000000000000000A /* Session */,
+				AA000000000000000000000B /* Nearby */,
+				AA000000000000000000000C /* Pay */,
+				AA000000000000000000000D /* Settings */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		AA000000000000000000000A /* Session */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000042 /* ActiveSessionView.swift */,
+				AA0000000000000000000043 /* NoSessionView.swift */,
+				AA0000000000000000000044 /* SessionHistoryView.swift */,
+			);
+			path = Session;
+			sourceTree = "<group>";
+		};
+		AA000000000000000000000B /* Nearby */ = {
+			isa = PBXGroup;
+			children = (
+				AA000000000000000000003F /* NearbyZonesView.swift */,
+			);
+			path = Nearby;
+			sourceTree = "<group>";
+		};
+		AA000000000000000000000C /* Pay */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000040 /* PaymentConfirmationView.swift */,
+				AA0000000000000000000041 /* PaymentPreviewView.swift */,
+			);
+			path = Pay;
+			sourceTree = "<group>";
+		};
+		AA000000000000000000000D /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000045 /* SettingsView.swift */,
+				AA0000000000000000000046 /* VehicleSettingsView.swift */,
+				AA0000000000000000000047 /* ZoneManagementView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		AA000000000000000000000E /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000048 /* Assets.xcassets */,
+				AA0000000000000000000049 /* Info.plist */,
+				AA000000000000000000004A /* seed_zones.json */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		AA000000000000000000000F /* ParkMateTests */ = {
+			isa = PBXGroup;
+			children = (
+				AA000000000000000000004B /* ParkMateTests.swift */,
+			);
+			path = ParkMateTests;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000010 /* ParkMateUITests */ = {
+			isa = PBXGroup;
+			children = (
+				AA000000000000000000004C /* ParkMateUITests.swift */,
+			);
+			path = ParkMateUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AA0000000000000000000011 /* ParkMate */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000024 /* Build configuration list for PBXNativeTarget "ParkMate" */;
+			buildPhases = (
+				AA0000000000000000000014 /* Sources */,
+				AA0000000000000000000015 /* Resources */,
+				AA0000000000000000000016 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ParkMate;
+			packageProductDependencies = (
+				AA0000000000000000000028 /* GRDB */,
+			);
+			productName = ParkMate;
+			productReference = AA0000000000000000000029 /* ParkMate.app */;
+			productType = "com.apple.product-type.application";
+		};
+		AA0000000000000000000012 /* ParkMateTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000025 /* Build configuration list for PBXNativeTarget "ParkMateTests" */;
+			buildPhases = (
+				AA0000000000000000000017 /* Sources */,
+				AA0000000000000000000018 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ParkMateTests;
+			productName = ParkMateTests;
+			productReference = AA000000000000000000002A /* ParkMateTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		AA0000000000000000000013 /* ParkMateUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000026 /* Build configuration list for PBXNativeTarget "ParkMateUITests" */;
+			buildPhases = (
+				AA0000000000000000000019 /* Sources */,
+				AA000000000000000000001A /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ParkMateUITests;
+			productName = ParkMateUITests;
+			productReference = AA000000000000000000002B /* ParkMateUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					AA0000000000000000000011 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					AA0000000000000000000012 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = AA0000000000000000000011;
+					};
+					AA0000000000000000000013 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = AA0000000000000000000011;
+					};
+				};
+			};
+			buildConfigurationList = AA0000000000000000000023 /* Build configuration list for PBXProject "ParkMate" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AA0000000000000000000002;
+			packageReferences = (
+				AA0000000000000000000027 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+			);
+			productRefGroup = AA0000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AA0000000000000000000011 /* ParkMate */,
+				AA0000000000000000000012 /* ParkMateTests */,
+				AA0000000000000000000013 /* ParkMateUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AA0000000000000000000015 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA0000000000000000000069 /* Assets.xcassets in Resources */,
+				AA000000000000000000006A /* seed_zones.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AA0000000000000000000014 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000000000000000000004D /* AppDelegate.swift in Sources */,
+				AA000000000000000000004E /* AppSettings.swift in Sources */,
+				AA000000000000000000004F /* ParkMateApp.swift in Sources */,
+				AA0000000000000000000050 /* ParkingSession.swift in Sources */,
+				AA0000000000000000000051 /* Provider.swift in Sources */,
+				AA0000000000000000000052 /* Vehicle.swift in Sources */,
+				AA0000000000000000000053 /* Zone.swift in Sources */,
+				AA0000000000000000000054 /* LocationService.swift in Sources */,
+				AA0000000000000000000055 /* NotificationService.swift in Sources */,
+				AA0000000000000000000056 /* ParkingDetectionEngine.swift in Sources */,
+				AA0000000000000000000057 /* SMSComposer.swift in Sources */,
+				AA0000000000000000000058 /* SecureStorage.swift in Sources */,
+				AA0000000000000000000059 /* SessionManager.swift in Sources */,
+				AA000000000000000000005A /* ZoneDatabase.swift in Sources */,
+				AA000000000000000000005B /* DesignSystem.swift in Sources */,
+				AA000000000000000000005C /* DurationFormatter.swift in Sources */,
+				AA000000000000000000005D /* HaversineDistance.swift in Sources */,
+				AA000000000000000000005E /* SMSFormatter.swift in Sources */,
+				AA000000000000000000005F /* MainTabView.swift in Sources */,
+				AA0000000000000000000060 /* NearbyZonesView.swift in Sources */,
+				AA0000000000000000000061 /* PaymentConfirmationView.swift in Sources */,
+				AA0000000000000000000062 /* PaymentPreviewView.swift in Sources */,
+				AA0000000000000000000063 /* ActiveSessionView.swift in Sources */,
+				AA0000000000000000000064 /* NoSessionView.swift in Sources */,
+				AA0000000000000000000065 /* SessionHistoryView.swift in Sources */,
+				AA0000000000000000000066 /* SettingsView.swift in Sources */,
+				AA0000000000000000000067 /* VehicleSettingsView.swift in Sources */,
+				AA0000000000000000000068 /* ZoneManagementView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000017 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000000000000000000006B /* ParkMateTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000019 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000000000000000000006C /* ParkMateUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		AA000000000000000000001B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_CYCLE = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AA000000000000000000001C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_CYCLE = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		AA000000000000000000001D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "ParkMate/Resources/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.parkmate.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AA000000000000000000001E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "ParkMate/Resources/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.parkmate.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		AA000000000000000000001F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.parkmate.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ParkMate.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ParkMate";
+			};
+			name = Debug;
+		};
+		AA0000000000000000000020 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.parkmate.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ParkMate.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ParkMate";
+			};
+			name = Release;
+		};
+		AA0000000000000000000021 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.parkmate.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = ParkMate;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000022 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.parkmate.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = ParkMate;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AA0000000000000000000023 /* Build configuration list for PBXProject "ParkMate" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA000000000000000000001B /* Debug */,
+				AA000000000000000000001C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000024 /* Build configuration list for PBXNativeTarget "ParkMate" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA000000000000000000001D /* Debug */,
+				AA000000000000000000001E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000025 /* Build configuration list for PBXNativeTarget "ParkMateTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA000000000000000000001F /* Debug */,
+				AA0000000000000000000020 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000026 /* Build configuration list for PBXNativeTarget "ParkMateUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000021 /* Debug */,
+				AA0000000000000000000022 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AA0000000000000000000027 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AA0000000000000000000028 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AA0000000000000000000027 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+/* End XCSwiftPackageProductDependency section */
+
+	};
+	rootObject = AA0000000000000000000001 /* Project object */;
+}
