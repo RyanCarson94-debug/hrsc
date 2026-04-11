@@ -1,0 +1,61 @@
+name: ParkMate iOS Build & Test
+
+on:
+  push:
+    branches: ["claude/build-parkmate-ios-XMGRo", "main"]
+    paths: ["ParkMate/**"]
+  pull_request:
+    paths: ["ParkMate/**"]
+
+jobs:
+  build:
+    name: Build & Unit Test
+    runs-on: macos-14          # Apple Silicon runner — Xcode 15 pre-installed
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 15
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Resolve SPM Dependencies
+        working-directory: ParkMate
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project ParkMate.xcodeproj \
+            -scheme ParkMate \
+            -clonedSourcePackagesDirPath .spm-cache
+
+      - name: Build for Simulator (Debug)
+        working-directory: ParkMate
+        run: |
+          xcodebuild build \
+            -project ParkMate.xcodeproj \
+            -scheme ParkMate \
+            -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=latest' \
+            -configuration Debug \
+            -clonedSourcePackagesDirPath .spm-cache \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty --color && exit "${PIPESTATUS[0]}"
+
+      - name: Run Unit Tests
+        working-directory: ParkMate
+        run: |
+          xcodebuild test \
+            -project ParkMate.xcodeproj \
+            -scheme ParkMateTests \
+            -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=latest' \
+            -clonedSourcePackagesDirPath .spm-cache \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty --color && exit "${PIPESTATUS[0]}"
+
+      - name: Upload Build Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: ~/Library/Developer/Xcode/DerivedData/**/Logs/Build/*.xcactivitylog
+          retention-days: 5
