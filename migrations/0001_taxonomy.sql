@@ -3,7 +3,7 @@
 -- Migration: 0001_taxonomy
 -- ============================================================================
 
-PRAGMA journal_mode=WAL;
+-- D1 manages journal mode internally — PRAGMA statements are not permitted.
 
 -- ----------------------------------------------------------------------------
 -- Frameworks
