@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Bucket values: NOW | SOON | LATER
+// Effort values: LOW | MEDIUM | HIGH
+// TaskStatus values: ACTIVE | COMPLETED | ARCHIVED
+// SessionStatus values: ACTIVE | COMPLETED | PAUSED | ABANDONED
+
+model User {
+  id                   String   @id @default(cuid())
+  email                String   @unique
+  password             String
+  name                 String?
+  notificationsEnabled Boolean  @default(false)
+  preferredSessionMins Int      @default(25)
+  createdAt            DateTime @default(now())
+
+  tasks        Task[]
+  sessions     FocusSession[]
+  distractions DistractionNote[]
+  blocks       ScheduledBlock[]
+}
+
+model Task {
+  id              String    @id @default(cuid())
+  userId          String
+  title           String
+  description     String?
+  bucket          String    @default("SOON")
+  effort          String    @default("MEDIUM")
+  durationMins    Int       @default(25)
+  status          String    @default("ACTIVE")
+  resistanceCount Int       @default(0)
+  scheduledAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  steps    TaskStep[]
+  sessions FocusSession[]
+  blocks   ScheduledBlock[]
+}
+
+model TaskStep {
+  id        String  @id @default(cuid())
+  taskId    String
+  title     String
+  order     Int
+  completed Boolean @default(false)
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model FocusSession {
+  id             String    @id @default(cuid())
+  userId         String
+  taskId         String
+  startedAt      DateTime  @default(now())
+  endedAt        DateTime?
+  durationMins   Int?
+  status         String    @default("ACTIVE")
+  stepsCompleted Int       @default(0)
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task         Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  distractions DistractionNote[]
+}
+
+model DistractionNote {
+  id         String   @id @default(cuid())
+  sessionId  String
+  userId     String
+  content    String
+  capturedAt DateTime @default(now())
+
+  session FocusSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ScheduledBlock {
+  id        String   @id @default(cuid())
+  userId    String
+  taskId    String?
+  title     String
+  date      String
+  startTime String
+  endTime   String
+  createdAt DateTime @default(now())
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+}
