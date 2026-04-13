@@ -3,6 +3,36 @@ import { api } from '@/lib/api'
 import { buildTree } from '@/lib/utils'
 import type { Framework, TaxonomyNode, TreeNodeUI, ValidationIssue } from '@/types'
 
+// ─── App Settings ─────────────────────────────────────────────────────────────
+
+export interface AppSettings {
+  companyName: string
+  brandColor: string
+  logoUrl: string
+  defaultNodeStatus: 'draft' | 'active'
+  showNodeCodes: boolean
+  autoExpandTree: boolean
+}
+
+export const DEFAULT_SETTINGS: AppSettings = {
+  companyName: 'HR Taxonomy',
+  brandColor: '#4d52e7',
+  logoUrl: '',
+  defaultNodeStatus: 'draft',
+  showNodeCodes: true,
+  autoExpandTree: true,
+}
+
+function loadSettings(): AppSettings {
+  try {
+    const raw = localStorage.getItem('hrsc_taxonomy_settings')
+    if (!raw) return DEFAULT_SETTINGS
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+  } catch {
+    return DEFAULT_SETTINGS
+  }
+}
+
 // ─── Toast ────────────────────────────────────────────────────────────────────
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
@@ -34,6 +64,10 @@ interface TaxonomyStore {
   filterStatus: string
   filterOwner: string
   sidebarCollapsed: boolean
+
+  // Settings
+  settings: AppSettings
+  updateSettings: (patch: Partial<AppSettings>) => void
 
   // Actions
   loadFrameworks: () => Promise<void>
@@ -81,6 +115,13 @@ export const useTaxonomyStore = create<TaxonomyStore>((set, get) => ({
   filterStatus: '',
   filterOwner: '',
   sidebarCollapsed: false,
+
+  settings: loadSettings(),
+  updateSettings: (patch) => set(s => {
+    const next = { ...s.settings, ...patch }
+    try { localStorage.setItem('hrsc_taxonomy_settings', JSON.stringify(next)) } catch { /* ignore */ }
+    return { settings: next }
+  }),
 
   // ─── Frameworks ────────────────────────────────────────────────────────────
   loadFrameworks: async () => {

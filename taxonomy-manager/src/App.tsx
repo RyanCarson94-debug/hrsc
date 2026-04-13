@@ -6,6 +6,7 @@ import ValidationCenter from '@/pages/ValidationCenter'
 import ImportCenter from '@/pages/ImportCenter'
 import ExportCenter from '@/pages/ExportCenter'
 import VersionManager from '@/pages/VersionManager'
+import Settings from '@/pages/Settings'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="import" element={<ImportCenter />} />
           <Route path="export" element={<ExportCenter />} />
           <Route path="versions" element={<VersionManager />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

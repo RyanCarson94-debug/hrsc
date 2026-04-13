@@ -10,6 +10,7 @@ import {
   Settings,
   Layers,
 } from 'lucide-react';
+import { useTaxonomyStore } from '@/store';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -24,15 +25,31 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard',   to: '/',            icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" />, end: true },
-  { label: 'Frameworks',  to: '/frameworks',  icon: <Database        className="w-4 h-4 flex-shrink-0" /> },
-  { label: 'Validation',  to: '/validation',  icon: <ShieldCheck     className="w-4 h-4 flex-shrink-0" /> },
-  { label: 'Import',      to: '/import',      icon: <Upload          className="w-4 h-4 flex-shrink-0" /> },
-  { label: 'Export',      to: '/export',      icon: <Download        className="w-4 h-4 flex-shrink-0" /> },
-  { label: 'Versions',    to: '/versions',    icon: <GitBranch       className="w-4 h-4 flex-shrink-0" /> },
+  { label: 'Dashboard',  to: '/',           icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" />, end: true },
+  { label: 'Frameworks', to: '/frameworks', icon: <Database        className="w-4 h-4 flex-shrink-0" /> },
+  { label: 'Validation', to: '/validation', icon: <ShieldCheck     className="w-4 h-4 flex-shrink-0" /> },
+  { label: 'Import',     to: '/import',     icon: <Upload          className="w-4 h-4 flex-shrink-0" /> },
+  { label: 'Export',     to: '/export',     icon: <Download        className="w-4 h-4 flex-shrink-0" /> },
+  { label: 'Versions',   to: '/versions',   icon: <GitBranch       className="w-4 h-4 flex-shrink-0" /> },
 ];
 
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
+  const { settings } = useTaxonomyStore();
+  const { brandColor, companyName, logoUrl } = settings;
+
+  const activeStyle = {
+    backgroundColor: hexToRgba(brandColor, 0.15),
+    color: brandColor,
+    borderLeftColor: brandColor,
+  };
+
   return (
     <aside
       className={[
@@ -47,11 +64,19 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
           collapsed ? 'justify-center' : '',
         ].join(' ')}
       >
-        <div className="w-7 h-7 rounded-md bg-brand-600 flex items-center justify-center flex-shrink-0">
-          <Layers className="w-4 h-4 text-white" />
+        <div
+          className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 overflow-hidden"
+          style={{ backgroundColor: brandColor }}
+        >
+          {logoUrl
+            ? <img src={logoUrl} alt="" className="w-5 h-5 object-contain" />
+            : <Layers className="w-4 h-4 text-white" />
+          }
         </div>
         {!collapsed && (
-          <span className="text-sm font-semibold text-slate-100 truncate">HR Taxonomy</span>
+          <span className="text-sm font-semibold text-slate-100 truncate">
+            {companyName || 'HR Taxonomy'}
+          </span>
         )}
       </div>
 
@@ -68,11 +93,11 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
                 'flex items-center gap-2.5 rounded-lg text-sm font-medium transition-colors',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
                 collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2',
-                isActive
-                  ? 'bg-brand-600/20 text-brand-400 border-l-2 border-brand-500'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border-l-2 border-transparent',
+                'border-l-2',
+                isActive ? '' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border-transparent',
               ].join(' ')
             }
+            style={({ isActive }) => isActive ? activeStyle : undefined}
           >
             {item.icon}
             {!collapsed && <span className="truncate">{item.label}</span>}
@@ -82,19 +107,23 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
 
       {/* Bottom: Settings */}
       <div className="px-2 py-3 border-t border-slate-800 flex-shrink-0">
-        <button
+        <NavLink
+          to="/settings"
           title={collapsed ? 'Settings' : undefined}
-          className={[
-            'w-full flex items-center gap-2.5 rounded-lg text-sm font-medium text-slate-400',
-            'hover:text-slate-200 hover:bg-slate-800/60 transition-colors',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
-            'border-l-2 border-transparent',
-            collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2',
-          ].join(' ')}
+          className={({ isActive }) =>
+            [
+              'w-full flex items-center gap-2.5 rounded-lg text-sm font-medium transition-colors',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
+              'border-l-2',
+              collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2',
+              isActive ? '' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border-transparent',
+            ].join(' ')
+          }
+          style={({ isActive }) => isActive ? activeStyle : undefined}
         >
           <Settings className="w-4 h-4 flex-shrink-0" />
           {!collapsed && <span className="truncate">Settings</span>}
-        </button>
+        </NavLink>
       </div>
     </aside>
   );

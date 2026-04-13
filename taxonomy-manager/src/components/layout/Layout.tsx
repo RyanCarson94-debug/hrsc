@@ -67,7 +67,13 @@ const Layout: React.FC = () => {
     toasts,
     removeToast,
     addToast,
+    settings,
   } = useTaxonomyStore();
+
+  // Apply brand color as CSS variable so the whole UI stays in sync
+  useEffect(() => {
+    document.documentElement.style.setProperty('--brand', settings.brandColor);
+  }, [settings.brandColor]);
 
   useEffect(() => {
     loadFrameworks();
