@@ -2,18 +2,10 @@ name = "hrsc"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "dist"
 
-# ── D1 binding ────────────────────────────────────────────────────────────────
-# Configure in Cloudflare Pages Dashboard (not here — placeholder UUIDs fail):
-#   Settings → Functions → D1 database bindings
-#   Variable name : TAXONOMY_DB
-#   Database      : taxonomy-db  (create it first, see below)
-#
-# One-time setup:
-#   wrangler d1 create taxonomy-db
-#   wrangler d1 execute taxonomy-db --file migrations/0001_taxonomy.sql
-#
-# Local dev:
-#   wrangler pages dev dist --d1 TAXONOMY_DB=<your-database-id>
+[[d1_databases]]
+binding      = "TAXONOMY_DB"
+database_name = "taxonomy-db"
+database_id  = "6e27c8cd-3b59-4e5a-9f14-35b5ad38b45e"
 
 # ── R2 Buckets (optional — for export file storage) ──────────────────────────
 # Uncomment after creating: wrangler r2 bucket create taxonomy-exports
