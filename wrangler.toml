@@ -1,0 +1,21 @@
+name = "hrsc"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "dist"
+
+# ── D1 Databases ──────────────────────────────────────────────────────────────
+# Create with: wrangler d1 create taxonomy-db
+# Then replace database_id below with the output ID.
+[[d1_databases]]
+binding      = "TAXONOMY_DB"
+database_name = "taxonomy-db"
+database_id  = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+# ── R2 Buckets (optional — for export file storage) ──────────────────────────
+# Uncomment after creating: wrangler r2 bucket create taxonomy-exports
+# [[r2_buckets]]
+# binding     = "TAXONOMY_EXPORTS"
+# bucket_name = "taxonomy-exports"
+
+# ── Environment variables ─────────────────────────────────────────────────────
+[vars]
+TAXONOMY_APP_VERSION = "1.0.0"
