@@ -38,7 +38,7 @@ export function generateExcelExport(data: ExportData): Blob {
     'notes','source_reference','created_at','updated_at',
   ]
   const nodeRows = data.nodes.map(n => nodeHeaders.map(h => {
-    const val = (n as Record<string, unknown>)[h]
+    const val = (n as unknown as Record<string, unknown>)[h]
     if (h === 'synonyms' || h === 'keywords') {
       return parseJsonArr(val as string).join('; ')
     }

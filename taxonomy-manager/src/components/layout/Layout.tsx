@@ -1,15 +1,11 @@
 import React, { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Outlet } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { ToastStack } from '@/components/ui/Toast';
 import { useTaxonomyStore } from '@/store';
 import { api } from '@/lib/api';
 import { Button, Select } from '@/components/ui';
-
-interface LayoutProps {
-  children: React.ReactNode;
-}
 
 // ---------------------------------------------------------------------------
 // Breadcrumb helper
@@ -60,7 +56,7 @@ const Breadcrumb: React.FC = () => {
 // Layout
 // ---------------------------------------------------------------------------
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC = () => {
   const {
     sidebarCollapsed,
     toggleSidebar,
@@ -142,7 +138,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* Page content */}
         <main className="flex-1 overflow-auto p-6 bg-slate-950 scrollbar-thin">
-          {children}
+          <Outlet />
         </main>
       </div>
 
