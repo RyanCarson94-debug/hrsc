@@ -32,6 +32,8 @@ export function FocusPage() {
   const [captures, setCaptures] = useState<{ id: string; content: string }[]>([])
   const [ending, setEnding] = useState(false)
   const [showComplete, setShowComplete] = useState(false)
+  const [pipWindow, setPipWindow] = useState<Window | null>(null)
+  const pipSupported = 'documentPictureInPicture' in window
 
   const load = useCallback(async () => {
     try {
@@ -117,6 +119,55 @@ export function FocusPage() {
     navigate('/focusflow/tasks')
   }
 
+  useEffect(() => {
+    if (!pipWindow || !session) return
+    const rem = durationSecs - elapsed
+    const stepsHtml = steps.map(s => `
+      <button data-sid="${s.id}" style="width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;
+        border-radius:8px;border:1px solid #E2DFDA;background:${s.completed ? '#F8F7F5' : 'white'};
+        text-align:left;cursor:pointer;margin-bottom:6px;font-family:inherit;box-sizing:border-box">
+        <div style="width:18px;height:18px;border-radius:4px;border:2px solid ${s.completed ? '#FC1921' : '#C8C5BF'};
+          background:${s.completed ? '#FC1921' : 'white'};flex-shrink:0;display:flex;align-items:center;justify-content:center">
+          ${s.completed ? '<svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>' : ''}
+        </div>
+        <span style="font-size:13px;color:${s.completed ? '#808284' : '#231F20'};${s.completed ? 'text-decoration:line-through' : ''}">${s.title}</span>
+      </button>`).join('')
+    pipWindow.document.body.innerHTML = `
+      <div style="padding:16px">
+        <div style="font-size:11px;color:#808284;margin-bottom:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${session.task.title}</div>
+        <div style="text-align:center;font-size:44px;font-weight:300;color:${finished ? '#00A28A' : '#231F20'};margin-bottom:14px;letter-spacing:-1px">
+          ${finished ? 'Done!' : fmt(rem)}</div>
+        ${steps.length > 0 ? `
+          <div style="font-size:10px;color:#808284;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;display:flex;justify-content:space-between">
+            <span>Steps</span><span>${steps.filter(s => s.completed).length}/${steps.length}</span>
+          </div>${stepsHtml}` : `<div style="text-align:center;color:#808284;font-size:13px">Stay focused</div>`}
+        ${!finished ? `<button id="pp" style="margin-top:10px;width:100%;padding:8px;border-radius:8px;
+          border:1px solid #E2DFDA;background:white;font-size:13px;color:#808284;cursor:pointer;font-family:inherit;box-sizing:border-box">
+          ${paused ? '▶ Resume' : '⏸ Pause'}</button>` : ''}
+      </div>`
+    steps.forEach(s => {
+      const el = pipWindow.document.querySelector(`[data-sid="${s.id}"]`)
+      if (el) el.addEventListener('click', () => toggleStep(s))
+    })
+    const pp = pipWindow.document.getElementById('pp')
+    if (pp) pp.addEventListener('click', () => setPaused(p => !p))
+  }, [pipWindow, elapsed, paused, finished, steps, session, durationSecs])
+
+  async function openPip() {
+    if (!pipSupported) return
+    try {
+      const pip = await (window as any).documentPictureInPicture.requestWindow({ width: 300, height: steps.length > 3 ? 500 : 340 })
+      document.querySelectorAll('link[rel="stylesheet"]').forEach(el => pip.document.head.appendChild(el.cloneNode(true)))
+      const font = pip.document.createElement('link')
+      font.rel = 'stylesheet'
+      font.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap'
+      pip.document.head.appendChild(font)
+      pip.document.body.style.cssText = 'margin:0;background:#F1EFEA;font-family:Montserrat,sans-serif'
+      setPipWindow(pip)
+      pip.addEventListener('pagehide', () => setPipWindow(null))
+    } catch {}
+  }
+
   if (loading) return <div className="min-h-screen bg-bg flex items-center justify-center"><p className="text-text-muted animate-pulse">Loading…</p></div>
   if (error || !session) return (
     <div className="min-h-screen bg-bg flex items-center justify-center text-center">
@@ -139,10 +190,18 @@ export function FocusPage() {
           End session
         </button>
         <span className="text-sm font-medium text-text-muted truncate max-w-[200px]">{session.task.title}</span>
-        <button onClick={() => setDistractionOpen(true)} className="btn-ghost text-sm flex items-center gap-1.5">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          Capture
-        </button>
+        <div className="flex items-center gap-2">
+          {pipSupported && !pipWindow && (
+            <button onClick={openPip} title="Float timer on top" className="btn-ghost text-sm flex items-center gap-1.5">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><rect x="14" y="7" width="6" height="6" rx="1" fill="currentColor"/></svg>
+              Pop out
+            </button>
+          )}
+          <button onClick={() => setDistractionOpen(true)} className="btn-ghost text-sm flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Capture
+          </button>
+        </div>
       </div>
 
       {/* Main */}
