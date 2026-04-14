@@ -565,23 +565,82 @@ async function exportICS(request, env, user) {
 
 async function getSettings(request, env, user) {
   const row = await env.FOCUSFLOW_DB.prepare(
-    'SELECT id, email, name, notifications_enabled, preferred_session_mins FROM focusflow_users WHERE id = ?'
+    'SELECT id, email, name, notifications_enabled, preferred_session_mins, work_context FROM focusflow_users WHERE id = ?'
   ).bind(user.id).first()
   return json(row)
 }
 
 async function updateSettings(request, env, user) {
-  const { name, notifications_enabled, preferred_session_mins } = await request.json()
+  const { name, notifications_enabled, preferred_session_mins, work_context } = await request.json()
   const fields = []
   const vals = []
   if (name !== undefined) { fields.push('name = ?'); vals.push(name?.trim() || null) }
   if (notifications_enabled !== undefined) { fields.push('notifications_enabled = ?'); vals.push(notifications_enabled ? 1 : 0) }
   if (preferred_session_mins !== undefined) { fields.push('preferred_session_mins = ?'); vals.push(Number(preferred_session_mins)) }
+  if (work_context !== undefined) { fields.push('work_context = ?'); vals.push(work_context?.trim() || null) }
   if (fields.length === 0) return json({ error: 'Nothing to update' }, 400)
 
   await env.FOCUSFLOW_DB.prepare(`UPDATE focusflow_users SET ${fields.join(', ')} WHERE id = ?`).bind(...vals, user.id).run()
-  const row = await env.FOCUSFLOW_DB.prepare('SELECT id, email, name, notifications_enabled, preferred_session_mins FROM focusflow_users WHERE id = ?').bind(user.id).first()
+  const row = await env.FOCUSFLOW_DB.prepare('SELECT id, email, name, notifications_enabled, preferred_session_mins, work_context FROM focusflow_users WHERE id = ?').bind(user.id).first()
   return json(row)
+}
+
+async function aiBreakdown(request, env, user) {
+  if (!env.ANTHROPIC_API_KEY) return json({ error: 'AI breakdown not configured' }, 503)
+
+  const { taskTitle, taskDescription } = await request.json()
+  if (!taskTitle?.trim()) return json({ error: 'taskTitle is required' }, 400)
+
+  const userRow = await env.FOCUSFLOW_DB.prepare(
+    'SELECT work_context FROM focusflow_users WHERE id = ?'
+  ).bind(user.id).first()
+
+  const contextSection = userRow?.work_context
+    ? `\n\nUser context: ${userRow.work_context}`
+    : ''
+  const descSection = taskDescription?.trim()
+    ? `\nTask description: ${taskDescription.trim()}`
+    : ''
+
+  const prompt = `You help professionals with ADHD break tasks into clear, concrete steps that reduce friction and make it easy to start.${contextSection}
+
+Task: ${taskTitle.trim()}${descSection}
+
+Break this task into 3-7 specific, actionable steps. Each step should be short (under 10 words), concrete, and doable in one sitting. Use plain language — no corporate jargon.
+
+Respond with ONLY a valid JSON array of strings. No explanation, no markdown, no code block. Example: ["Open the file", "Write the outline", "Send for review"]`
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-6',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  })
+
+  if (!res.ok) return json({ error: 'AI request failed' }, 502)
+
+  const data = await res.json()
+  const text = data.content?.[0]?.text ?? ''
+
+  let steps
+  try {
+    steps = JSON.parse(text)
+    if (!Array.isArray(steps)) throw new Error('not array')
+  } catch {
+    // Try extracting JSON array from the response
+    const match = text.match(/\[[\s\S]*\]/)
+    if (!match) return json({ error: 'Could not parse AI response' }, 502)
+    steps = JSON.parse(match[0])
+  }
+
+  return json({ steps: steps.filter(s => typeof s === 'string' && s.trim()) })
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
@@ -650,6 +709,9 @@ export async function onRequest(context) {
 
     // ICS export
     if (path === '/export/ics' && method === 'GET') return exportICS(request, env, user)
+
+    // AI
+    if (path === '/ai/breakdown' && method === 'POST') return aiBreakdown(request, env, user)
 
     // Settings
     if (path === '/settings') {
