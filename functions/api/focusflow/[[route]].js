@@ -465,6 +465,22 @@ async function captureDistraction(request, env, user) {
   return json({ id, sessionId, content: content.trim(), capturedAt: nowISO() }, 201)
 }
 
+async function getDistractions(request, env, user) {
+  const url = new URL(request.url)
+  const sessionId = url.searchParams.get('sessionId')
+  if (!sessionId) return json({ error: 'sessionId required' }, 400)
+
+  const session = await env.FOCUSFLOW_DB.prepare(
+    'SELECT id FROM focusflow_focus_sessions WHERE id = ? AND user_id = ?'
+  ).bind(sessionId, user.id).first()
+  if (!session) return json({ error: 'Not found' }, 404)
+
+  const { results } = await env.FOCUSFLOW_DB.prepare(
+    'SELECT * FROM focusflow_distractions WHERE session_id = ? ORDER BY captured_at ASC'
+  ).bind(sessionId).all()
+  return json(results)
+}
+
 async function getInsights(request, env, user) {
   const { results: sessions } = await env.FOCUSFLOW_DB.prepare(`
     SELECT fs.*, ft.effort, ft.resistance_count, ft.id as task_id
@@ -617,7 +633,10 @@ export async function onRequest(context) {
     }
 
     // Distractions
-    if (path === '/distractions' && method === 'POST') return captureDistraction(request, env, user)
+    if (path === '/distractions') {
+      if (method === 'POST') return captureDistraction(request, env, user)
+      if (method === 'GET') return getDistractions(request, env, user)
+    }
 
     // Insights
     if (path === '/insights' && method === 'GET') return getInsights(request, env, user)

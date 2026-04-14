@@ -29,6 +29,7 @@ export function FocusPage() {
   const [distractionOpen, setDistractionOpen] = useState(false)
   const [distractionText, setDistractionText] = useState('')
   const [distractionSaved, setDistractionSaved] = useState(false)
+  const [captures, setCaptures] = useState<{ id: string; content: string }[]>([])
   const [ending, setEnding] = useState(false)
   const [showComplete, setShowComplete] = useState(false)
 
@@ -90,7 +91,11 @@ export function FocusPage() {
 
   async function saveDistraction() {
     if (!session || !distractionText.trim()) return
-    await apiFetch('/distractions', { method: 'POST', body: JSON.stringify({ sessionId: session.id, content: distractionText.trim() }) })
+    const res = await apiFetch('/distractions', { method: 'POST', body: JSON.stringify({ sessionId: session.id, content: distractionText.trim() }) })
+    if (res.ok) {
+      const saved = await res.json()
+      setCaptures(prev => [...prev, saved])
+    }
     setDistractionText('')
     setDistractionSaved(true)
     setTimeout(() => { setDistractionOpen(false); setDistractionSaved(false) }, 800)
@@ -104,6 +109,11 @@ export function FocusPage() {
       method: 'PUT',
       body: JSON.stringify({ status, duration_mins: Math.ceil(elapsed / 60), steps_completed: steps.filter(s => s.completed).length }),
     })
+    if (status === 'COMPLETED' && captures.length === 0) {
+      // Fetch any captures saved before this render (e.g. after a reload)
+      const res = await apiFetch(`/distractions?sessionId=${session.id}`)
+      if (res.ok) { const data = await res.json(); if (data.length) { setCaptures(data); setEnding(false); return } }
+    }
     navigate('/focusflow/tasks')
   }
 
@@ -168,7 +178,7 @@ export function FocusPage() {
               }
             </button>
           )}
-          <button onClick={() => endSession('COMPLETED')} disabled={ending} className="btn-primary flex items-center gap-2">
+          <button onClick={() => { setShowComplete(true) }} disabled={ending} className="btn-primary flex items-center gap-2">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             {ending ? 'Finishing…' : 'Complete session'}
           </button>
@@ -219,6 +229,16 @@ export function FocusPage() {
       {/* Timer done */}
       <Modal open={showComplete && !ending} onClose={() => setShowComplete(false)} title="Time's up">
         <p className="text-text-muted text-sm mb-5">You worked on <strong>{session.task.title}</strong>. How did it go?</p>
+        {captures.length > 0 && (
+          <div className="mb-5">
+            <p className="text-xs font-medium text-text-subtle uppercase tracking-wide mb-2">Captured during session</p>
+            <ul className="space-y-1.5">
+              {captures.map((c, i) => (
+                <li key={c.id ?? i} className="text-sm text-text bg-gray-50 rounded px-3 py-2 border border-border">{c.content}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="flex flex-col gap-2.5">
           <button onClick={() => endSession('COMPLETED')} className="btn-primary w-full">Mark as done</button>
           <button onClick={() => setShowComplete(false)} className="btn-secondary w-full">Keep going — I need more time</button>
