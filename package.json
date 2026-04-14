@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && cd contract-builder && npm install && npm run build && cd .. && cd knowledge-base && npm install && npm run build && cd .. && cd law-monitor && npm install && npm run build && cd .. && cd taxonomy-manager && npm install && npm run build && cd .. && cp public/copilot.html dist/copilot.html && cp public/index.html dist/index.html && cp public/askhr-logo.png dist/askhr-logo.png",
+    "build": "vite build && cd contract-builder && npm install && npm run build && cd .. && cd knowledge-base && npm install && npm run build && cd .. && cd law-monitor && npm install && npm run build && cd .. && cd taxonomy-manager && npm install && npm run build && cd .. && cd focusflow && npm install && npm run build && cd .. && cp public/copilot.html dist/copilot.html && cp public/index.html dist/index.html && cp public/askhr-logo.png dist/askhr-logo.png",
     "lint": "eslint .",
     "preview": "vite preview"
   },

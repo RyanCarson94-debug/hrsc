@@ -13,6 +13,13 @@ database_id  = "6e27c8cd-3b59-4e5a-9f14-35b5ad38b45e"
 # binding     = "TAXONOMY_EXPORTS"
 # bucket_name = "taxonomy-exports"
 
+[[d1_databases]]
+binding       = "FOCUSFLOW_DB"
+database_name = "focusflow-db"
+database_id   = "focusflow-db-replace-with-real-id"
+
 # ── Environment variables ─────────────────────────────────────────────────────
 [vars]
 TAXONOMY_APP_VERSION = "1.0.0"
+# Session token secret — set a strong random value in Pages dashboard for production
+FOCUSFLOW_SESSION_SECRET = "dev-secret-change-in-production"
