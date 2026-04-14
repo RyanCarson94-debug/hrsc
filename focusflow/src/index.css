@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -11,23 +13,23 @@
   }
 
   body {
-    background-color: #F8F7F4;
-    color: #1C1C1E;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #F1EFEA;
+    color: #231F20;
+    font-family: 'Montserrat', sans-serif;
     min-height: 100vh;
   }
 
-  ::selection { background: #EEF0FE; }
+  ::selection { background: #FDECED; }
 
   :focus-visible {
-    outline: 2px solid #5B6CF8;
+    outline: 2px solid #FC1921;
     outline-offset: 2px;
     border-radius: 6px;
   }
 
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #D1CFC9; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb { background: #C8C5BF; border-radius: 3px; }
 }
 
 @layer components {

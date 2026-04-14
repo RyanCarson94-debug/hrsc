@@ -30,7 +30,7 @@ export function LoginPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 bg-primary-light rounded-xl mb-4">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#5B6CF8"/>
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#FC1921"/>
             </svg>
           </div>
           <h1 className="text-2xl font-semibold text-text">FocusFlow</h1>

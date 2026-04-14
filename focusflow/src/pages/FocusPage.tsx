@@ -139,8 +139,8 @@ export function FocusPage() {
         {/* Timer */}
         <div className="relative mb-8">
           <svg width="200" height="200" viewBox="0 0 200 200" className="rotate-[-90deg]">
-            <circle cx="100" cy="100" r="88" fill="none" stroke="#E8E6E1" strokeWidth="8"/>
-            <circle cx="100" cy="100" r="88" fill="none" stroke={finished ? '#22C55E' : '#5B6CF8'} strokeWidth="8"
+            <circle cx="100" cy="100" r="88" fill="none" stroke="#E2DFDA" strokeWidth="8"/>
+            <circle cx="100" cy="100" r="88" fill="none" stroke={finished ? '#00A28A' : '#FC1921'} strokeWidth="8"
               strokeLinecap="round"
               strokeDasharray={`${2 * Math.PI * 88}`}
               strokeDashoffset={`${2 * Math.PI * 88 * (1 - progress / 100)}`}

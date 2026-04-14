@@ -24,7 +24,7 @@ export function Nav() {
         <div className="hidden md:flex items-center gap-2.5 px-5 mb-8">
           <div className="w-7 h-7 bg-primary-light rounded-lg flex items-center justify-center flex-shrink-0">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#5B6CF8"/>
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#FC1921"/>
             </svg>
           </div>
           <span className="font-semibold text-text text-base">FocusFlow</span>
