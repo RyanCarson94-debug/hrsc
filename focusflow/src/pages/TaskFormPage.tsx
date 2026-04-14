@@ -3,17 +3,17 @@ import { Link, useParams, useNavigate } from 'react-router-dom'
 import { apiGet, apiFetch } from '../lib/api'
 import { Task, Bucket, Effort } from '../lib/types'
 
-async function fetchAiSteps(taskTitle: string, taskDescription: string): Promise<string[] | null> {
+async function fetchAiSteps(taskTitle: string, taskDescription: string): Promise<{ steps: string[] } | { error: string }> {
   try {
     const res = await apiFetch('/ai/breakdown', {
       method: 'POST',
       body: JSON.stringify({ taskTitle, taskDescription }),
     })
-    if (!res.ok) return null
     const data = await res.json()
-    return Array.isArray(data.steps) ? data.steps : null
-  } catch {
-    return null
+    if (!res.ok) return { error: data.error ?? `HTTP ${res.status}` }
+    return Array.isArray(data.steps) && data.steps.length > 0 ? { steps: data.steps } : { error: 'No steps returned' }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Network error' }
   }
 }
 
@@ -71,6 +71,7 @@ export function TaskFormPage() {
   const [stepsGenerated, setStepsGenerated] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiUsed, setAiUsed] = useState<boolean | null>(null)
+  const [aiError, setAiError] = useState<string | null>(null)
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -161,13 +162,15 @@ export function TaskFormPage() {
           {title.trim() && !stepsGenerated && (
             <button type="button" disabled={aiLoading} onClick={async () => {
               setAiLoading(true)
-              const aiSteps = await fetchAiSteps(title, description)
-              if (aiSteps && aiSteps.length > 0) {
-                setSteps(aiSteps.map((s, i) => ({ title: s, sort_order: i, completed: false })))
+              const result = await fetchAiSteps(title, description)
+              if ('steps' in result) {
+                setSteps(result.steps.map((s, i) => ({ title: s, sort_order: i, completed: false })))
                 setAiUsed(true)
+                setAiError(null)
               } else {
                 setSteps(suggestSteps(title))
                 setAiUsed(false)
+                setAiError(result.error)
               }
               setStepsGenerated(true)
               setAiLoading(false)
@@ -193,7 +196,7 @@ export function TaskFormPage() {
             <div className="flex items-center gap-2 mb-1">
             <label className="label mb-0">Steps</label>
             {aiUsed === true && <span className="text-xs text-success font-medium">AI generated</span>}
-            {aiUsed === false && <span className="text-xs text-text-subtle">Suggested (AI unavailable)</span>}
+            {aiUsed === false && <span className="text-xs text-text-subtle" title={aiError ?? ''}>Suggested ({aiError ?? 'AI unavailable'})</span>}
           </div>
             <div className="space-y-2 mb-3">
               {steps.map((step, i) => (
