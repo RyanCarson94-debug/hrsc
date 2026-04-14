@@ -63,4 +63,5 @@ export interface UserSettings {
   name: string | null
   notifications_enabled: number
   preferred_session_mins: number
+  work_context: string | null
 }

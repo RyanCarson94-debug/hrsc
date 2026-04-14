@@ -3,6 +3,20 @@ import { Link, useParams, useNavigate } from 'react-router-dom'
 import { apiGet, apiFetch } from '../lib/api'
 import { Task, Bucket, Effort } from '../lib/types'
 
+async function fetchAiSteps(taskTitle: string, taskDescription: string): Promise<string[] | null> {
+  try {
+    const res = await apiFetch('/ai/breakdown', {
+      method: 'POST',
+      body: JSON.stringify({ taskTitle, taskDescription }),
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    return Array.isArray(data.steps) ? data.steps : null
+  } catch {
+    return null
+  }
+}
+
 type Step = { id?: string; title: string; sort_order: number; completed: boolean }
 
 const EFFORT_OPTS: { value: Effort; label: string; hint: string }[] = [
@@ -55,6 +69,7 @@ export function TaskFormPage() {
   const [customDuration, setCustomDuration] = useState(false)
   const [steps, setSteps] = useState<Step[]>([])
   const [stepsGenerated, setStepsGenerated] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -143,11 +158,28 @@ export function TaskFormPage() {
           <input id="title" type="text" className="input text-base" placeholder="e.g. Prepare board presentation"
             value={title} onChange={e => setTitle(e.target.value)} required autoFocus />
           {title.trim() && !stepsGenerated && (
-            <button type="button" onClick={generateSteps} className="mt-3 flex items-center gap-1.5 text-sm text-primary hover:underline">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-              Break into steps
+            <button type="button" disabled={aiLoading} onClick={async () => {
+              setAiLoading(true)
+              const aiSteps = await fetchAiSteps(title, description)
+              if (aiSteps && aiSteps.length > 0) {
+                setSteps(aiSteps.map((s, i) => ({ title: s, sort_order: i, completed: false })))
+              } else {
+                setSteps(suggestSteps(title))
+              }
+              setStepsGenerated(true)
+              setAiLoading(false)
+            }} className="mt-3 flex items-center gap-1.5 text-sm text-primary hover:underline disabled:opacity-50">
+              {aiLoading ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="animate-spin">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeOpacity="0.3"/>
+                  <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              )}
+              {aiLoading ? 'Thinking…' : 'Break into steps'}
             </button>
           )}
         </div>

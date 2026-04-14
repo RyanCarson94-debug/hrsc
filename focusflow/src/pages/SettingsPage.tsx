@@ -24,7 +24,7 @@ export function SettingsPage() {
     e.preventDefault()
     if (!settings) return
     setSaving(true); setSaved(false)
-    await apiPut('/settings', { name: settings.name, notifications_enabled: settings.notifications_enabled, preferred_session_mins: settings.preferred_session_mins })
+    await apiPut('/settings', { name: settings.name, notifications_enabled: settings.notifications_enabled, preferred_session_mins: settings.preferred_session_mins, work_context: settings.work_context })
     setSaving(false); setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -62,6 +62,19 @@ export function SettingsPage() {
             <input type="email" className="input bg-gray-50" value={settings.email} disabled readOnly />
             <p className="text-xs text-text-subtle mt-1">Email cannot be changed.</p>
           </div>
+        </div>
+
+        {/* Work context */}
+        <div className="card p-5">
+          <h2 className="text-sm font-semibold text-text mb-1">Your work context</h2>
+          <p className="text-xs text-text-muted mb-3">Claude uses this to break down tasks in a way that fits your actual role and tools. The more specific, the better.</p>
+          <textarea
+            className="input resize-none"
+            rows={4}
+            placeholder="e.g. I'm an HR Business Partner at a logistics company. I use Workday, Microsoft Teams, SharePoint and Outlook. My work involves policy writing, employee relations cases, management coaching and payroll queries."
+            value={settings.work_context ?? ''}
+            onChange={e => setSettings({ ...settings, work_context: e.target.value || null })}
+          />
         </div>
 
         {/* Focus sessions */}
