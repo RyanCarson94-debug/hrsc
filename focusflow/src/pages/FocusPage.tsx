@@ -42,7 +42,8 @@ export function FocusPage() {
         const durMins = duration5 ? 5 : active.task.duration_mins
         const durSecs = durMins * 60
         setDurationSecs(durSecs)
-        const el = Math.floor((Date.now() - new Date(active.started_at).getTime()) / 1000)
+        const startedAt = active.started_at.includes('T') ? active.started_at : active.started_at.replace(' ', 'T') + 'Z'
+        const el = Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000)
         setElapsed(Math.min(el, durSecs))
       } else {
         setError('Session not found')
