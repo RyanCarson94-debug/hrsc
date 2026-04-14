@@ -1,0 +1,64 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: #F1EFEA;
+    color: #231F20;
+    font-family: 'Montserrat', sans-serif;
+    min-height: 100vh;
+  }
+
+  ::selection { background: #FDECED; }
+
+  :focus-visible {
+    outline: 2px solid #FC1921;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #C8C5BF; border-radius: 3px; }
+}
+
+@layer components {
+  .card { @apply bg-white rounded-lg shadow-card border border-border; }
+
+  .btn-primary {
+    @apply bg-primary text-white rounded font-medium px-5 py-2.5 text-sm
+           hover:bg-primary-hover active:scale-[0.98] transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-text border border-border rounded font-medium px-5 py-2.5 text-sm
+           hover:bg-gray-50 active:scale-[0.98] transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply text-text-muted rounded font-medium px-4 py-2 text-sm
+           hover:bg-gray-100 hover:text-text active:scale-[0.98] transition-all duration-150;
+  }
+
+  .input {
+    @apply w-full bg-white border border-border rounded px-3.5 py-2.5 text-sm text-text
+           placeholder-text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
+           transition-colors duration-150;
+  }
+
+  .label { @apply block text-sm font-medium text-text mb-1.5; }
+
+  .page-container { @apply max-w-2xl mx-auto px-4 py-8; }
+}
