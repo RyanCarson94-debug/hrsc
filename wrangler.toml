@@ -16,7 +16,7 @@ database_id  = "6e27c8cd-3b59-4e5a-9f14-35b5ad38b45e"
 [[d1_databases]]
 binding       = "FOCUSFLOW_DB"
 database_name = "focusflow-db"
-database_id   = "focusflow-db-replace-with-real-id"
+database_id   = "aa0f9130-84c5-4405-9b7a-7f3ae165962f"
 
 # ── Environment variables ─────────────────────────────────────────────────────
 [vars]
