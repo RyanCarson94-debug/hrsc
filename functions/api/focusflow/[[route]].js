@@ -624,7 +624,10 @@ Respond with ONLY a valid JSON array of strings. No explanation, no markdown, no
     }),
   })
 
-  if (!res.ok) return json({ error: 'AI request failed' }, 502)
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}))
+    return json({ error: `AI request failed: ${errData?.error?.message ?? errData?.error?.type ?? res.status}` }, 502)
+  }
 
   const data = await res.json()
   const text = data.content?.[0]?.text ?? ''
