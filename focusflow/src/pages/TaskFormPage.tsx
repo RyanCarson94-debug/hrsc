@@ -70,6 +70,7 @@ export function TaskFormPage() {
   const [steps, setSteps] = useState<Step[]>([])
   const [stepsGenerated, setStepsGenerated] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
+  const [aiUsed, setAiUsed] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -163,8 +164,10 @@ export function TaskFormPage() {
               const aiSteps = await fetchAiSteps(title, description)
               if (aiSteps && aiSteps.length > 0) {
                 setSteps(aiSteps.map((s, i) => ({ title: s, sort_order: i, completed: false })))
+                setAiUsed(true)
               } else {
                 setSteps(suggestSteps(title))
+                setAiUsed(false)
               }
               setStepsGenerated(true)
               setAiLoading(false)
@@ -187,7 +190,11 @@ export function TaskFormPage() {
         {/* Steps */}
         {(steps.length > 0 || stepsGenerated) && (
           <div className="card p-5">
-            <label className="label">Steps</label>
+            <div className="flex items-center gap-2 mb-1">
+            <label className="label mb-0">Steps</label>
+            {aiUsed === true && <span className="text-xs text-success font-medium">AI generated</span>}
+            {aiUsed === false && <span className="text-xs text-text-subtle">Suggested (AI unavailable)</span>}
+          </div>
             <div className="space-y-2 mb-3">
               {steps.map((step, i) => (
                 <div key={i} className="flex items-center gap-2">
