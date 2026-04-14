@@ -610,26 +610,31 @@ Break this task into 3-7 specific, actionable steps. Each step should be short (
 
 Respond with ONLY a valid JSON array of strings. No explanation, no markdown, no code block. Example: ["Open the file", "Write the outline", "Send for review"]`
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': env.ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-opus-4-6',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  })
-
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}))
-    return json({ error: `AI request failed: ${errData?.error?.message ?? errData?.error?.type ?? res.status}` }, 502)
+  let anthropicRes
+  try {
+    anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    })
+  } catch (fetchErr) {
+    return json({ error: `Cannot reach Anthropic API: ${fetchErr?.message ?? fetchErr}` }, 502)
   }
 
-  const data = await res.json()
+  if (!anthropicRes.ok) {
+    const errData = await anthropicRes.json().catch(() => ({}))
+    return json({ error: `AI request failed: ${errData?.error?.message ?? errData?.error?.type ?? anthropicRes.status}` }, 502)
+  }
+
+  const data = await anthropicRes.json()
   const text = data.content?.[0]?.text ?? ''
 
   let steps
@@ -637,10 +642,9 @@ Respond with ONLY a valid JSON array of strings. No explanation, no markdown, no
     steps = JSON.parse(text)
     if (!Array.isArray(steps)) throw new Error('not array')
   } catch {
-    // Try extracting JSON array from the response
     const match = text.match(/\[[\s\S]*\]/)
-    if (!match) return json({ error: 'Could not parse AI response' }, 502)
-    steps = JSON.parse(match[0])
+    if (!match) return json({ error: `Could not parse AI response: ${text.slice(0, 100)}` }, 502)
+    try { steps = JSON.parse(match[0]) } catch { return json({ error: 'Could not parse AI response' }, 502) }
   }
 
   return json({ steps: steps.filter(s => typeof s === 'string' && s.trim()) })
@@ -714,7 +718,7 @@ export async function onRequest(context) {
     if (path === '/export/ics' && method === 'GET') return exportICS(request, env, user)
 
     // AI
-    if (path === '/ai/breakdown' && method === 'POST') return aiBreakdown(request, env, user)
+    if (path === '/ai/breakdown' && method === 'POST') return await aiBreakdown(request, env, user)
 
     // Settings
     if (path === '/settings') {
