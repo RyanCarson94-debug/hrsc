@@ -93,31 +93,25 @@ export default function Dashboard({ tasks, updateTask }) {
     <div>
       {/* KPI bar */}
       <div className="kpi-bar">
-        <div className="kpi-card">
+        <div className="kpi-card kpi-total">
           <div className="kpi-label">📋 Total Tasks</div>
           <div className="kpi-value">{kpis.total}</div>
+          <div className="kpi-sub">in your list</div>
         </div>
         <div className="kpi-card kpi-active">
-          <div className="kpi-label">🔄 Active</div>
+          <div className="kpi-label">⚡ In Flight</div>
           <div className="kpi-value">{kpis.active}</div>
+          <div className="kpi-sub">active right now</div>
         </div>
         <div className="kpi-card kpi-done">
-          <div className="kpi-label">✅ Done</div>
+          <div className="kpi-label">✅ Crushed It</div>
           <div className="kpi-value">{kpis.done}</div>
-          {kpis.total > 0 && (
-            <div style={{ fontSize: 11, color: 'var(--emerald-text)', fontWeight: 600 }}>
-              {pctDone}% complete
-            </div>
-          )}
+          <div className="kpi-sub">{pctDone}% complete</div>
         </div>
         <div className="kpi-card kpi-high">
-          <div className="kpi-label">🔴 High Priority</div>
+          <div className="kpi-label">🔥 On Fire</div>
           <div className="kpi-value">{kpis.high}</div>
-          {kpis.high > 0 && (
-            <div style={{ fontSize: 11, color: 'var(--rose-text)', fontWeight: 600 }}>
-              need attention
-            </div>
-          )}
+          <div className="kpi-sub">{kpis.high === 0 ? 'all clear! 🎉' : 'need attention'}</div>
         </div>
       </div>
 
