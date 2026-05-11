@@ -4,7 +4,13 @@ import { PriorityBadge, ProjectStatusBadge } from './Badge.jsx';
 const PRIORITIES = ['High','Medium','Low'];
 const STATUSES   = ['Planning','Active','On Hold','Complete'];
 
-function EditableCell({ value, type = 'text', options, onSave, className, placeholder }) {
+function formatDate(str) {
+  if (!str) return '';
+  const d = new Date(str + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function EditableCell({ value, type = 'text', options, onSave, className, placeholder, renderValue }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? '');
 
@@ -14,14 +20,19 @@ function EditableCell({ value, type = 'text', options, onSave, className, placeh
   }
 
   if (!editing) {
+    const display = renderValue
+      ? renderValue(value)
+      : type === 'date' && value
+        ? formatDate(value)
+        : value;
     return (
       <span
         className={className}
         onClick={() => { setDraft(value ?? ''); setEditing(true); }}
-        style={{ cursor: 'text', display: 'block', minHeight: 20 }}
+        style={{ cursor: 'pointer', display: 'block', minHeight: 20 }}
         title="Click to edit"
       >
-        {value || <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{placeholder ?? '—'}</span>}
+        {display || <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{placeholder ?? '—'}</span>}
       </span>
     );
   }
@@ -73,35 +84,29 @@ function ProjectRow({ project, onUpdate, onDelete }) {
         />
       </td>
       <td>
-        <div
-          onClick={() => {
-            const next = { High: 'Medium', Medium: 'Low', Low: 'High' }[project.priority];
-            onUpdate(project.id, { priority: next });
-          }}
-          style={{ cursor: 'pointer' }}
-          title="Click to cycle priority"
-        >
-          <PriorityBadge value={project.priority} />
-        </div>
+        <EditableCell
+          value={project.priority}
+          type="select"
+          options={PRIORITIES}
+          onSave={v => onUpdate(project.id, { priority: v })}
+          renderValue={v => <PriorityBadge value={v} />}
+        />
       </td>
       <td>
-        <div
-          onClick={() => {
-            const order = ['Planning','Active','On Hold','Complete'];
-            const next = order[(order.indexOf(project.status) + 1) % order.length];
-            onUpdate(project.id, { status: next });
-          }}
-          style={{ cursor: 'pointer' }}
-          title="Click to cycle status"
-        >
-          <ProjectStatusBadge value={project.status} />
-        </div>
+        <EditableCell
+          value={project.status}
+          type="select"
+          options={STATUSES}
+          onSave={v => onUpdate(project.id, { status: v })}
+          renderValue={v => <ProjectStatusBadge value={v} />}
+        />
       </td>
-      <td style={{ width: 110 }}>
+      <td style={{ width: 130 }}>
         <EditableCell
           value={project.deadline}
+          type="date"
           placeholder="TBC"
-          onSave={v => onUpdate(project.id, { deadline: v })}
+          onSave={v => onUpdate(project.id, { deadline: v || null })}
         />
       </td>
       <td className="next-action-cell">

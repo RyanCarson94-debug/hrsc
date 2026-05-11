@@ -17,7 +17,7 @@ function isOverdue(str) {
   return new Date(str + 'T00:00:00') < today;
 }
 
-function EditableCell({ value, type = 'text', options, onSave, className }) {
+function EditableCell({ value, type = 'text', options, onSave, className, renderValue }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? '');
 
@@ -27,12 +27,16 @@ function EditableCell({ value, type = 'text', options, onSave, className }) {
   }
 
   if (!editing) {
-    const display = type === 'date' && value ? formatDate(value) : value;
+    const display = renderValue
+      ? renderValue(value)
+      : type === 'date' && value
+        ? formatDate(value)
+        : value;
     return (
       <span
         className={className}
         onClick={() => { setDraft(value ?? ''); setEditing(true); }}
-        style={{ cursor: 'text', display: 'block', minHeight: 20 }}
+        style={{ cursor: 'pointer', display: 'block', minHeight: 20 }}
         title="Click to edit"
       >
         {display || <span style={{ color: 'var(--muted)', fontStyle: 'italic' }}>—</span>}
@@ -102,29 +106,22 @@ function TaskRow({ task, onUpdate, onDelete }) {
         />
       </td>
       <td>
-        <div
-          onClick={() => {
-            const next = { High: 'Medium', Medium: 'Low', Low: 'High' }[task.priority];
-            onUpdate(task.id, { priority: next });
-          }}
-          style={{ cursor: 'pointer' }}
-          title="Click to cycle priority"
-        >
-          <PriorityBadge value={task.priority} />
-        </div>
+        <EditableCell
+          value={task.priority}
+          type="select"
+          options={PRIORITIES}
+          onSave={v => onUpdate(task.id, { priority: v })}
+          renderValue={v => <PriorityBadge value={v} />}
+        />
       </td>
       <td>
-        <div
-          onClick={() => {
-            const order = ['To Do','Active','Done','Blocked','Delegated'];
-            const next = order[(order.indexOf(task.status) + 1) % order.length];
-            onUpdate(task.id, { status: next });
-          }}
-          style={{ cursor: 'pointer' }}
-          title="Click to cycle status"
-        >
-          <StatusBadge value={task.status} />
-        </div>
+        <EditableCell
+          value={task.status}
+          type="select"
+          options={STATUSES}
+          onSave={v => onUpdate(task.id, { status: v })}
+          renderValue={v => <StatusBadge value={v} />}
+        />
       </td>
       <td>
         <EditableCell
