@@ -18,6 +18,12 @@ binding       = "FOCUSFLOW_DB"
 database_name = "focusflow-db"
 database_id   = "aa0f9130-84c5-4405-9b7a-7f3ae165962f"
 
+[[d1_databases]]
+binding       = "WORKHQ_DB"
+database_name = "workhq-db"
+# Run: wrangler d1 create workhq-db   — then paste the database_id here
+database_id   = "REPLACE_WITH_WORKHQ_DB_ID"
+
 # ── Environment variables ─────────────────────────────────────────────────────
 [vars]
 TAXONOMY_APP_VERSION = "1.0.0"
