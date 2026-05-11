@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
-import { PriorityBadge, StatusBadge } from './Badge.jsx';
+import { StatusBadge } from './Badge.jsx';
 
-const SLOT_LABELS = ['🔴 Top Priority', '🟡 Medium', '🟢 Quick Win'];
+const SLOT_LABELS = ['🔴 Top Priority', '🟡 Medium Focus', '🟢 Quick Win'];
 
 function formatDate(str) {
   if (!str) return '';
@@ -40,7 +40,6 @@ export default function Dashboard({ tasks, updateTask }) {
       .finally(() => setSlotsLoading(false));
   }, []);
 
-  // KPIs derived from tasks
   const kpis = useMemo(() => ({
     total:  tasks.length,
     active: tasks.filter(t => t.status === 'Active').length,
@@ -48,20 +47,17 @@ export default function Dashboard({ tasks, updateTask }) {
     high:   tasks.filter(t => t.priority === 'High' && t.status !== 'Done').length,
   }), [tasks]);
 
-  // High priority panel
   const highPriority = useMemo(
     () => tasks.filter(t => t.priority === 'High' && t.status !== 'Done'),
     [tasks]
   );
 
-  // Upcoming deadlines
   const upcoming = useMemo(() => {
     return tasks
       .filter(t => t.due_date && t.status !== 'Done')
       .sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
   }, [tasks]);
 
-  // Active tasks for focus dropdown
   const activeTasks = useMemo(
     () => tasks.filter(t => t.status !== 'Done'),
     [tasks]
@@ -84,52 +80,72 @@ export default function Dashboard({ tasks, updateTask }) {
         body: JSON.stringify({ task_id: slot.task_id, done: 1 }),
       });
       setSlots(prev => prev.map(s => s.slot_index === slot.slot_index ? updated : s));
-      // Reflect done in the task list
       updateTask(slot.task_id, { status: 'Done' });
     } finally {
       setTickingSlot(null);
     }
   }
 
+  const doneToday = kpis.done;
+  const pctDone = kpis.total > 0 ? Math.round((doneToday / kpis.total) * 100) : 0;
+
   return (
     <div>
       {/* KPI bar */}
       <div className="kpi-bar">
         <div className="kpi-card">
-          <div className="kpi-label">Total Tasks</div>
+          <div className="kpi-label">📋 Total Tasks</div>
           <div className="kpi-value">{kpis.total}</div>
         </div>
         <div className="kpi-card kpi-active">
-          <div className="kpi-label">Active</div>
+          <div className="kpi-label">🔄 Active</div>
           <div className="kpi-value">{kpis.active}</div>
         </div>
         <div className="kpi-card kpi-done">
-          <div className="kpi-label">Done</div>
+          <div className="kpi-label">✅ Done</div>
           <div className="kpi-value">{kpis.done}</div>
+          {kpis.total > 0 && (
+            <div style={{ fontSize: 11, color: 'var(--emerald-text)', fontWeight: 600 }}>
+              {pctDone}% complete
+            </div>
+          )}
         </div>
         <div className="kpi-card kpi-high">
-          <div className="kpi-label">High Priority</div>
+          <div className="kpi-label">🔴 High Priority</div>
           <div className="kpi-value">{kpis.high}</div>
+          {kpis.high > 0 && (
+            <div style={{ fontSize: 11, color: 'var(--rose-text)', fontWeight: 600 }}>
+              need attention
+            </div>
+          )}
         </div>
       </div>
 
       {/* Today's Focus */}
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-header">
-          <span className="card-title">Today's Focus</span>
+          <span className="card-title">
+            <span className="card-title-icon">🎯</span>
+            Today's Focus
+          </span>
           {slotsLoading && <span style={{ fontSize: 12, color: 'var(--muted)' }}>Loading…</span>}
+          {!slotsLoading && (
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+              {slots.filter(s => s.done).length}/3 done
+            </span>
+          )}
         </div>
         <div className="card-body">
           <div className="focus-slots">
             {slots.map(slot => (
               <div
                 key={slot.slot_index}
-                className={`focus-slot${slot.done ? ' slot-done' : ''}`}
+                className={`focus-slot slot-${slot.slot_index}${slot.done ? ' slot-done' : ''}`}
               >
                 <span className="focus-slot-label">{SLOT_LABELS[slot.slot_index]}</span>
                 <div className="focus-select-wrap">
                   {slot.done ? (
-                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--emerald-text)' }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--emerald-text)' }}>
                       {slot.task_name}
                     </span>
                   ) : (
@@ -138,7 +154,7 @@ export default function Dashboard({ tasks, updateTask }) {
                       value={slot.task_id ?? ''}
                       onChange={e => handleSlotChange(slot.slot_index, e.target.value)}
                     >
-                      <option value="">— Select a task —</option>
+                      <option value="">— Pick a task —</option>
                       {activeTasks.map(t => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
@@ -149,7 +165,7 @@ export default function Dashboard({ tasks, updateTask }) {
                   {slot.done ? '✅ Done!' : slot.task_id ? '🔄 In progress' : ''}
                 </span>
                 <button
-                  className="tick-btn"
+                  className={`tick-btn${slot.done ? ' ticked' : ''}`}
                   onClick={() => handleTick(slot)}
                   disabled={!slot.task_id || !!slot.done || tickingSlot === slot.slot_index}
                   title="Mark done"
@@ -167,18 +183,21 @@ export default function Dashboard({ tasks, updateTask }) {
         {/* High Priority Tasks */}
         <div className="card">
           <div className="card-header">
-            <span className="card-title">High Priority Tasks</span>
-            <span className="badge badge-high">{highPriority.length}</span>
+            <span className="card-title">
+              <span className="card-title-icon">🔥</span>
+              High Priority
+            </span>
+            <span className="badge badge-high">{highPriority.length} open</span>
           </div>
-          <div className="card-body" style={{ padding: '8px 20px' }}>
+          <div className="card-body" style={{ padding: '6px 20px' }}>
             {highPriority.length === 0 ? (
-              <p className="empty-state">No high priority tasks open 🎉</p>
+              <p className="empty-state">🎉 Nothing urgent right now</p>
             ) : (
               <ul className="panel-list">
                 {highPriority.map(t => (
                   <li key={t.id} className="panel-item">
                     <span className="panel-item-name" title={t.name}>{t.name}</span>
-                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>{t.area}</span>
+                    <span style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>{t.area}</span>
                     <StatusBadge value={t.status} />
                   </li>
                 ))}
@@ -190,10 +209,13 @@ export default function Dashboard({ tasks, updateTask }) {
         {/* Upcoming Deadlines */}
         <div className="card">
           <div className="card-header">
-            <span className="card-title">Upcoming Deadlines</span>
+            <span className="card-title">
+              <span className="card-title-icon">📅</span>
+              Upcoming Deadlines
+            </span>
             <span className="badge badge-medium">{upcoming.length}</span>
           </div>
-          <div className="card-body" style={{ padding: '8px 20px' }}>
+          <div className="card-body" style={{ padding: '6px 20px' }}>
             {upcoming.length === 0 ? (
               <p className="empty-state">No upcoming deadlines</p>
             ) : (

@@ -5,7 +5,11 @@ import Dashboard from './components/Dashboard.jsx';
 import TaskList from './components/TaskList.jsx';
 import Projects from './components/Projects.jsx';
 
-const TABS = ['Dashboard', 'Tasks', 'Projects'];
+const TABS = [
+  { id: 'Dashboard', label: 'Dashboard', icon: '◈' },
+  { id: 'Tasks',     label: 'Tasks',     icon: '✓' },
+  { id: 'Projects',  label: 'Projects',  icon: '◉' },
+];
 
 async function seedDB() {
   await fetch('/api/workhq/seed', { method: 'POST' });
@@ -17,7 +21,6 @@ export default function App() {
   const { projects, loading: projLoading, error: projError, load: loadProjects, createProject, updateProject, deleteProject } = useProjects();
 
   useEffect(() => {
-    // Seed first (no-op if data exists), then load
     seedDB()
       .catch(() => {})
       .finally(() => {
@@ -26,7 +29,6 @@ export default function App() {
       });
   }, [loadTasks, loadProjects]);
 
-  // updateTask wrapper that also refreshes from DB for dashboard consistency
   const handleUpdateTask = useCallback(async (id, fields) => {
     await updateTask(id, fields);
   }, [updateTask]);
@@ -36,36 +38,36 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <span className="topbar-brand">Work <span>HQ</span></span>
+        <div className="topbar-brand">
+          <div className="brand-icon">🏢</div>
+          Work <span>HQ</span>
+        </div>
         <nav className="topbar-nav">
           {TABS.map(t => (
             <button
-              key={t}
-              className={`nav-btn${tab === t ? ' active' : ''}`}
-              onClick={() => setTab(t)}
+              key={t.id}
+              className={`nav-btn${tab === t.id ? ' active' : ''}`}
+              onClick={() => setTab(t.id)}
             >
-              {t === 'Dashboard' ? '⬛ Dashboard' : t === 'Tasks' ? '☑ Tasks' : '📁 Projects'}
+              <span>{t.icon}</span> {t.label}
             </button>
           ))}
         </nav>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' }}>
-          HRSC · Ryan Carson
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}>
+          HRSC · Ryan
         </span>
       </header>
 
       <main className="page-content">
         {loading && (
           <div className="loading-state">
-            <span style={{ fontSize: 20 }}>⟳</span>
+            <div className="loading-spinner" />
             Loading your workspace…
           </div>
         )}
 
         {!loading && tab === 'Dashboard' && (
-          <Dashboard
-            tasks={tasks}
-            updateTask={handleUpdateTask}
-          />
+          <Dashboard tasks={tasks} updateTask={handleUpdateTask} />
         )}
 
         {!loading && tab === 'Tasks' && (

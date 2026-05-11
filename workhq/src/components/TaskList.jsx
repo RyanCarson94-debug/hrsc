@@ -153,6 +153,66 @@ function TaskRow({ task, onUpdate, onDelete }) {
   );
 }
 
+function BrainDump({ onAdd }) {
+  const [text,     setText]     = useState('');
+  const [priority, setPriority] = useState('Medium');
+  const [area,     setArea]     = useState('Other');
+  const [saving,   setSaving]   = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const name = text.trim();
+    if (!name) return;
+    setSaving(true);
+    try {
+      await onAdd({ name, priority, area, status: 'To Do' });
+      setText('');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="brain-dump">
+      <div className="brain-dump-label">⚡ Quick Capture</div>
+      <form onSubmit={handleSubmit} className="brain-dump-row">
+        <input
+          className="brain-dump-input"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder="Brain dump a task… press Enter to add"
+          disabled={saving}
+        />
+        <select
+          className="brain-dump-select"
+          value={priority}
+          onChange={e => setPriority(e.target.value)}
+        >
+          <option value="High">🔴 High</option>
+          <option value="Medium">🟡 Medium</option>
+          <option value="Low">🟢 Low</option>
+        </select>
+        <select
+          className="brain-dump-select"
+          value={area}
+          onChange={e => setArea(e.target.value)}
+        >
+          {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+        <button
+          type="submit"
+          className="btn-primary"
+          disabled={!text.trim() || saving}
+          style={{ whiteSpace: 'nowrap' }}
+        >
+          {saving ? '…' : '+ Add'}
+        </button>
+      </form>
+      <div className="brain-dump-hint">Quick add — fill in details inline afterwards</div>
+    </div>
+  );
+}
+
 export default function TaskList({ tasks, createTask, updateTask, deleteTask, error }) {
   const [filterArea,     setFilterArea]     = useState('');
   const [filterPriority, setFilterPriority] = useState('');
@@ -201,7 +261,12 @@ export default function TaskList({ tasks, createTask, updateTask, deleteTask, er
     <div>
       <div className="section-header">
         <h2 className="section-title">Task List</h2>
+        <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+          {tasks.filter(t => t.status !== 'Done').length} open · {tasks.filter(t => t.status === 'Done').length} done
+        </span>
       </div>
+
+      <BrainDump onAdd={createTask} />
 
       {error && <div className="error-banner">⚠ {error}</div>}
 

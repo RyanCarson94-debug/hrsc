@@ -51,6 +51,22 @@ function EditableCell({ value, type = 'text', options, onSave, className, placeh
     );
   }
 
+  if (type === 'date') {
+    // Normalise legacy text values (TBC, Ongoing) to empty for the date input
+    const dateVal = draft && /^\d{4}-\d{2}-\d{2}$/.test(draft) ? draft : '';
+    return (
+      <input
+        type="date"
+        className="inline-input"
+        value={dateVal}
+        autoFocus
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false); }}
+      />
+    );
+  }
+
   return (
     <input
       type="text"
