@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { StatusBadge } from './Badge.jsx';
 
 const SLOT_LABELS = ['🔴 Top Priority', '🟡 Medium Focus', '🟢 Quick Win'];
@@ -15,6 +15,16 @@ function isOverdue(str) {
   return new Date(str + 'T00:00:00') < today;
 }
 
+function meetingDateLabel(str) {
+  if (!str) return '';
+  const today = new Date().toISOString().slice(0, 10);
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  if (str === today)    return { label: 'Today',    style: { color: '#7C3AED', fontWeight: 800 } };
+  if (str === tomorrow) return { label: 'Tomorrow', style: { color: '#C2410C', fontWeight: 700 } };
+  if (str < today)      return { label: `⚠ ${formatDate(str)}`, style: { color: '#E11D48', fontWeight: 700 } };
+  return { label: formatDate(str), style: { color: 'var(--muted)', fontWeight: 600 } };
+}
+
 async function apiFetch(path, opts = {}) {
   const res = await fetch(`/api/workhq${path}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -24,7 +34,7 @@ async function apiFetch(path, opts = {}) {
   return res.json();
 }
 
-export default function Dashboard({ tasks, updateTask }) {
+export default function Dashboard({ tasks, updateTask, onNavigate }) {
   const [slots, setSlots] = useState([
     { slot_index: 0, task_id: null, done: 0, task_name: null },
     { slot_index: 1, task_id: null, done: 0, task_name: null },
@@ -32,12 +42,16 @@ export default function Dashboard({ tasks, updateTask }) {
   ]);
   const [slotsLoading, setSlotsLoading] = useState(true);
   const [tickingSlot, setTickingSlot] = useState(null);
+  const [meetings, setMeetings] = useState([]);
 
   useEffect(() => {
     apiFetch('/focus')
       .then(data => setSlots(data))
       .catch(() => {})
       .finally(() => setSlotsLoading(false));
+    apiFetch('/meetings')
+      .then(data => setMeetings(data.filter(m => m.status !== 'Done')))
+      .catch(() => {});
   }, []);
 
   const kpis = useMemo(() => ({
@@ -171,6 +185,55 @@ export default function Dashboard({ tasks, updateTask }) {
           </div>
         </div>
       </div>
+
+      {/* Upcoming meetings strip */}
+      {meetings.length > 0 && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div className="card-header">
+            <span className="card-title">
+              <span className="card-title-icon">📅</span>
+              Upcoming Meetings
+            </span>
+            <button
+              style={{ fontSize: 12, color: 'var(--violet)', fontWeight: 700, cursor: 'pointer' }}
+              onClick={() => onNavigate?.('Meetings')}
+            >
+              View all →
+            </button>
+          </div>
+          <div className="card-body" style={{ padding: '10px 20px' }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {meetings.slice(0, 4).map(m => {
+                const dl = meetingDateLabel(m.date);
+                return (
+                  <div
+                    key={m.id}
+                    onClick={() => onNavigate?.('Meetings')}
+                    style={{
+                      background: 'var(--bg-stripe)', border: '2px solid var(--border)',
+                      borderRadius: 'var(--radius)', padding: '10px 14px',
+                      cursor: 'pointer', flex: '1', minWidth: 180,
+                      transition: 'all .15s',
+                    }}
+                    onMouseOver={e => e.currentTarget.style.borderColor = '#C4B5FD'}
+                    onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                  >
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>
+                      {m.title}
+                    </div>
+                    <div style={{ fontSize: 11, ...dl.style }}>{dl.label}</div>
+                    {m.attendees && (
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                        👥 {m.attendees}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Two-column grid */}
       <div className="dash-grid">

@@ -70,7 +70,7 @@ export default function App() {
         )}
 
         {!loading && tab === 'Dashboard' && (
-          <Dashboard tasks={tasks} updateTask={handleUpdateTask} />
+          <Dashboard tasks={tasks} updateTask={handleUpdateTask} onNavigate={setTab} />
         )}
 
         {!loading && tab === 'Tasks' && (
