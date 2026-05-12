@@ -58,6 +58,31 @@ const SEED_TASKS = [
   { name: 'German Arbeitszeugnis QES guidance',           area: 'HRSC Ops', priority: 'Low',    status: 'Done',       due_date: null,         notes: 'DocuSign BEG IV confirmed' },
 ];
 
+const SEED_MEETINGS = [
+  { title: 'KPMG — NowAssist Scoping Call',    date: '2025-05-20', attendees: 'KPMG Team, Ryan', area: 'Projects',  status: 'Upcoming',  prep_notes: 'Share NowAssist spec in advance' },
+  { title: 'Monthly 1:1 — Mark (stakeholder)', date: '2025-05-16', attendees: 'Mark, Ryan',      area: 'Strategy',  status: 'Upcoming',  prep_notes: 'Bring H2 headcount model draft' },
+  { title: 'Spain / Greece HR Advisory',       date: '2025-05-22', attendees: 'Legal, Ryan',     area: 'HRSC Ops',  status: 'Upcoming',  prep_notes: 'ERGANI II update + DNI/NIE finalise' },
+  { title: 'HRSC Team Culture Session',        date: '2025-05-31', attendees: 'HRSC Team',       area: 'People',    status: 'Upcoming',  prep_notes: 'Accurate, Expert, Human identity workshop' },
+];
+
+const SEED_TALKING_POINTS = {
+  'KPMG — NowAssist Scoping Call': [
+    'Walk through Position & Requisition use case',
+    'Agree scoping timeline and next steps',
+    'Discuss integration with Workday',
+  ],
+  'Monthly 1:1 — Mark (stakeholder)': [
+    'H2 Tier 1 headcount model',
+    'KCS pilot progress update',
+    'NowAssist budget approval',
+  ],
+  'Spain / Greece HR Advisory': [
+    'Finalise Spain DNI/NIE onboarding guidance',
+    'ERGANI II digital resignation process',
+    'Confirm legal sign-off timelines',
+  ],
+};
+
 const SEED_PROJECTS = [
   { name: 'HRSC SOP Library (29 topics)',   owner: 'Ryan', priority: 'High',   status: 'Active',    deadline: '2025-06-30', next_action: 'Review AI-drafted SOPs with team' },
   { name: 'NowAssist / ServiceNow Build',   owner: 'Ryan', priority: 'High',   status: 'Planning',  deadline: 'TBC',        next_action: 'Share spec with KPMG for scoping' },
@@ -87,7 +112,28 @@ async function seedIfEmpty(db) {
     projStmt.bind(uuid(), p.name, p.owner, p.priority, p.status, p.deadline ?? null, p.next_action ?? '', i)
   );
 
-  await db.batch([...taskBatch, ...projBatch]);
+  const meetingIds = {};
+  const meetingStmt = db.prepare(
+    `INSERT INTO workhq_meetings (id, title, date, attendees, area, status, prep_notes, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  );
+  const meetingBatch = SEED_MEETINGS.map((m, i) => {
+    const id = uuid();
+    meetingIds[m.title] = id;
+    return meetingStmt.bind(id, m.title, m.date ?? null, m.attendees ?? '', m.area, m.status, m.prep_notes ?? '', i);
+  });
+
+  const tpStmt = db.prepare(
+    `INSERT INTO workhq_talking_points (id, meeting_id, content, sort_order) VALUES (?, ?, ?, ?)`
+  );
+  const tpBatch = [];
+  for (const [title, points] of Object.entries(SEED_TALKING_POINTS)) {
+    const mid = meetingIds[title];
+    if (!mid) continue;
+    points.forEach((content, i) => tpBatch.push(tpStmt.bind(uuid(), mid, content, i)));
+  }
+
+  await db.batch([...taskBatch, ...projBatch, ...meetingBatch, ...tpBatch]);
   return { seeded: true };
 }
 
@@ -262,6 +308,124 @@ async function handleFocus(request, db, slotParam) {
   return err('Method not allowed', 405);
 }
 
+// ─── Meetings handler ─────────────────────────────────────────────────────────
+// parts: ['meetings'] | ['meetings', id] | ['meetings', id, 'talking-points'] |
+//        ['meetings', id, 'talking-points', tpId] | ['meetings', id, 'actions']
+
+async function handleMeetings(request, db, parts) {
+  const method = request.method;
+  const id    = parts[1];
+  const sub   = parts[2];  // 'talking-points' | 'actions' | undefined
+  const subId = parts[3];
+
+  // ── List / create meetings ──────────────────────────────────────────────────
+  if (!id) {
+    if (method === 'GET') {
+      const { results } = await db.prepare(
+        `SELECT * FROM workhq_meetings ORDER BY
+           CASE status WHEN 'Upcoming' THEN 0 WHEN 'In Progress' THEN 1 ELSE 2 END,
+           date ASC, sort_order ASC`
+      ).all();
+      return json(results);
+    }
+    if (method === 'POST') {
+      const body = await request.json();
+      const mid = uuid();
+      const { count } = await db.prepare('SELECT COUNT(*) as count FROM workhq_meetings').first();
+      await db.prepare(
+        `INSERT INTO workhq_meetings (id, title, date, attendees, area, status, prep_notes, notes, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(mid, body.title ?? 'New Meeting', body.date ?? null, body.attendees ?? '',
+             body.area ?? 'Other', body.status ?? 'Upcoming', body.prep_notes ?? '',
+             body.notes ?? '', count).run();
+      const row = await db.prepare('SELECT * FROM workhq_meetings WHERE id = ?').bind(mid).first();
+      return json(row, 201);
+    }
+    return err('Method not allowed', 405);
+  }
+
+  // ── Single meeting ──────────────────────────────────────────────────────────
+  if (!sub) {
+    if (method === 'GET') {
+      const meeting = await db.prepare('SELECT * FROM workhq_meetings WHERE id = ?').bind(id).first();
+      if (!meeting) return err('Not found', 404);
+      const { results: tps } = await db.prepare(
+        'SELECT * FROM workhq_talking_points WHERE meeting_id = ? ORDER BY sort_order ASC'
+      ).bind(id).all();
+      const { results: actions } = await db.prepare(
+        'SELECT id, name, status, priority FROM workhq_tasks WHERE meeting_id = ? ORDER BY created_at ASC'
+      ).bind(id).all();
+      return json({ ...meeting, talking_points: tps, actions });
+    }
+    if (method === 'PUT') {
+      const body = await request.json();
+      const fields = []; const vals = [];
+      const allowed = ['title','date','attendees','area','status','prep_notes','notes'];
+      for (const key of allowed) {
+        if (key in body) { fields.push(`${key} = ?`); vals.push(body[key]); }
+      }
+      if (!fields.length) return err('No valid fields');
+      fields.push('updated_at = ?'); vals.push(now(), id);
+      await db.prepare(`UPDATE workhq_meetings SET ${fields.join(', ')} WHERE id = ?`).bind(...vals).run();
+      const row = await db.prepare('SELECT * FROM workhq_meetings WHERE id = ?').bind(id).first();
+      return row ? json(row) : err('Not found', 404);
+    }
+    if (method === 'DELETE') {
+      await db.prepare('DELETE FROM workhq_meetings WHERE id = ?').bind(id).run();
+      return json({ ok: true });
+    }
+    return err('Method not allowed', 405);
+  }
+
+  // ── Talking points ──────────────────────────────────────────────────────────
+  if (sub === 'talking-points') {
+    if (!subId && method === 'POST') {
+      const body = await request.json();
+      const tpId = uuid();
+      const { count } = await db.prepare(
+        'SELECT COUNT(*) as count FROM workhq_talking_points WHERE meeting_id = ?'
+      ).bind(id).first();
+      await db.prepare(
+        'INSERT INTO workhq_talking_points (id, meeting_id, content, done, sort_order) VALUES (?, ?, ?, 0, ?)'
+      ).bind(tpId, id, body.content ?? '', count).run();
+      const row = await db.prepare('SELECT * FROM workhq_talking_points WHERE id = ?').bind(tpId).first();
+      return json(row, 201);
+    }
+    if (subId && method === 'PUT') {
+      const body = await request.json();
+      const fields = []; const vals = [];
+      if ('content' in body) { fields.push('content = ?'); vals.push(body.content); }
+      if ('done'    in body) { fields.push('done = ?');    vals.push(body.done ? 1 : 0); }
+      if (!fields.length) return err('No valid fields');
+      vals.push(subId);
+      await db.prepare(`UPDATE workhq_talking_points SET ${fields.join(', ')} WHERE id = ?`).bind(...vals).run();
+      const row = await db.prepare('SELECT * FROM workhq_talking_points WHERE id = ?').bind(subId).first();
+      return row ? json(row) : err('Not found', 404);
+    }
+    if (subId && method === 'DELETE') {
+      await db.prepare('DELETE FROM workhq_talking_points WHERE id = ?').bind(subId).run();
+      return json({ ok: true });
+    }
+    return err('Method not allowed', 405);
+  }
+
+  // ── Actions (create task linked to meeting) ─────────────────────────────────
+  if (sub === 'actions' && method === 'POST') {
+    const body = await request.json();
+    const taskId = uuid();
+    const { count } = await db.prepare('SELECT COUNT(*) as count FROM workhq_tasks').first();
+    await db.prepare(
+      `INSERT INTO workhq_tasks (id, name, area, priority, status, notes, meeting_id, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(taskId, body.name ?? 'Action item', body.area ?? 'Other',
+           body.priority ?? 'Medium', 'To Do', body.notes ?? '', id, count).run();
+    const row = await db.prepare('SELECT * FROM workhq_tasks WHERE id = ?').bind(taskId).first();
+    return json(row, 201);
+  }
+
+  return err('Not found', 404);
+}
+
 // ─── Main entry point ─────────────────────────────────────────────────────────
 
 export async function onRequest(context) {
@@ -286,6 +450,7 @@ export async function onRequest(context) {
     if (resource === 'tasks')    return await handleTasks(request, db, id);
     if (resource === 'projects') return await handleProjects(request, db, id);
     if (resource === 'focus')    return await handleFocus(request, db, id);
+    if (resource === 'meetings') return await handleMeetings(request, db, parts);
 
     if (resource === 'seed' && request.method === 'POST') {
       const result = await seedIfEmpty(db);

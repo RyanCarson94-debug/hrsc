@@ -4,11 +4,13 @@ import { useProjects } from './hooks/useProjects.js';
 import Dashboard from './components/Dashboard.jsx';
 import TaskList from './components/TaskList.jsx';
 import Projects from './components/Projects.jsx';
+import Meetings from './components/Meetings.jsx';
 
 const TABS = [
   { id: 'Dashboard', label: 'Dashboard', icon: '◈' },
   { id: 'Tasks',     label: 'Tasks',     icon: '✓' },
   { id: 'Projects',  label: 'Projects',  icon: '◉' },
+  { id: 'Meetings',  label: 'Meetings',  icon: '📅' },
 ];
 
 async function seedDB() {
@@ -18,6 +20,7 @@ async function seedDB() {
 export default function App() {
   const [tab, setTab] = useState('Dashboard');
   const { tasks, loading: tasksLoading, error: tasksError, load: loadTasks, createTask, updateTask, deleteTask } = useTasks();
+
   const { projects, loading: projLoading, error: projError, load: loadProjects, createProject, updateProject, deleteProject } = useProjects();
 
   useEffect(() => {
@@ -87,6 +90,16 @@ export default function App() {
             updateProject={updateProject}
             deleteProject={deleteProject}
             error={projError}
+          />
+        )}
+
+        {tab === 'Meetings' && (
+          <Meetings
+            tasks={tasks}
+            onTaskCreated={task => {
+              // Refresh task list to include the new action
+              loadTasks();
+            }}
           />
         )}
       </main>
