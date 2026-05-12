@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard.jsx';
 import TaskList from './components/TaskList.jsx';
 import Projects from './components/Projects.jsx';
 import Meetings from './components/Meetings.jsx';
+import FocusMode from './components/FocusMode.jsx';
 
 const TABS = [
   { id: 'Dashboard', label: 'Dashboard', icon: '◈' },
@@ -18,18 +19,16 @@ async function seedDB() {
 }
 
 export default function App() {
-  const [tab, setTab] = useState('Dashboard');
-  const { tasks, loading: tasksLoading, error: tasksError, load: loadTasks, createTask, updateTask, deleteTask } = useTasks();
+  const [tab,       setTab]       = useState('Dashboard');
+  const [focusing,  setFocusing]  = useState(false);
 
+  const { tasks, loading: tasksLoading, error: tasksError, load: loadTasks, createTask, updateTask, deleteTask } = useTasks();
   const { projects, loading: projLoading, error: projError, load: loadProjects, createProject, updateProject, deleteProject } = useProjects();
 
   useEffect(() => {
     seedDB()
       .catch(() => {})
-      .finally(() => {
-        loadTasks();
-        loadProjects();
-      });
+      .finally(() => { loadTasks(); loadProjects(); });
   }, [loadTasks, loadProjects]);
 
   const handleUpdateTask = useCallback(async (id, fields) => {
@@ -56,9 +55,13 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap' }}>
-          HRSC · Ryan
-        </span>
+        <button
+          className="focus-nav-btn"
+          onClick={() => setFocusing(true)}
+          title="Start a focus session"
+        >
+          ⚡ Focus
+        </button>
       </header>
 
       <main className="page-content">
@@ -70,7 +73,12 @@ export default function App() {
         )}
 
         {!loading && tab === 'Dashboard' && (
-          <Dashboard tasks={tasks} updateTask={handleUpdateTask} onNavigate={setTab} />
+          <Dashboard
+            tasks={tasks}
+            updateTask={handleUpdateTask}
+            onNavigate={setTab}
+            onFocus={() => setFocusing(true)}
+          />
         )}
 
         {!loading && tab === 'Tasks' && (
@@ -96,13 +104,18 @@ export default function App() {
         {tab === 'Meetings' && (
           <Meetings
             tasks={tasks}
-            onTaskCreated={task => {
-              // Refresh task list to include the new action
-              loadTasks();
-            }}
+            onTaskCreated={() => loadTasks()}
           />
         )}
       </main>
+
+      {focusing && (
+        <FocusMode
+          tasks={tasks}
+          updateTask={handleUpdateTask}
+          onClose={() => { setFocusing(false); loadTasks(); }}
+        />
+      )}
     </div>
   );
 }

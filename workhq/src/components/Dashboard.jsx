@@ -34,7 +34,7 @@ async function apiFetch(path, opts = {}) {
   return res.json();
 }
 
-export default function Dashboard({ tasks, updateTask, onNavigate }) {
+export default function Dashboard({ tasks, updateTask, onNavigate, onFocus }) {
   const [slots, setSlots] = useState([
     { slot_index: 0, task_id: null, done: 0, task_name: null },
     { slot_index: 1, task_id: null, done: 0, task_name: null },
@@ -105,6 +105,16 @@ export default function Dashboard({ tasks, updateTask, onNavigate }) {
 
   return (
     <div>
+      {/* Just Start button */}
+      <button className="just-start-btn" onClick={onFocus}>
+        <span className="just-start-icon">⚡</span>
+        <span>
+          <span className="just-start-title">Just Start</span>
+          <span className="just-start-sub">Pick my best task and start a 25-min focus session</span>
+        </span>
+        <span className="just-start-arrow">→</span>
+      </button>
+
       {/* KPI bar */}
       <div className="kpi-bar">
         <div className="kpi-card kpi-total">
