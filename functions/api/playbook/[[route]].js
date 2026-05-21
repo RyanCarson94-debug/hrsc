@@ -57,7 +57,21 @@ function err(msg, status = 400) {
 }
 
 function getUser(request, env) {
-  const email = (request.headers.get('CF-Access-Authenticated-User-Email') || '').trim();
+  // Try the Access header first, then fall back to decoding the CF_Authorization JWT cookie
+  let email = (request.headers.get('CF-Access-Authenticated-User-Email') || '').trim();
+
+  if (!email) {
+    const cookie = request.headers.get('Cookie') || '';
+    const match = cookie.match(/CF_Authorization=([^;]+)/);
+    if (match) {
+      try {
+        const b64 = match[1].split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(atob(b64));
+        email = payload.email || '';
+      } catch {}
+    }
+  }
+
   const rawAdmins = env.PLAYBOOK_ADMIN_EMAILS || '';
   const adminList = rawAdmins
     .split(',')
