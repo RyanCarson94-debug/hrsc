@@ -83,6 +83,15 @@ export async function onRequest(context) {
     return new Response(null, { headers: CORS });
   }
 
+  const user = getUser(request, env);
+  const parts = Array.isArray(params.route) ? params.route : (params.route ? [params.route] : []);
+  const [resource, id, sub] = parts;
+
+  // ── ME (no DB needed) ─────────────────────────────────────────────────────
+  if (resource === 'me' && request.method === 'GET') {
+    return json({ email: user.email, name: user.name, isAdmin: user.isAdmin });
+  }
+
   if (!DB) {
     return json({
       error:
@@ -91,10 +100,6 @@ export async function onRequest(context) {
         'then run the migration: wrangler d1 execute hrsc-playbook-db --remote --file=migrations/0006_playbook.sql',
     }, 503);
   }
-
-  const user = getUser(request, env);
-  const parts = Array.isArray(params.route) ? params.route : (params.route ? [params.route] : []);
-  const [resource, id, sub] = parts;
 
   try {
     // ── ME ────────────────────────────────────────────────────────────────────
