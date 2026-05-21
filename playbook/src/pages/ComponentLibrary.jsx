@@ -2,18 +2,23 @@ import { useEffect, useState } from 'react'
 import { api } from '../api.js'
 import { SystemBadge } from '../components/SystemBadge.jsx'
 import { MarkdownContent } from '../components/MarkdownContent.jsx'
+import { RichTextEditor } from '../components/RichTextEditor.jsx'
 
 const SYSTEMS = ['workday', 'servicenow', 'email', 'manual']
+
+function stripHTML(str) {
+  return str ? str.replace(/<[^>]+>/g, '') : ''
+}
 
 export function ComponentLibrary() {
   const [components, setComponents] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [systemFilter, setSystemFilter] = useState('')
-  const [editing, setEditing] = useState(null) // null | 'new' | component.id
+  const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({ name: '', body: '', system: 'manual', tags: '' })
   const [saving, setSaving] = useState(false)
-  const [preview, setPreview] = useState(null) // component.id to preview
+  const [preview, setPreview] = useState(null)
 
   function load(params = {}) {
     api.listComponents(params).then(setComponents).finally(() => setLoading(false))
@@ -75,7 +80,7 @@ export function ComponentLibrary() {
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold text-gray-900">Component library</h1>
-        <button onClick={openNew} className="px-4 py-2 rounded bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
+        <button onClick={openNew} className="px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors">
           + New component
         </button>
       </div>
@@ -87,12 +92,12 @@ export function ComponentLibrary() {
           placeholder="Search components…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
         />
         <select
           value={systemFilter}
           onChange={e => setSystemFilter(e.target.value)}
-          className="rounded border border-gray-300 px-3 py-2 text-sm bg-white focus:border-blue-500 focus:outline-none"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:border-violet-500 focus:outline-none"
         >
           <option value="">All systems</option>
           {SYSTEMS.map(s => <option key={s} value={s}>{s}</option>)}
@@ -106,26 +111,27 @@ export function ComponentLibrary() {
 
       {/* Component list */}
       {components.length === 0 && editing !== 'new' ? (
-        <div className="rounded-lg border border-dashed border-gray-300 p-10 text-center text-gray-400 text-sm">
+        <div className="rounded-xl border border-dashed border-violet-200 p-10 text-center text-gray-400 text-sm">
           {search || systemFilter ? 'No components match your filters.' : 'No components yet. Create reusable instruction blocks here.'}
         </div>
       ) : (
         <div className="space-y-3">
           {components.map(c => {
             const tags = (() => { try { return JSON.parse(c.tags || '[]') } catch { return [] } })()
+            const bodyPreview = stripHTML(c.body).slice(0, 80)
             return (
               <div key={c.id}>
-                <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                <div className="rounded-xl border border-violet-100 bg-white overflow-hidden shadow-sm">
                   <div className="px-4 py-3 flex items-center gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-gray-900 text-sm">{c.name}</span>
+                        <span className="font-semibold text-gray-900 text-sm">{c.name}</span>
                         <SystemBadge system={c.system} size="xs" />
                         {tags.map(t => (
-                          <span key={t} className="text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded px-1.5 py-0.5">{t}</span>
+                          <span key={t} className="text-xs bg-violet-50 text-violet-700 border border-violet-200 rounded-full px-2 py-0.5">{t}</span>
                         ))}
                       </div>
-                      <div className="text-xs text-gray-400 mt-0.5 truncate">{c.body.slice(0, 80)}{c.body.length > 80 ? '…' : ''}</div>
+                      <div className="text-xs text-gray-400 mt-0.5 truncate">{bodyPreview}{c.body.length > 80 ? '…' : ''}</div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button
@@ -134,7 +140,7 @@ export function ComponentLibrary() {
                       >
                         {preview === c.id ? 'Hide' : 'Preview'}
                       </button>
-                      <button onClick={() => openEdit(c)} className="text-xs text-blue-600 hover:underline">Edit</button>
+                      <button onClick={() => openEdit(c)} className="text-xs text-violet-600 hover:underline">Edit</button>
                       <button onClick={() => remove(c.id)} className="text-xs text-red-400 hover:text-red-600">Delete</button>
                     </div>
                   </div>
@@ -146,7 +152,7 @@ export function ComponentLibrary() {
                   )}
 
                   {editing === c.id && (
-                    <div className="border-t border-blue-200 bg-blue-50 p-4">
+                    <div className="border-t border-violet-200 bg-violet-50 p-4">
                       <ComponentForm form={form} setForm={setForm} onSave={save} onCancel={cancelEdit} saving={saving} isNew={false} />
                     </div>
                   )}
@@ -162,7 +168,7 @@ export function ComponentLibrary() {
 
 function ComponentForm({ form, setForm, onSave, onCancel, saving, isNew }) {
   return (
-    <div className="rounded-lg border border-blue-300 bg-blue-50 p-4 mb-3 space-y-3">
+    <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
@@ -181,8 +187,10 @@ function ComponentForm({ form, setForm, onSave, onCancel, saving, isNew }) {
                 key={sys}
                 type="button"
                 onClick={() => setForm(f => ({ ...f, system: sys }))}
-                className={`px-2.5 py-1 rounded border text-xs font-medium ${
-                  form.system === sys ? 'border-blue-500 bg-blue-600 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition-colors ${
+                  form.system === sys
+                    ? 'border-violet-600 bg-violet-600 text-white'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-violet-300'
                 }`}
               >
                 {sys}
@@ -203,24 +211,22 @@ function ComponentForm({ form, setForm, onSave, onCancel, saving, isNew }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Body (Markdown)</label>
-        <textarea
-          className={`${inputCls} font-mono text-xs`}
-          rows={8}
+        <label className="block text-sm font-medium text-gray-700 mb-1">Body</label>
+        <RichTextEditor
           value={form.body}
-          onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
-          placeholder="## Component title&#10;&#10;Instructions..."
+          onChange={body => setForm(f => ({ ...f, body }))}
+          placeholder="Write component instructions…"
         />
       </div>
 
       <div className="flex gap-2">
-        <button onClick={onSave} disabled={saving || !form.name} className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50">
+        <button onClick={onSave} disabled={saving || !form.name} className="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors">
           {saving ? 'Saving…' : isNew ? 'Create component' : 'Save changes'}
         </button>
-        <button onClick={onCancel} className="px-3 py-1.5 rounded border border-gray-200 text-gray-600 text-sm hover:border-gray-300">Cancel</button>
+        <button onClick={onCancel} className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-sm hover:border-gray-300">Cancel</button>
       </div>
     </div>
   )
 }
 
-const inputCls = 'w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+const inputCls = 'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500'

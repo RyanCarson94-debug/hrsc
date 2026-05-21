@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api.js'
 import { SystemBadge } from '../components/SystemBadge.jsx'
+import { RichTextEditor } from '../components/RichTextEditor.jsx'
 
 const SYSTEMS = ['workday', 'servicenow', 'email', 'manual']
 const FIELD_TYPES = ['select', 'text', 'date', 'boolean']
@@ -12,19 +13,14 @@ export function PlaybookEditor() {
   const [pb, setPb] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [tab, setTab] = useState('details') // details | fields | steps
+  const [tab, setTab] = useState('details')
   const [error, setError] = useState(null)
 
-  // Detail form
   const [details, setDetails] = useState({ name: '', slug: '', description: '', active: false })
-
-  // Fields
   const [fields, setFields] = useState([])
-  const [editingField, setEditingField] = useState(null) // null | 'new' | field.id
-
-  // Steps
+  const [editingField, setEditingField] = useState(null)
   const [steps, setSteps] = useState([])
-  const [editingStep, setEditingStep] = useState(null) // null | 'new' | step.id
+  const [editingStep, setEditingStep] = useState(null)
 
   const load = useCallback(async () => {
     try {
@@ -63,34 +59,34 @@ export function PlaybookEditor() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('/admin/playbooks')} className="text-sm text-gray-400 hover:text-gray-600">← Playbooks</button>
+        <button onClick={() => navigate('/admin/playbooks')} className="text-sm text-gray-400 hover:text-violet-600">← Playbooks</button>
         <span className="text-gray-200">/</span>
         <h1 className="text-xl font-bold text-gray-900">{pb.name}</h1>
-        <span className={`text-xs px-1.5 py-0.5 rounded border font-medium ${pb.active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+        <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${pb.active ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
           {pb.active ? 'Active' : 'Inactive'}
         </span>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 mb-6">
+      <div className="flex border-b border-violet-100 mb-6">
         {['details', 'fields', 'steps'].map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px capitalize transition-colors ${
-              tab === t ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'
+            className={`px-4 py-2 text-sm font-semibold border-b-2 -mb-px capitalize transition-colors ${
+              tab === t ? 'border-violet-600 text-violet-700' : 'border-transparent text-gray-500 hover:text-gray-800'
             }`}
           >
             {t}
-            {t === 'fields' && fields.length > 0 && <span className="ml-1 text-gray-400">({fields.length})</span>}
-            {t === 'steps'  && steps.length  > 0 && <span className="ml-1 text-gray-400">({steps.length})</span>}
+            {t === 'fields' && fields.length > 0 && <span className="ml-1 text-gray-400 font-normal">({fields.length})</span>}
+            {t === 'steps'  && steps.length  > 0 && <span className="ml-1 text-gray-400 font-normal">({steps.length})</span>}
           </button>
         ))}
       </div>
 
       {/* Details tab */}
       {tab === 'details' && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-xl">
+        <div className="bg-white rounded-xl border border-violet-100 p-6 max-w-xl shadow-sm">
           <div className="space-y-4">
             <Field label="Name">
               <input className={inputCls} value={details.name} onChange={e => setDetails(d => ({ ...d, name: e.target.value }))} />
@@ -106,7 +102,7 @@ export function PlaybookEditor() {
                 type="checkbox" id="active"
                 checked={details.active}
                 onChange={e => setDetails(d => ({ ...d, active: e.target.checked }))}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                className="h-4 w-4 rounded border-gray-300 text-violet-600"
               />
               <label htmlFor="active" className="text-sm font-medium text-gray-700 cursor-pointer">
                 Active — visible to advisers
@@ -114,16 +110,13 @@ export function PlaybookEditor() {
             </div>
           </div>
           <div className="mt-6 flex items-center justify-between">
-            <button
-              onClick={deletePlaybook}
-              className="text-xs text-red-500 hover:text-red-700 hover:underline"
-            >
+            <button onClick={deletePlaybook} className="text-xs text-red-400 hover:text-red-600 hover:underline">
               Delete playbook
             </button>
             <button
               onClick={saveDetails}
               disabled={saving}
-              className="px-4 py-2 rounded bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors"
             >
               {saving ? 'Saving…' : 'Save changes'}
             </button>
@@ -209,13 +202,13 @@ function FieldsEditor({ fields, playbookId, setFields, editingField, setEditingF
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-semibold text-gray-700">Intake fields</h2>
-        <button onClick={openNew} className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-700">
+        <button onClick={openNew} className="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors">
           + Add field
         </button>
       </div>
 
       {fields.length === 0 && editingField !== 'new' && (
-        <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-gray-400 text-sm">
+        <div className="rounded-xl border border-dashed border-violet-200 p-8 text-center text-gray-400 text-sm">
           No intake fields yet. Add fields to capture information from the adviser before starting the steps.
         </div>
       )}
@@ -223,7 +216,7 @@ function FieldsEditor({ fields, playbookId, setFields, editingField, setEditingF
       <div className="space-y-2">
         {fields.map((f, idx) => (
           <div key={f.id}>
-            <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 flex items-center gap-3">
+            <div className="rounded-xl border border-violet-100 bg-white px-4 py-3 flex items-center gap-3">
               <span className="text-xs text-gray-300 w-5 text-center font-mono">{idx + 1}</span>
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-medium text-gray-800">{f.label}</span>
@@ -236,7 +229,7 @@ function FieldsEditor({ fields, playbookId, setFields, editingField, setEditingF
                   } catch { return null }
                 })()}
               </div>
-              <button onClick={() => openEdit(f)} className="text-xs text-blue-600 hover:underline">Edit</button>
+              <button onClick={() => openEdit(f)} className="text-xs text-violet-600 hover:underline">Edit</button>
               <button onClick={() => remove(f.id)} className="text-xs text-red-400 hover:text-red-600">Delete</button>
             </div>
 
@@ -256,7 +249,7 @@ function FieldsEditor({ fields, playbookId, setFields, editingField, setEditingF
 
 function FieldForm({ form, setForm, onSave, onCancel, saving, isNew }) {
   return (
-    <div className="rounded-lg border border-blue-300 bg-blue-50 p-4 mt-1 space-y-3">
+    <div className="rounded-xl border border-violet-300 bg-violet-50 p-4 mt-1 space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <Field label="Field key" hint="e.g. country">
           <input className={inputCls} value={form.field_key} onChange={e => setForm(f => ({ ...f, field_key: e.target.value.toLowerCase().replace(/\s+/g, '_') }))} />
@@ -276,10 +269,10 @@ function FieldForm({ form, setForm, onSave, onCancel, saving, isNew }) {
         </Field>
       )}
       <div className="flex gap-2">
-        <button onClick={onSave} disabled={saving || !form.field_key || !form.label} className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50">
+        <button onClick={onSave} disabled={saving || !form.field_key || !form.label} className="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors">
           {saving ? 'Saving…' : isNew ? 'Add field' : 'Save'}
         </button>
-        <button onClick={onCancel} className="px-3 py-1.5 rounded border border-gray-200 text-gray-600 text-sm hover:border-gray-300">Cancel</button>
+        <button onClick={onCancel} className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-sm hover:border-gray-300">Cancel</button>
       </div>
     </div>
   )
@@ -377,19 +370,18 @@ function StepsEditor({ steps, fields, playbookId, setSteps, editingStep, setEdit
   }
 
   const fieldKeys = fields.map(f => f.field_key)
-  const isEditing = editingStep !== null
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-semibold text-gray-700">Steps</h2>
-        <button onClick={openNew} className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-700">
+        <button onClick={openNew} className="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors">
           + Add step
         </button>
       </div>
 
       {steps.length === 0 && editingStep !== 'new' && (
-        <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-gray-400 text-sm">
+        <div className="rounded-xl border border-dashed border-violet-200 p-8 text-center text-gray-400 text-sm">
           No steps yet. Add steps to guide advisers through the case process.
         </div>
       )}
@@ -397,7 +389,7 @@ function StepsEditor({ steps, fields, playbookId, setSteps, editingStep, setEdit
       <div className="space-y-2">
         {steps.map((s, idx) => (
           <div key={s.id}>
-            <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 flex items-center gap-3">
+            <div className="rounded-xl border border-violet-100 bg-white px-4 py-3 flex items-center gap-3">
               <span className="text-xs text-gray-300 w-5 text-center font-mono">{idx + 1}</span>
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-medium text-gray-800">{s.title}</span>
@@ -410,13 +402,13 @@ function StepsEditor({ steps, fields, playbookId, setSteps, editingStep, setEdit
                     const c = typeof s.conditions === 'string' ? JSON.parse(s.conditions) : s.conditions
                     if (c && c.always !== true) {
                       const entries = Object.entries(c)
-                      return <span className="ml-2 text-xs text-purple-600">if {entries.map(([k, v]) => `${k}=${Array.isArray(v) ? v.join('|') : v}`).join(', ')}</span>
+                      return <span className="ml-2 text-xs text-violet-600">if {entries.map(([k, v]) => `${k}=${Array.isArray(v) ? v.join('|') : v}`).join(', ')}</span>
                     }
                   } catch {}
                   return null
                 })()}
               </div>
-              <button onClick={() => openEdit(s)} className="text-xs text-blue-600 hover:underline">Edit</button>
+              <button onClick={() => openEdit(s)} className="text-xs text-violet-600 hover:underline">Edit</button>
               <button onClick={() => remove(s.id)} className="text-xs text-red-400 hover:text-red-600">Delete</button>
             </div>
 
@@ -454,20 +446,22 @@ function StepsEditor({ steps, fields, playbookId, setSteps, editingStep, setEdit
 
 function StepForm({ form, setForm, fieldKeys, onSave, onCancel, saving, isNew, condRows, addCondRow, removeCondRow, updateCondRow }) {
   return (
-    <div className="rounded-lg border border-blue-300 bg-blue-50 p-4 mt-1 space-y-4">
+    <div className="rounded-xl border border-violet-300 bg-violet-50 p-4 mt-1 space-y-4">
       <Field label="Title">
         <input className={inputCls} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
       </Field>
 
       <Field label="System">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {SYSTEMS.map(sys => (
             <button
               key={sys}
               type="button"
               onClick={() => setForm(f => ({ ...f, system: sys }))}
-              className={`px-3 py-1 rounded border text-xs font-medium ${
-                form.system === sys ? 'border-blue-500 bg-blue-600 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+              className={`px-3 py-1 rounded-lg border text-xs font-semibold transition-colors ${
+                form.system === sys
+                  ? 'border-violet-600 bg-violet-600 text-white'
+                  : 'border-gray-200 bg-white text-gray-600 hover:border-violet-300'
               }`}
             >
               {sys}
@@ -476,13 +470,11 @@ function StepForm({ form, setForm, fieldKeys, onSave, onCancel, saving, isNew, c
         </div>
       </Field>
 
-      <Field label="Instructions (Markdown)">
-        <textarea
-          className={`${inputCls} font-mono text-xs`}
-          rows={10}
+      <Field label="Instructions">
+        <RichTextEditor
           value={form.body}
-          onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
-          placeholder="## Step title&#10;&#10;Instructions for the adviser..."
+          onChange={body => setForm(f => ({ ...f, body }))}
+          placeholder="Write step instructions for the adviser…"
         />
       </Field>
 
@@ -498,7 +490,7 @@ function StepForm({ form, setForm, fieldKeys, onSave, onCancel, saving, isNew, c
           {condRows.map((row, idx) => (
             <div key={idx} className="flex items-center gap-2">
               <select
-                className="rounded border border-gray-300 px-2 py-1.5 text-xs bg-white"
+                className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs bg-white focus:border-violet-500 focus:outline-none"
                 value={row.key}
                 onChange={e => updateCondRow(idx, { key: e.target.value })}
               >
@@ -506,7 +498,7 @@ function StepForm({ form, setForm, fieldKeys, onSave, onCancel, saving, isNew, c
                 {fieldKeys.map(k => <option key={k} value={k}>{k}</option>)}
               </select>
               <select
-                className="rounded border border-gray-300 px-2 py-1.5 text-xs bg-white"
+                className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs bg-white focus:border-violet-500 focus:outline-none"
                 value={row.matchType}
                 onChange={e => updateCondRow(idx, { matchType: e.target.value })}
               >
@@ -514,16 +506,16 @@ function StepForm({ form, setForm, fieldKeys, onSave, onCancel, saving, isNew, c
                 <option value="oneOf">is one of</option>
               </select>
               <input
-                className="rounded border border-gray-300 px-2 py-1.5 text-xs flex-1"
+                className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs flex-1 focus:border-violet-500 focus:outline-none"
                 placeholder={row.matchType === 'oneOf' ? 'Value1, Value2' : 'Value'}
                 value={row.value}
                 onChange={e => updateCondRow(idx, { value: e.target.value })}
               />
-              <button onClick={() => removeCondRow(idx)} className="text-red-400 hover:text-red-600 text-xs">×</button>
+              <button onClick={() => removeCondRow(idx)} className="text-red-400 hover:text-red-600 text-sm font-bold">×</button>
             </div>
           ))}
         </div>
-        <button onClick={addCondRow} className="mt-2 text-xs text-blue-600 hover:underline">+ Add condition</button>
+        <button onClick={addCondRow} className="mt-2 text-xs text-violet-600 hover:underline font-medium">+ Add condition</button>
       </div>
 
       <div className="flex items-center gap-3">
@@ -531,7 +523,7 @@ function StepForm({ form, setForm, fieldKeys, onSave, onCancel, saving, isNew, c
           type="checkbox" id="required-check"
           checked={form.required}
           onChange={e => setForm(f => ({ ...f, required: e.target.checked }))}
-          className="h-4 w-4 rounded border-gray-300 text-blue-600"
+          className="h-4 w-4 rounded border-gray-300 text-violet-600"
         />
         <label htmlFor="required-check" className="text-sm font-medium text-gray-700 cursor-pointer">
           Required step — adviser must complete before continuing
@@ -539,10 +531,10 @@ function StepForm({ form, setForm, fieldKeys, onSave, onCancel, saving, isNew, c
       </div>
 
       <div className="flex gap-2">
-        <button onClick={onSave} disabled={saving || !form.title} className="px-3 py-1.5 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50">
+        <button onClick={onSave} disabled={saving || !form.title} className="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors">
           {saving ? 'Saving…' : isNew ? 'Add step' : 'Save step'}
         </button>
-        <button onClick={onCancel} className="px-3 py-1.5 rounded border border-gray-200 text-gray-600 text-sm hover:border-gray-300">Cancel</button>
+        <button onClick={onCancel} className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-sm hover:border-gray-300">Cancel</button>
       </div>
     </div>
   )
@@ -562,4 +554,4 @@ function Field({ label, hint, children }) {
   )
 }
 
-const inputCls = 'w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+const inputCls = 'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500'

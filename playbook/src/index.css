@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-[#F3EFFF] text-gray-900 antialiased;
   }
 }
 
@@ -31,7 +31,7 @@
     @apply text-sm;
   }
   .prose-playbook blockquote {
-    @apply border-l-4 border-blue-200 pl-3 py-1 bg-blue-50 text-blue-800 rounded-r text-sm my-2;
+    @apply border-l-4 border-violet-200 pl-3 py-1 bg-violet-50 text-violet-800 rounded-r text-sm my-2;
   }
   .prose-playbook code {
     @apply bg-gray-100 text-gray-700 px-1 py-0.5 rounded text-xs font-mono;
@@ -43,7 +43,7 @@
     @apply italic text-gray-600;
   }
   .prose-playbook a {
-    @apply text-blue-600 underline;
+    @apply text-violet-600 underline;
   }
   .prose-playbook hr {
     @apply border-gray-200 my-3;

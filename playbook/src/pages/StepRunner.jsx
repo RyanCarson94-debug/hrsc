@@ -17,7 +17,7 @@ export function StepRunner() {
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const [expandedPrev, setExpandedPrev] = useState({})
-  const [skippingRequired, setSkippingRequired] = useState(null) // step id that is required but user tried to skip
+  const [skippingRequired, setSkippingRequired] = useState(null)
   const activeRef = useRef(null)
 
   useEffect(() => {
@@ -55,18 +55,10 @@ export function StepRunner() {
   const allDone = completedCount === totalApplicable
   const progress = totalApplicable > 0 ? Math.round((completedCount / totalApplicable) * 100) : 100
 
-  // Find the first incomplete applicable step = the active step
   const activeStep = applicableSteps.find(s => !completedSteps.includes(s.id))
 
   async function markComplete(stepId) {
     if (saving) return
-    const step = applicableSteps.find(s => s.id === stepId)
-
-    // If skipping required step, warn first
-    if (step && step.required && step.id === activeStep?.id) {
-      // They clicked Mark Complete on the active step — that's normal, allow it
-    }
-
     setSaving(true)
     const next = [...completedSteps, stepId]
     try {
@@ -115,17 +107,17 @@ export function StepRunner() {
             </div>
           </div>
           {allDone && (
-            <span className="text-xs font-medium bg-green-100 text-green-800 border border-green-200 rounded px-2 py-0.5">
+            <span className="text-xs font-semibold bg-green-100 text-green-800 border border-green-200 rounded-full px-3 py-1">
               ✓ Complete
             </span>
           )}
         </div>
 
         {/* Progress bar */}
-        <div className="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="mt-3 h-2 bg-violet-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-500 rounded-full transition-all duration-300"
-            style={{ width: `${progress}%` }}
+            className="h-full rounded-full transition-all duration-300"
+            style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #7C3AED, #4F46E5)' }}
           />
         </div>
       </div>
@@ -141,7 +133,7 @@ export function StepRunner() {
             return (
               <div
                 key={step.id}
-                className="rounded-lg border border-gray-200 bg-white overflow-hidden"
+                className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm"
               >
                 <button
                   onClick={() => setExpandedPrev(p => ({ ...p, [step.id]: !p[step.id] }))}
@@ -151,7 +143,7 @@ export function StepRunner() {
                     <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold">
                       ✓
                     </span>
-                    <span className="text-sm text-gray-500 line-through truncate">{step.title}</span>
+                    <span className="text-sm text-gray-400 line-through truncate">{step.title}</span>
                     <SystemBadge system={step.system} size="xs" />
                   </div>
                   <span className="text-gray-300 text-xs flex-shrink-0">{isExpanded ? '▲' : '▼'}</span>
@@ -180,16 +172,14 @@ export function StepRunner() {
               <div
                 key={step.id}
                 ref={activeRef}
-                className="rounded-lg border-2 border-blue-400 bg-white shadow-sm overflow-hidden"
+                className="rounded-xl border-2 border-violet-400 bg-white shadow-md overflow-hidden"
               >
-                <div className="px-4 py-3 bg-blue-50 border-b border-blue-200 flex items-center justify-between">
+                <div className="px-4 py-3 bg-violet-50 border-b border-violet-200 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    <span className="w-6 h-6 rounded-full bg-violet-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
                       {idx + 1}
                     </span>
-                    <div>
-                      <h2 className="font-semibold text-gray-900 text-sm">{step.title}</h2>
-                    </div>
+                    <h2 className="font-semibold text-gray-900 text-sm">{step.title}</h2>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <SystemBadge system={step.system} />
@@ -208,7 +198,7 @@ export function StepRunner() {
                     <button
                       onClick={() => markComplete(step.id)}
                       disabled={saving}
-                      className="px-5 py-2 rounded bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                      className="px-5 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors"
                     >
                       {saving ? 'Saving…' : 'Mark complete ✓'}
                     </button>
@@ -222,9 +212,7 @@ export function StepRunner() {
                       </button>
                     )}
                     {step.required && skippingRequired === step.id && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-amber-700">This step is required. Complete it before continuing.</span>
-                      </div>
+                      <span className="text-xs text-amber-700">This step is required. Complete it before continuing.</span>
                     )}
                   </div>
                 </div>
@@ -232,11 +220,11 @@ export function StepRunner() {
             )
           }
 
-          // Upcoming step (not active, not complete)
+          // Upcoming step
           return (
             <div
               key={step.id}
-              className="rounded-lg border border-gray-200 bg-white px-4 py-3 flex items-center gap-3 opacity-50"
+              className="rounded-xl border border-gray-200 bg-white px-4 py-3 flex items-center gap-3 opacity-40"
             >
               <span className="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center text-xs text-gray-400 flex-shrink-0">
                 {idx + 1}
@@ -249,7 +237,7 @@ export function StepRunner() {
       </div>
 
       {allDone && (
-        <div className="mt-8 rounded-lg bg-green-50 border border-green-200 p-6 text-center">
+        <div className="mt-8 rounded-xl bg-green-50 border border-green-200 p-6 text-center shadow-sm">
           <div className="text-3xl mb-2">✅</div>
           <h3 className="font-semibold text-green-900 text-lg">All steps complete</h3>
           <p className="text-sm text-green-700 mt-1">
@@ -257,7 +245,7 @@ export function StepRunner() {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="mt-4 px-4 py-2 rounded bg-green-700 text-white text-sm font-medium hover:bg-green-800"
+            className="mt-4 px-4 py-2 rounded-lg bg-green-700 text-white text-sm font-semibold hover:bg-green-800"
           >
             Back to home
           </button>

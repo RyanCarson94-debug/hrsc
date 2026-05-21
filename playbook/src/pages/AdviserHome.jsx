@@ -30,7 +30,7 @@ export function AdviserHome({ user }) {
       </div>
 
       {playbooks.length === 0 ? (
-        <div className="rounded-lg border border-gray-200 bg-white p-10 text-center text-gray-500 text-sm">
+        <div className="rounded-xl border border-violet-200 bg-white p-10 text-center text-gray-500 text-sm shadow-sm">
           No active playbooks yet. Ask your admin to create one.
         </div>
       ) : (
@@ -39,18 +39,18 @@ export function AdviserHome({ user }) {
             <button
               key={pb.id}
               onClick={() => navigate(`/play/${pb.slug}`)}
-              className="w-full text-left rounded-lg border border-gray-200 bg-white p-5 hover:border-blue-300 hover:shadow-sm transition-all group"
+              className="w-full text-left rounded-xl border border-violet-100 bg-white p-5 hover:border-violet-400 hover:shadow-md transition-all group"
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="font-semibold text-gray-900 group-hover:text-blue-700">
+                  <div className="font-semibold text-gray-900 group-hover:text-violet-700">
                     {pb.name}
                   </div>
                   {pb.description && (
                     <div className="text-sm text-gray-500 mt-0.5">{pb.description}</div>
                   )}
                 </div>
-                <span className="text-gray-300 group-hover:text-blue-400 text-lg ml-4">→</span>
+                <span className="text-gray-300 group-hover:text-violet-400 text-lg ml-4">→</span>
               </div>
             </button>
           ))}
@@ -59,7 +59,7 @@ export function AdviserHome({ user }) {
 
       {recentCases.length > 0 && (
         <div className="mt-10">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
             Resume in-progress cases
           </h2>
           <div className="space-y-2">
@@ -70,10 +70,10 @@ export function AdviserHome({ user }) {
                 <button
                   key={c.id}
                   onClick={() => navigate(`/play/${c.playbook_slug}/run?case=${c.id}`)}
-                  className="w-full text-left rounded-lg border border-gray-200 bg-white px-4 py-3 hover:border-blue-300 hover:shadow-sm transition-all flex items-center justify-between group"
+                  className="w-full text-left rounded-xl border border-violet-100 bg-white px-4 py-3 hover:border-violet-300 hover:shadow-sm transition-all flex items-center justify-between group"
                 >
                   <div>
-                    <div className="text-sm font-medium text-gray-800 group-hover:text-blue-700">
+                    <div className="text-sm font-medium text-gray-800 group-hover:text-violet-700">
                       {c.playbook_name}
                     </div>
                     <div className="text-xs text-gray-400 mt-0.5">
@@ -83,7 +83,7 @@ export function AdviserHome({ user }) {
                       {intake.country ? ` · ${intake.country}` : ''}
                     </div>
                   </div>
-                  <span className="text-xs text-blue-600 font-medium group-hover:underline">Resume →</span>
+                  <span className="text-xs text-violet-600 font-medium group-hover:underline">Resume →</span>
                 </button>
               )
             })}

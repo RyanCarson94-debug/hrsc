@@ -36,7 +36,7 @@ export function AdminHome() {
         <StatCard label="Total cases" value={cases.total} to="/admin/cases" />
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-4">
         <QuickLink
           to="/admin/playbooks"
           title="Playbook builder"
@@ -44,7 +44,6 @@ export function AdminHome() {
         />
         <QuickLink
           to="/admin/playbooks"
-          action="new"
           title="New playbook"
           desc="Start a new guided playbook from scratch."
         />
@@ -61,8 +60,8 @@ export function AdminHome() {
       </div>
 
       {inactive.length > 0 && (
-        <div className="mt-8 rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm text-amber-800 font-medium mb-1">
+        <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm text-amber-800 font-semibold mb-1">
             {inactive.length} inactive playbook{inactive.length !== 1 ? 's' : ''}
           </p>
           <p className="text-xs text-amber-700">
@@ -78,7 +77,7 @@ function StatCard({ label, value, to }) {
   return (
     <Link
       to={to}
-      className="rounded-lg border border-gray-200 bg-white p-5 hover:border-blue-300 hover:shadow-sm transition-all"
+      className="rounded-xl border border-violet-100 bg-white p-5 hover:border-violet-300 hover:shadow-sm transition-all"
     >
       <div className="text-3xl font-bold text-gray-900">{value}</div>
       <div className="text-sm text-gray-500 mt-1">{label}</div>
@@ -90,9 +89,9 @@ function QuickLink({ to, title, desc }) {
   return (
     <Link
       to={to}
-      className="rounded-lg border border-gray-200 bg-white p-5 hover:border-blue-300 hover:shadow-sm transition-all group"
+      className="rounded-xl border border-violet-100 bg-white p-5 hover:border-violet-300 hover:shadow-sm transition-all group"
     >
-      <div className="font-semibold text-gray-900 group-hover:text-blue-700 mb-1">{title}</div>
+      <div className="font-semibold text-gray-900 group-hover:text-violet-700 mb-1">{title}</div>
       <div className="text-sm text-gray-500">{desc}</div>
     </Link>
   )

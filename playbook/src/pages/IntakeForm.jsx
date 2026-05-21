@@ -17,7 +17,6 @@ export function IntakeForm() {
       if (!pb) { setError('Playbook not found'); setLoading(false); return }
       api.getPlaybook(pb.id).then(full => {
         setPlaybook(full)
-        // Init defaults
         const defaults = {}
         for (const f of full.fields || []) {
           if (f.type === 'boolean') defaults[f.field_key] = 'false'
@@ -64,7 +63,7 @@ export function IntakeForm() {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-violet-100 p-6 space-y-5 shadow-sm">
         <p className="text-sm text-gray-600 mb-4">
           Answer the questions below. Your answers determine which steps apply.
         </p>
@@ -88,14 +87,14 @@ export function IntakeForm() {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 rounded border border-gray-200 hover:border-gray-300"
+            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 rounded-lg border border-gray-200 hover:border-gray-300"
           >
             Back
           </button>
           <button
             type="submit"
             disabled={saving || !allFilled}
-            className="flex-1 px-4 py-2 text-sm font-medium rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 px-4 py-2 text-sm font-semibold rounded-lg bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {saving ? 'Starting…' : 'Start case →'}
           </button>
@@ -116,16 +115,13 @@ function FieldInput({ field, value, onChange }) {
     </label>
   )
 
+  const inputCls = 'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500'
+
   if (field.type === 'select') {
     return (
       <div>
         {labelEl}
-        <select
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          required
-        >
+        <select value={value} onChange={e => onChange(e.target.value)} className={inputCls} required>
           <option value="">Select…</option>
           {options.map(o => <option key={o} value={o}>{o}</option>)}
         </select>
@@ -141,7 +137,7 @@ function FieldInput({ field, value, onChange }) {
           id={field.field_key}
           checked={value === 'true'}
           onChange={e => onChange(e.target.checked ? 'true' : 'false')}
-          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
         />
         <label htmlFor={field.field_key} className="text-sm font-medium text-gray-700 cursor-pointer">
           {field.label}
@@ -154,13 +150,7 @@ function FieldInput({ field, value, onChange }) {
     return (
       <div>
         {labelEl}
-        <input
-          type="date"
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          required
-        />
+        <input type="date" value={value} onChange={e => onChange(e.target.value)} className={inputCls} required />
       </div>
     )
   }
@@ -168,13 +158,7 @@ function FieldInput({ field, value, onChange }) {
   return (
     <div>
       {labelEl}
-      <input
-        type="text"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        required
-      />
+      <input type="text" value={value} onChange={e => onChange(e.target.value)} className={inputCls} required />
     </div>
   )
 }

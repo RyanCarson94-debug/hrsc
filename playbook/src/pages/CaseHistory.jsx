@@ -33,20 +33,20 @@ export function CaseHistory() {
       {loading ? (
         <div className="text-sm text-gray-500">Loading…</div>
       ) : cases.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 p-10 text-center text-gray-400 text-sm">
+        <div className="rounded-xl border border-dashed border-violet-200 p-10 text-center text-gray-400 text-sm">
           No cases yet.
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-xl border border-violet-100 overflow-hidden shadow-sm">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 text-xs uppercase tracking-wide">Playbook</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 text-xs uppercase tracking-wide">Adviser</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 text-xs uppercase tracking-wide">Details</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 text-xs uppercase tracking-wide">Progress</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600 text-xs uppercase tracking-wide">Last updated</th>
+                <tr className="border-b border-violet-100 bg-violet-50">
+                  <th className="text-left px-4 py-3 font-bold text-violet-700 text-xs uppercase tracking-wide">Playbook</th>
+                  <th className="text-left px-4 py-3 font-bold text-violet-700 text-xs uppercase tracking-wide">Adviser</th>
+                  <th className="text-left px-4 py-3 font-bold text-violet-700 text-xs uppercase tracking-wide">Details</th>
+                  <th className="text-left px-4 py-3 font-bold text-violet-700 text-xs uppercase tracking-wide">Progress</th>
+                  <th className="text-left px-4 py-3 font-bold text-violet-700 text-xs uppercase tracking-wide">Last updated</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -58,8 +58,8 @@ export function CaseHistory() {
                   const summary = summaryKeys.map(k => intake[k]).filter(Boolean).join(' · ')
 
                   return (
-                    <tr key={c.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{c.playbook_name || c.playbook_id}</td>
+                    <tr key={c.id} className="hover:bg-violet-50/40">
+                      <td className="px-4 py-3 font-semibold text-gray-900">{c.playbook_name || c.playbook_id}</td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{c.created_by}</td>
                       <td className="px-4 py-3 text-gray-500 text-xs">{summary || '—'}</td>
                       <td className="px-4 py-3">
@@ -71,7 +71,7 @@ export function CaseHistory() {
                       <td className="px-4 py-3">
                         <button
                           onClick={() => navigate(`/play/${c.playbook_slug}/run?case=${c.id}`)}
-                          className="text-xs text-blue-600 hover:underline"
+                          className="text-xs text-violet-600 hover:underline font-medium"
                         >
                           View →
                         </button>
@@ -88,7 +88,7 @@ export function CaseHistory() {
               <button
                 disabled={page === 0}
                 onClick={() => load(page - 1)}
-                className="px-3 py-1.5 rounded border border-gray-200 hover:border-gray-300 disabled:opacity-40"
+                className="px-3 py-1.5 rounded-lg border border-gray-200 hover:border-violet-300 disabled:opacity-40 transition-colors"
               >
                 ← Previous
               </button>
@@ -96,7 +96,7 @@ export function CaseHistory() {
               <button
                 disabled={(page + 1) * LIMIT >= total}
                 onClick={() => load(page + 1)}
-                className="px-3 py-1.5 rounded border border-gray-200 hover:border-gray-300 disabled:opacity-40"
+                className="px-3 py-1.5 rounded-lg border border-gray-200 hover:border-violet-300 disabled:opacity-40 transition-colors"
               >
                 Next →
               </button>
