@@ -185,14 +185,15 @@ export async function onRequest(context) {
           ).bind(id).first();
           const sortOrder = body.sort_order ?? ((maxRow?.m ?? 0) + 1);
           await DB.prepare(
-            'INSERT INTO steps (id, playbook_id, sort_order, title, body, system, conditions, required) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO steps (id, playbook_id, sort_order, title, body, system, conditions, required, dovetail_intent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
           ).bind(
             newId, id, sortOrder,
             body.title || 'New Step',
             body.body || '',
             body.system || 'manual',
             typeof body.conditions === 'string' ? body.conditions : JSON.stringify(body.conditions || { always: true }),
-            body.required === false ? 0 : 1
+            body.required === false ? 0 : 1,
+            body.dovetail_intent || null
           ).run();
           return json({ id: newId, playbook_id: id, sort_order: sortOrder, ...body }, 201);
         }
@@ -297,12 +298,13 @@ export async function onRequest(context) {
         if (deny) return deny;
         const body = await request.json();
         await DB.prepare(
-          'UPDATE steps SET title = ?, body = ?, system = ?, conditions = ?, required = ?, sort_order = ? WHERE id = ?'
+          'UPDATE steps SET title = ?, body = ?, system = ?, conditions = ?, required = ?, sort_order = ?, dovetail_intent = ? WHERE id = ?'
         ).bind(
           body.title, body.body || '', body.system || 'manual',
           typeof body.conditions === 'string' ? body.conditions : JSON.stringify(body.conditions || { always: true }),
           body.required === false ? 0 : 1,
           body.sort_order ?? 0,
+          body.dovetail_intent || null,
           id
         ).run();
         return json({ ok: true });

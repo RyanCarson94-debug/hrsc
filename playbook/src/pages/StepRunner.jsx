@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api.js'
 import { evaluateConditions } from '../lib/conditions.js'
+import { triggerDovetailIntent } from '../lib/dovetail.js'
 import { SystemBadge } from '../components/SystemBadge.jsx'
 import { MarkdownContent } from '../components/MarkdownContent.jsx'
 
@@ -18,6 +19,7 @@ export function StepRunner() {
   const [saving, setSaving] = useState(false)
   const [expandedPrev, setExpandedPrev] = useState({})
   const [skippingRequired, setSkippingRequired] = useState(null)
+  const [copilotFiring, setCopilotFiring] = useState(null) // step id currently triggering
   const activeRef = useRef(null)
 
   useEffect(() => {
@@ -63,6 +65,15 @@ export function StepRunner() {
       alert('Failed to save: ' + e.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function fireCopilot(step) {
+    setCopilotFiring(step.id)
+    try {
+      await triggerDovetailIntent(step.dovetail_intent)
+    } finally {
+      setCopilotFiring(null)
     }
   }
 
@@ -143,13 +154,24 @@ export function StepRunner() {
                     <div className="mt-3">
                       <MarkdownContent>{step.body}</MarkdownContent>
                     </div>
-                    <button
-                      onClick={() => undoStep(step.id)}
-                      disabled={saving}
-                      className="mt-3 text-xs text-csl-gray3 hover:text-csl-red underline font-semibold transition-colors"
-                    >
-                      Undo — mark as incomplete
-                    </button>
+                    <div className="mt-3 flex items-center gap-4">
+                      <button
+                        onClick={() => undoStep(step.id)}
+                        disabled={saving}
+                        className="text-xs text-csl-gray3 hover:text-csl-red underline font-semibold transition-colors"
+                      >
+                        Undo — mark as incomplete
+                      </button>
+                      {step.dovetail_intent && (
+                        <button
+                          onClick={() => fireCopilot(step)}
+                          disabled={copilotFiring === step.id}
+                          className="text-xs text-csl-black font-bold hover:text-csl-red transition-colors disabled:opacity-50"
+                        >
+                          {copilotFiring === step.id ? 'Opening…' : '💬 Open in Copilot'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -183,7 +205,25 @@ export function StepRunner() {
                 <div className="p-4">
                   <MarkdownContent>{step.body}</MarkdownContent>
 
-                  <div className="mt-5 flex items-center gap-3">
+                  {/* Dovetail Copilot trigger button */}
+                  {step.dovetail_intent && (
+                    <div className="mt-4 flex items-center gap-3 p-3 rounded border border-csl-gray2 bg-csl-gray1">
+                      <span className="text-lg">💬</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-csl-black">HR Copilot</p>
+                        <p className="text-xs text-csl-gray3 font-light truncate">{step.dovetail_intent}</p>
+                      </div>
+                      <button
+                        onClick={() => fireCopilot(step)}
+                        disabled={copilotFiring === step.id}
+                        className="flex-shrink-0 px-4 py-1.5 rounded bg-csl-black text-white text-xs font-bold hover:bg-csl-gray3 disabled:opacity-50 transition-colors"
+                      >
+                        {copilotFiring === step.id ? 'Opening…' : 'Open in Copilot →'}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex items-center gap-3">
                     <button
                       onClick={() => markComplete(step.id)}
                       disabled={saving}

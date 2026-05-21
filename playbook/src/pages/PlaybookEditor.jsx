@@ -249,7 +249,7 @@ function FieldForm({ form, setForm, onSave, onCancel, saving, isNew }) {
 
 function StepsEditor({ steps, fields, playbookId, setSteps, editingStep, setEditingStep, onRefresh }) {
   const [saving, setSaving] = useState(false)
-  const blankStep = { title: '', body: '', system: 'manual', required: true, conditions: [] }
+  const blankStep = { title: '', body: '', system: 'manual', required: true, conditions: [], dovetail_intent: '' }
   const [form, setForm] = useState(blankStep)
 
   function conditionsToForm(conditions) {
@@ -277,14 +277,14 @@ function StepsEditor({ steps, fields, playbookId, setSteps, editingStep, setEdit
 
   function openNew() { setForm({ ...blankStep, conditions: [] }); setEditingStep('new') }
   function openEdit(s) {
-    setForm({ title: s.title, body: s.body, system: s.system, required: !!s.required, conditions: conditionsToForm(s.conditions) })
+    setForm({ title: s.title, body: s.body, system: s.system, required: !!s.required, conditions: conditionsToForm(s.conditions), dovetail_intent: s.dovetail_intent || '' })
     setEditingStep(s.id)
   }
   function closeEdit() { setEditingStep(null) }
 
   async function save() {
     setSaving(true)
-    const body = { title: form.title, body: form.body, system: form.system, required: form.required, conditions: formToConditions(form.conditions) }
+    const body = { title: form.title, body: form.body, system: form.system, required: form.required, conditions: formToConditions(form.conditions), dovetail_intent: form.dovetail_intent || null }
     try {
       if (editingStep === 'new') await api.createStep(playbookId, body)
       else await api.updateStep(editingStep, body)
@@ -387,6 +387,21 @@ function StepForm({ form, setForm, fieldKeys, onSave, onCancel, saving, isNew, c
 
       <Field label="Instructions">
         <RichTextEditor value={form.body} onChange={body => setForm(f => ({ ...f, body }))} placeholder="Write step instructions for the adviser…" />
+      </Field>
+
+      <Field label="Dovetail Copilot Intent" hint="optional — e.g. Generate Leaver Email">
+        <div className="relative">
+          <input
+            className={`${inputCls} pl-8`}
+            value={form.dovetail_intent}
+            onChange={e => setForm(f => ({ ...f, dovetail_intent: e.target.value }))}
+            placeholder="e.g. Generate Leaver Email"
+          />
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-csl-gray3 text-sm select-none">💬</span>
+        </div>
+        <p className="text-xs text-csl-gray3 mt-1 font-light">
+          The exact intent text sent to the Copilot widget when the adviser clicks the button. Leave empty to hide the button.
+        </p>
       </Field>
 
       <div>
