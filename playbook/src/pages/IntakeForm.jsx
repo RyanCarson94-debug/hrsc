@@ -44,7 +44,7 @@ export function IntakeForm() {
     }
   }
 
-  if (loading) return <div className="p-8 text-gray-500 text-sm">Loading…</div>
+  if (loading) return <div className="p-8 text-csl-gray3 text-sm">Loading…</div>
   if (error) return <div className="p-8 text-red-600 text-sm">{error}</div>
 
   const fields = playbook.fields || []
@@ -54,22 +54,22 @@ export function IntakeForm() {
   })
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-10">
+    <div className="max-w-xl mx-auto px-5 py-10">
       <div className="mb-6">
-        <div className="text-sm text-gray-400 mb-1">New case</div>
-        <h1 className="text-2xl font-bold text-gray-900">{playbook.name}</h1>
+        <div className="text-xs font-semibold text-csl-gray3 uppercase tracking-widest mb-2">New Case</div>
+        <h1 className="text-2xl font-bold text-csl-black">{playbook.name}</h1>
         {playbook.description && (
-          <p className="text-gray-500 text-sm mt-1">{playbook.description}</p>
+          <p className="text-csl-gray3 text-sm mt-1 font-light">{playbook.description}</p>
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-violet-100 p-6 space-y-5 shadow-sm">
-        <p className="text-sm text-gray-600 mb-4">
+      <form onSubmit={handleSubmit} className="bg-white rounded border border-csl-gray2 p-6 space-y-5">
+        <p className="text-sm text-csl-gray3 font-light">
           Answer the questions below. Your answers determine which steps apply.
         </p>
 
         {fields.length === 0 && (
-          <p className="text-sm text-gray-500 italic">This playbook has no intake questions. Click start to proceed.</p>
+          <p className="text-sm text-csl-gray3 italic font-light">This playbook has no intake questions. Click start to proceed.</p>
         )}
 
         {fields.map(field => (
@@ -87,16 +87,16 @@ export function IntakeForm() {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 rounded-lg border border-gray-200 hover:border-gray-300"
+            className="px-4 py-2 text-sm font-semibold text-csl-black hover:text-csl-red rounded border border-csl-gray2 hover:border-csl-red transition-colors"
           >
             Back
           </button>
           <button
             type="submit"
             disabled={saving || !allFilled}
-            className="flex-1 px-4 py-2 text-sm font-semibold rounded-lg bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 px-4 py-2 text-sm font-bold rounded bg-csl-red text-white hover:bg-csl-red-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            {saving ? 'Starting…' : 'Start case →'}
+            {saving ? 'Starting…' : 'Start Case →'}
           </button>
         </div>
       </form>
@@ -110,12 +110,12 @@ function FieldInput({ field, value, onChange }) {
   })()
 
   const labelEl = (
-    <label className="block text-sm font-medium text-gray-700 mb-1">
+    <label className="block text-sm font-semibold text-csl-black mb-1">
       {field.label}
     </label>
   )
 
-  const inputCls = 'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500'
+  const inputCls = 'w-full rounded border border-csl-gray2 bg-white px-3 py-2 text-sm focus:border-csl-red focus:outline-none focus:ring-1 focus:ring-csl-red'
 
   if (field.type === 'select') {
     return (
@@ -137,9 +137,9 @@ function FieldInput({ field, value, onChange }) {
           id={field.field_key}
           checked={value === 'true'}
           onChange={e => onChange(e.target.checked ? 'true' : 'false')}
-          className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+          className="h-4 w-4 rounded border-csl-gray2 text-csl-red focus:ring-csl-red accent-csl-red"
         />
-        <label htmlFor={field.field_key} className="text-sm font-medium text-gray-700 cursor-pointer">
+        <label htmlFor={field.field_key} className="text-sm font-semibold text-csl-black cursor-pointer">
           {field.label}
         </label>
       </div>

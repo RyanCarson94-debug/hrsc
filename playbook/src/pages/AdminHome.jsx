@@ -21,50 +21,34 @@ export function AdminHome() {
     }).catch(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="p-8 text-gray-500 text-sm">Loading…</div>
+  if (loading) return <div className="p-8 text-csl-gray3 text-sm">Loading…</div>
 
   const active = playbooks.filter(p => p.active)
   const inactive = playbooks.filter(p => !p.active)
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-xl font-bold text-gray-900 mb-6">Admin overview</h1>
+    <div className="max-w-4xl mx-auto px-5 py-8">
+      <h1 className="text-xl font-bold text-csl-black mb-6">Admin Overview</h1>
 
       <div className="grid grid-cols-3 gap-4 mb-8">
-        <StatCard label="Active playbooks" value={active.length} to="/admin/playbooks" />
+        <StatCard label="Active Playbooks" value={active.length} to="/admin/playbooks" />
         <StatCard label="Components" value={components.length} to="/admin/components" />
-        <StatCard label="Total cases" value={cases.total} to="/admin/cases" />
+        <StatCard label="Total Cases" value={cases.total} to="/admin/cases" />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <QuickLink
-          to="/admin/playbooks"
-          title="Playbook builder"
-          desc="Create and edit playbooks, intake fields, steps, and conditions."
-        />
-        <QuickLink
-          to="/admin/playbooks"
-          title="New playbook"
-          desc="Start a new guided playbook from scratch."
-        />
-        <QuickLink
-          to="/admin/components"
-          title="Component library"
-          desc="Browse and manage reusable instruction blocks."
-        />
-        <QuickLink
-          to="/admin/cases"
-          title="Case history"
-          desc="View all adviser case sessions and their progress."
-        />
+        <QuickLink to="/admin/playbooks" title="Playbook Builder" desc="Create and edit playbooks, intake fields, steps, and conditions." />
+        <QuickLink to="/admin/playbooks" title="New Playbook" desc="Start a new guided playbook from scratch." />
+        <QuickLink to="/admin/components" title="Component Library" desc="Browse and manage reusable instruction blocks." />
+        <QuickLink to="/admin/cases" title="Case History" desc="View all adviser case sessions and their progress." />
       </div>
 
       {inactive.length > 0 && (
-        <div className="mt-8 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm text-amber-800 font-semibold mb-1">
+        <div className="mt-8 rounded border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm text-amber-800 font-bold mb-1">
             {inactive.length} inactive playbook{inactive.length !== 1 ? 's' : ''}
           </p>
-          <p className="text-xs text-amber-700">
+          <p className="text-xs text-amber-700 font-light">
             {inactive.map(p => p.name).join(', ')} — activate them in the playbook editor.
           </p>
         </div>
@@ -77,10 +61,10 @@ function StatCard({ label, value, to }) {
   return (
     <Link
       to={to}
-      className="rounded-xl border border-violet-100 bg-white p-5 hover:border-violet-300 hover:shadow-sm transition-all"
+      className="rounded border border-csl-gray2 bg-white p-5 hover:border-csl-red hover:shadow-sm transition-all group"
     >
-      <div className="text-3xl font-bold text-gray-900">{value}</div>
-      <div className="text-sm text-gray-500 mt-1">{label}</div>
+      <div className="text-3xl font-bold text-csl-red">{value}</div>
+      <div className="text-sm text-csl-gray3 mt-1 font-light">{label}</div>
     </Link>
   )
 }
@@ -89,10 +73,10 @@ function QuickLink({ to, title, desc }) {
   return (
     <Link
       to={to}
-      className="rounded-xl border border-violet-100 bg-white p-5 hover:border-violet-300 hover:shadow-sm transition-all group"
+      className="rounded border border-csl-gray2 bg-white p-5 hover:border-csl-red hover:shadow-sm transition-all group"
     >
-      <div className="font-semibold text-gray-900 group-hover:text-violet-700 mb-1">{title}</div>
-      <div className="text-sm text-gray-500">{desc}</div>
+      <div className="font-bold text-csl-black group-hover:text-csl-red mb-1 transition-colors">{title}</div>
+      <div className="text-sm text-csl-gray3 font-light">{desc}</div>
     </Link>
   )
 }

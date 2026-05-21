@@ -12,7 +12,9 @@ function Btn({ onClick, active, title, children }) {
       onMouseDown={e => { e.preventDefault(); onClick() }}
       title={title}
       className={`px-2 py-1 text-xs rounded font-semibold transition-colors ${
-        active ? 'bg-violet-600 text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+        active
+          ? 'bg-csl-red text-white'
+          : 'text-csl-black hover:bg-csl-gray2'
       }`}
     >
       {children}
@@ -21,7 +23,7 @@ function Btn({ onClick, active, title, children }) {
 }
 
 function Divider() {
-  return <div className="w-px h-4 bg-gray-200 mx-0.5 self-center" />
+  return <div className="w-px h-4 bg-csl-gray2 mx-0.5 self-center" />
 }
 
 export function RichTextEditor({ value, onChange, placeholder: placeholderText }) {
@@ -57,8 +59,8 @@ export function RichTextEditor({ value, onChange, placeholder: placeholderText }
   if (!editor) return null
 
   return (
-    <div className="border border-gray-300 rounded-md overflow-hidden focus-within:border-violet-500 focus-within:ring-1 focus-within:ring-violet-500 bg-white">
-      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-gray-200 bg-gray-50">
+    <div className="border border-csl-gray2 rounded overflow-hidden focus-within:border-csl-red focus-within:ring-1 focus-within:ring-csl-red bg-white">
+      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-csl-gray2 bg-csl-gray1">
         <Btn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive('bold')} title="Bold">
           <strong>B</strong>
         </Btn>
@@ -83,7 +85,7 @@ export function RichTextEditor({ value, onChange, placeholder: placeholderText }
       </div>
       <EditorContent
         editor={editor}
-        className="prose-playbook px-3 py-2 min-h-[220px] [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[220px] [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-gray-400 [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0"
+        className="prose-playbook px-3 py-2 min-h-[220px] [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[220px] [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-csl-gray3 [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0"
       />
     </div>
   )

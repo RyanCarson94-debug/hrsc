@@ -24,33 +24,33 @@ export function CaseHistory() {
   useEffect(() => { load() }, [])
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-5 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Case history</h1>
-        <span className="text-sm text-gray-400">{total} total</span>
+        <h1 className="text-xl font-bold text-csl-black">Case History</h1>
+        <span className="text-sm text-csl-gray3 font-light">{total} total</span>
       </div>
 
       {loading ? (
-        <div className="text-sm text-gray-500">Loading…</div>
+        <div className="text-sm text-csl-gray3">Loading…</div>
       ) : cases.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-violet-200 p-10 text-center text-gray-400 text-sm">
+        <div className="rounded border border-dashed border-csl-gray2 p-10 text-center text-csl-gray3 text-sm font-light">
           No cases yet.
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-xl border border-violet-100 overflow-hidden shadow-sm">
+          <div className="bg-white rounded border border-csl-gray2 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-violet-100 bg-violet-50">
-                  <th className="text-left px-4 py-3 font-bold text-violet-700 text-xs uppercase tracking-wide">Playbook</th>
-                  <th className="text-left px-4 py-3 font-bold text-violet-700 text-xs uppercase tracking-wide">Adviser</th>
-                  <th className="text-left px-4 py-3 font-bold text-violet-700 text-xs uppercase tracking-wide">Details</th>
-                  <th className="text-left px-4 py-3 font-bold text-violet-700 text-xs uppercase tracking-wide">Progress</th>
-                  <th className="text-left px-4 py-3 font-bold text-violet-700 text-xs uppercase tracking-wide">Last updated</th>
+                <tr className="border-b border-csl-gray2 bg-csl-gray1">
+                  <th className="text-left px-4 py-3 font-bold text-csl-black text-xs uppercase tracking-wide">Playbook</th>
+                  <th className="text-left px-4 py-3 font-bold text-csl-black text-xs uppercase tracking-wide">Adviser</th>
+                  <th className="text-left px-4 py-3 font-bold text-csl-black text-xs uppercase tracking-wide">Details</th>
+                  <th className="text-left px-4 py-3 font-bold text-csl-black text-xs uppercase tracking-wide">Progress</th>
+                  <th className="text-left px-4 py-3 font-bold text-csl-black text-xs uppercase tracking-wide">Last Updated</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-csl-gray1">
                 {cases.map(c => {
                   const completed = JSON.parse(c.completed_steps || '[]').length
                   const intake = JSON.parse(c.intake_data || '{}')
@@ -58,20 +58,20 @@ export function CaseHistory() {
                   const summary = summaryKeys.map(k => intake[k]).filter(Boolean).join(' · ')
 
                   return (
-                    <tr key={c.id} className="hover:bg-violet-50/40">
-                      <td className="px-4 py-3 font-semibold text-gray-900">{c.playbook_name || c.playbook_id}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{c.created_by}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{summary || '—'}</td>
+                    <tr key={c.id} className="hover:bg-csl-gray1 transition-colors">
+                      <td className="px-4 py-3 font-semibold text-csl-black">{c.playbook_name || c.playbook_id}</td>
+                      <td className="px-4 py-3 text-csl-gray3 text-xs font-light">{c.created_by}</td>
+                      <td className="px-4 py-3 text-csl-gray3 text-xs font-light">{summary || '—'}</td>
                       <td className="px-4 py-3">
-                        <span className="text-xs text-gray-600">{completed} step{completed !== 1 ? 's' : ''} done</span>
+                        <span className="text-xs text-csl-gray3 font-light">{completed} step{completed !== 1 ? 's' : ''} done</span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-400">
+                      <td className="px-4 py-3 text-xs text-csl-gray3 font-light">
                         {new Date(c.updated_at).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => navigate(`/play/${c.playbook_slug}/run?case=${c.id}`)}
-                          className="text-xs text-violet-600 hover:underline font-medium"
+                          className="text-xs text-csl-red hover:underline font-semibold"
                         >
                           View →
                         </button>
@@ -84,19 +84,19 @@ export function CaseHistory() {
           </div>
 
           {total > LIMIT && (
-            <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
+            <div className="mt-4 flex items-center justify-between text-sm text-csl-gray3">
               <button
                 disabled={page === 0}
                 onClick={() => load(page - 1)}
-                className="px-3 py-1.5 rounded-lg border border-gray-200 hover:border-violet-300 disabled:opacity-40 transition-colors"
+                className="px-3 py-1.5 rounded border border-csl-gray2 hover:border-csl-red disabled:opacity-40 font-semibold text-xs transition-colors"
               >
                 ← Previous
               </button>
-              <span>Page {page + 1} of {Math.ceil(total / LIMIT)}</span>
+              <span className="text-xs font-light">Page {page + 1} of {Math.ceil(total / LIMIT)}</span>
               <button
                 disabled={(page + 1) * LIMIT >= total}
                 onClick={() => load(page + 1)}
-                className="px-3 py-1.5 rounded-lg border border-gray-200 hover:border-violet-300 disabled:opacity-40 transition-colors"
+                className="px-3 py-1.5 rounded border border-csl-gray2 hover:border-csl-red disabled:opacity-40 font-semibold text-xs transition-colors"
               >
                 Next →
               </button>

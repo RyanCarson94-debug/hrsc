@@ -22,9 +22,7 @@ export function StepRunner() {
 
   useEffect(() => {
     if (!caseId) { navigate(`/play/${slug}`, { replace: true }); return }
-    Promise.all([
-      api.getCase(caseId),
-    ]).then(async ([c]) => {
+    Promise.all([api.getCase(caseId)]).then(async ([c]) => {
       setCaseData(c)
       const pb = await api.getPlaybook(c.playbook_id)
       setPlaybook(pb)
@@ -38,23 +36,19 @@ export function StepRunner() {
     }
   }, [caseData?.completed_steps])
 
-  if (loading) return <div className="p-8 text-gray-500 text-sm">Loading case…</div>
+  if (loading) return <div className="p-8 text-csl-gray3 text-sm">Loading case…</div>
   if (error)   return <div className="p-8 text-red-600 text-sm">Error: {error}</div>
   if (!playbook || !caseData) return null
 
   const intakeData = JSON.parse(caseData.intake_data || '{}')
   const completedSteps = JSON.parse(caseData.completed_steps || '[]')
-
   const allSteps = playbook.steps || []
-  const applicableSteps = allSteps.filter(s =>
-    evaluateConditions(s.conditions, intakeData)
-  )
+  const applicableSteps = allSteps.filter(s => evaluateConditions(s.conditions, intakeData))
 
   const totalApplicable = applicableSteps.length
   const completedCount = completedSteps.filter(id => applicableSteps.some(s => s.id === id)).length
   const allDone = completedCount === totalApplicable
   const progress = totalApplicable > 0 ? Math.round((completedCount / totalApplicable) * 100) : 100
-
   const activeStep = applicableSteps.find(s => !completedSteps.includes(s.id))
 
   async function markComplete(stepId) {
@@ -87,43 +81,43 @@ export function StepRunner() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="max-w-3xl mx-auto px-5 py-8">
       {/* Header */}
       <div className="mb-6">
         <button
           onClick={() => navigate('/')}
-          className="text-sm text-gray-400 hover:text-gray-600 mb-3 flex items-center gap-1"
+          className="text-sm text-csl-gray3 hover:text-csl-red mb-3 flex items-center gap-1 transition-colors font-semibold"
         >
-          ← Back to home
+          ← Back to Home
         </button>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{playbook.name}</h1>
-            <div className="text-sm text-gray-500 mt-0.5">
+            <h1 className="text-xl font-bold text-csl-black">{playbook.name}</h1>
+            <div className="text-sm text-csl-gray3 mt-0.5 font-light">
               {completedCount} of {totalApplicable} steps complete
               {Object.entries(intakeData).map(([k, v]) => v ? (
-                <span key={k} className="ml-2 text-gray-400">· {v}</span>
+                <span key={k} className="ml-2">· {v}</span>
               ) : null)}
             </div>
           </div>
           {allDone && (
-            <span className="text-xs font-semibold bg-green-100 text-green-800 border border-green-200 rounded-full px-3 py-1">
+            <span className="text-xs font-bold bg-green-100 text-green-800 border border-green-200 rounded px-3 py-1 whitespace-nowrap">
               ✓ Complete
             </span>
           )}
         </div>
 
         {/* Progress bar */}
-        <div className="mt-3 h-2 bg-violet-100 rounded-full overflow-hidden">
+        <div className="mt-3 h-1.5 bg-csl-gray2 rounded-full overflow-hidden">
           <div
-            className="h-full rounded-full transition-all duration-300"
-            style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #7C3AED, #4F46E5)' }}
+            className="h-full bg-csl-red rounded-full transition-all duration-300"
+            style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
-      {/* Step list */}
-      <div className="space-y-3">
+      {/* Steps */}
+      <div className="space-y-2">
         {applicableSteps.map((step, idx) => {
           const isCompleted = completedSteps.includes(step.id)
           const isActive = step.id === activeStep?.id
@@ -131,33 +125,28 @@ export function StepRunner() {
           if (isCompleted) {
             const isExpanded = expandedPrev[step.id]
             return (
-              <div
-                key={step.id}
-                className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm"
-              >
+              <div key={step.id} className="rounded border border-csl-gray2 bg-white overflow-hidden">
                 <button
                   onClick={() => setExpandedPrev(p => ({ ...p, [step.id]: !p[step.id] }))}
-                  className="w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-gray-50"
+                  className="w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-csl-gray1"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold">
-                      ✓
-                    </span>
-                    <span className="text-sm text-gray-400 line-through truncate">{step.title}</span>
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold">✓</span>
+                    <span className="text-sm text-csl-gray3 line-through truncate font-light">{step.title}</span>
                     <SystemBadge system={step.system} size="xs" />
                   </div>
-                  <span className="text-gray-300 text-xs flex-shrink-0">{isExpanded ? '▲' : '▼'}</span>
+                  <span className="text-csl-gray3 text-xs flex-shrink-0">{isExpanded ? '▲' : '▼'}</span>
                 </button>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 border-t border-gray-100">
+                  <div className="px-4 pb-4 border-t border-csl-gray2">
                     <div className="mt-3">
                       <MarkdownContent>{step.body}</MarkdownContent>
                     </div>
                     <button
                       onClick={() => undoStep(step.id)}
                       disabled={saving}
-                      className="mt-3 text-xs text-gray-400 hover:text-gray-600 underline"
+                      className="mt-3 text-xs text-csl-gray3 hover:text-csl-red underline font-semibold transition-colors"
                     >
                       Undo — mark as incomplete
                     </button>
@@ -172,21 +161,21 @@ export function StepRunner() {
               <div
                 key={step.id}
                 ref={activeRef}
-                className="rounded-xl border-2 border-violet-400 bg-white shadow-md overflow-hidden"
+                className="rounded border-2 border-csl-red bg-white shadow-sm overflow-hidden"
               >
-                <div className="px-4 py-3 bg-violet-50 border-b border-violet-200 flex items-center justify-between">
+                <div className="px-4 py-3 bg-csl-red flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-violet-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    <span className="w-6 h-6 rounded-full bg-white text-csl-red flex items-center justify-center text-xs font-bold flex-shrink-0">
                       {idx + 1}
                     </span>
-                    <h2 className="font-semibold text-gray-900 text-sm">{step.title}</h2>
+                    <h2 className="font-bold text-white text-sm">{step.title}</h2>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <SystemBadge system={step.system} />
                     {step.required ? (
-                      <span className="text-xs text-red-600 font-medium">Required</span>
+                      <span className="text-xs text-white/80 font-semibold border border-white/30 rounded px-2 py-0.5">Required</span>
                     ) : (
-                      <span className="text-xs text-gray-400">Optional</span>
+                      <span className="text-xs text-white/60">Optional</span>
                     )}
                   </div>
                 </div>
@@ -198,21 +187,21 @@ export function StepRunner() {
                     <button
                       onClick={() => markComplete(step.id)}
                       disabled={saving}
-                      className="px-5 py-2 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors"
+                      className="px-5 py-2 rounded bg-csl-red text-white text-sm font-bold hover:bg-csl-red-dark disabled:opacity-50 transition-colors"
                     >
-                      {saving ? 'Saving…' : 'Mark complete ✓'}
+                      {saving ? 'Saving…' : 'Mark Complete ✓'}
                     </button>
                     {!step.required && (
                       <button
                         onClick={() => markComplete(step.id)}
                         disabled={saving}
-                        className="text-sm text-gray-400 hover:text-gray-600"
+                        className="text-sm text-csl-gray3 hover:text-csl-red font-semibold transition-colors"
                       >
                         Skip (optional)
                       </button>
                     )}
                     {step.required && skippingRequired === step.id && (
-                      <span className="text-xs text-amber-700">This step is required. Complete it before continuing.</span>
+                      <span className="text-xs text-amber-700 font-semibold">This step is required. Complete it before continuing.</span>
                     )}
                   </div>
                 </div>
@@ -224,12 +213,12 @@ export function StepRunner() {
           return (
             <div
               key={step.id}
-              className="rounded-xl border border-gray-200 bg-white px-4 py-3 flex items-center gap-3 opacity-40"
+              className="rounded border border-csl-gray2 bg-white px-4 py-3 flex items-center gap-3 opacity-40"
             >
-              <span className="w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center text-xs text-gray-400 flex-shrink-0">
+              <span className="w-5 h-5 rounded-full border-2 border-csl-gray2 flex items-center justify-center text-xs text-csl-gray3 flex-shrink-0">
                 {idx + 1}
               </span>
-              <span className="text-sm text-gray-500 flex-1">{step.title}</span>
+              <span className="text-sm text-csl-gray3 flex-1 font-light">{step.title}</span>
               <SystemBadge system={step.system} size="xs" />
             </div>
           )
@@ -237,17 +226,17 @@ export function StepRunner() {
       </div>
 
       {allDone && (
-        <div className="mt-8 rounded-xl bg-green-50 border border-green-200 p-6 text-center shadow-sm">
+        <div className="mt-8 rounded border border-green-200 bg-green-50 p-6 text-center">
           <div className="text-3xl mb-2">✅</div>
-          <h3 className="font-semibold text-green-900 text-lg">All steps complete</h3>
-          <p className="text-sm text-green-700 mt-1">
+          <h3 className="font-bold text-green-900 text-lg">All Steps Complete</h3>
+          <p className="text-sm text-green-700 mt-1 font-light">
             This case has been fully processed. All actions have been recorded.
           </p>
           <button
             onClick={() => navigate('/')}
-            className="mt-4 px-4 py-2 rounded-lg bg-green-700 text-white text-sm font-semibold hover:bg-green-800"
+            className="mt-4 px-5 py-2 rounded bg-csl-red text-white text-sm font-bold hover:bg-csl-red-dark transition-colors"
           >
-            Back to home
+            Back to Home
           </button>
         </div>
       )}

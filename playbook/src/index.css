@@ -4,19 +4,22 @@
 
 @layer base {
   body {
-    @apply bg-[#F3EFFF] text-gray-900 antialiased;
+    background-color: #F1EFEA;
+    color: #231F20;
+    -webkit-font-smoothing: antialiased;
+    font-family: 'Montserrat', system-ui, sans-serif;
   }
 }
 
 @layer components {
   .prose-playbook {
-    @apply text-sm text-gray-800 leading-relaxed;
+    @apply text-sm text-csl-black leading-relaxed;
   }
   .prose-playbook h2 {
-    @apply text-base font-semibold text-gray-900 mt-4 mb-2;
+    @apply text-base font-bold text-csl-black mt-4 mb-2;
   }
   .prose-playbook h3 {
-    @apply text-sm font-semibold text-gray-800 mt-3 mb-1;
+    @apply text-sm font-semibold text-csl-black mt-3 mb-1;
   }
   .prose-playbook p {
     @apply mb-2;
@@ -31,21 +34,21 @@
     @apply text-sm;
   }
   .prose-playbook blockquote {
-    @apply border-l-4 border-violet-200 pl-3 py-1 bg-violet-50 text-violet-800 rounded-r text-sm my-2;
+    @apply border-l-4 border-csl-red pl-3 py-1 bg-csl-gray1 text-csl-black rounded-r text-sm my-2;
   }
   .prose-playbook code {
-    @apply bg-gray-100 text-gray-700 px-1 py-0.5 rounded text-xs font-mono;
+    @apply bg-csl-gray2 text-csl-black px-1 py-0.5 rounded text-xs font-mono;
   }
   .prose-playbook strong {
-    @apply font-semibold text-gray-900;
+    @apply font-bold text-csl-black;
   }
   .prose-playbook em {
-    @apply italic text-gray-600;
+    @apply italic text-csl-gray3;
   }
   .prose-playbook a {
-    @apply text-violet-600 underline;
+    @apply text-csl-red underline;
   }
   .prose-playbook hr {
-    @apply border-gray-200 my-3;
+    @apply border-csl-gray2 my-3;
   }
 }
