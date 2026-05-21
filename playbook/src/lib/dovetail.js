@@ -66,11 +66,53 @@ function findWidgetGlobal() {
   return null
 }
 
-function findWidgetIframe() {
-  return [...document.querySelectorAll('iframe')].find(f =>
-    f.src.includes('dovetailnow') || f.id.includes('auxi') || f.name.includes('auxi')
-  )
+// Set this to the exact localStorage/sessionStorage key prefix once confirmed
+// via the browser console snippet at the top of this file.
+// e.g. 'auxi_session' or 'dovetail_chat'
+const CONFIRMED_SESSION_KEY = null
+
+/**
+ * Clear the widget's session so the next trigger starts a fresh conversation.
+ * Tries API reset methods first, then wipes known storage keys, then reloads the iframe.
+ */
+export async function clearDovetailSession() {
+  // Strategy 1: API reset method
+  const found = findWidgetGlobal()
+  if (found) {
+    const { api } = found
+    const resetMethods = ['reset', 'newConversation', 'clearSession', 'restart', 'clear', 'end']
+    for (const m of resetMethods) {
+      if (typeof api[m] === 'function') {
+        try { api[m](); return } catch {}
+      }
+    }
+  }
+
+  // Strategy 2: Clear storage keys
+  const pattern = /auxi|dovetail|copilot|chat_session|chatbot/i
+  for (const store of [localStorage, sessionStorage]) {
+    try {
+      const keys = Object.keys(store).filter(k =>
+        CONFIRMED_SESSION_KEY ? k.startsWith(CONFIRMED_SESSION_KEY) : pattern.test(k)
+      )
+      keys.forEach(k => store.removeItem(k))
+    } catch {}
+  }
+
+  // Strategy 3: Reload the iframe (forces a clean session)
+  const iframe = findWidgetIframe()
+  if (iframe) {
+    // Reassigning src reloads the frame
+    const src = iframe.src
+    iframe.src = ''
+    await new Promise(r => setTimeout(r, 50))
+    iframe.src = src
+    // Wait for it to reload before continuing
+    await new Promise(r => setTimeout(r, 800))
+  }
 }
+
+
 
 async function tryGlobalAPI(intentText) {
   const found = findWidgetGlobal()
@@ -198,15 +240,18 @@ async function domFallback(intentText) {
 
 /**
  * Trigger a Dovetail Copilot intent by name.
+ * Pass { newSession: true } to clear the previous conversation first.
  * Tries strategies in order: confirmed → global API → postMessage → DOM events → DOM fallback.
  */
-export async function triggerDovetailIntent(intentText) {
+export async function triggerDovetailIntent(intentText, { newSession = true } = {}) {
   if (!intentText) return
 
   if (!document.getElementById('auxi-widget')) {
     console.warn('[Dovetail] Widget script not found on page. Add it to playbook/index.html.')
     return
   }
+
+  if (newSession) await clearDovetailSession()
 
   // Use confirmed strategy immediately if set
   if (CONFIRMED_TRIGGER === 'postMessage') { tryPostMessage(intentText); return }

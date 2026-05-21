@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api.js'
 import { evaluateConditions } from '../lib/conditions.js'
-import { triggerDovetailIntent } from '../lib/dovetail.js'
+import { triggerDovetailIntent, clearDovetailSession } from '../lib/dovetail.js'
 import { SystemBadge } from '../components/SystemBadge.jsx'
 import { MarkdownContent } from '../components/MarkdownContent.jsx'
 
@@ -19,7 +19,8 @@ export function StepRunner() {
   const [saving, setSaving] = useState(false)
   const [expandedPrev, setExpandedPrev] = useState({})
   const [skippingRequired, setSkippingRequired] = useState(null)
-  const [copilotFiring, setCopilotFiring] = useState(null) // step id currently triggering
+  const [copilotFiring, setCopilotFiring] = useState(null)
+  const [sessionClearing, setSessionClearing] = useState(false)
   const activeRef = useRef(null)
 
   useEffect(() => {
@@ -71,9 +72,18 @@ export function StepRunner() {
   async function fireCopilot(step) {
     setCopilotFiring(step.id)
     try {
-      await triggerDovetailIntent(step.dovetail_intent)
+      await triggerDovetailIntent(step.dovetail_intent, { newSession: true })
     } finally {
       setCopilotFiring(null)
+    }
+  }
+
+  async function resetCopilotSession() {
+    setSessionClearing(true)
+    try {
+      await clearDovetailSession()
+    } finally {
+      setSessionClearing(false)
     }
   }
 
@@ -111,11 +121,21 @@ export function StepRunner() {
               ) : null)}
             </div>
           </div>
-          {allDone && (
-            <span className="text-xs font-bold bg-green-100 text-green-800 border border-green-200 rounded px-3 py-1 whitespace-nowrap">
-              ✓ Complete
-            </span>
-          )}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {allDone && (
+              <span className="text-xs font-bold bg-green-100 text-green-800 border border-green-200 rounded px-3 py-1">
+                ✓ Complete
+              </span>
+            )}
+            <button
+              onClick={resetCopilotSession}
+              disabled={sessionClearing}
+              title="Start a new Copilot conversation"
+              className="text-xs text-csl-gray3 hover:text-csl-black border border-csl-gray2 hover:border-csl-black rounded px-2.5 py-1 font-semibold transition-colors disabled:opacity-40"
+            >
+              {sessionClearing ? 'Resetting…' : '💬 New Session'}
+            </button>
+          </div>
         </div>
 
         {/* Progress bar */}
