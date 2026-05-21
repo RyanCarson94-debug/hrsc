@@ -9,10 +9,10 @@
  *   1. Open the widget (click its launcher button if closed)
  *   2. Wait for the contenteditable editor to appear in the shadow root
  *   3. Set its text content and dispatch React-compatible input events
- *   4. Submit via Enter keydown + send button click
+ *   4. Submit via Enter keydown then send button click (with delay for React state)
  *
- * To reset the session we reload the shadow host element, which forces
- * the widget to create a new WebSocket connection and fresh conversation.
+ * To reset the session we click X → Yes in the confirmation dialog.
+ * This sends the EXIT WebSocket command and starts a new connection.
  */
 
 function getShadowRoot() {
@@ -28,6 +28,31 @@ function openWidget(shadow) {
   // The launcher button is the first button when widget is closed
   const btn = shadow?.querySelector('button')
   btn?.click()
+}
+
+/**
+ * Suppress the widget auto-opening on page load.
+ * Call once on app startup — polls until the shadow root appears, then
+ * clicks the minimize button (btn[1]) if the widget opened automatically.
+ */
+export function initDovetail() {
+  let attempts = 0
+  function tryMinimize() {
+    attempts++
+    const shadow = getShadowRoot()
+    if (!shadow) {
+      if (attempts < 12) setTimeout(tryMinimize, 500)
+      return
+    }
+    if (!isWidgetOpen(shadow)) return
+    // btn[1] is the minus/minimize button (SVG path starts 'M3 10')
+    const buttons = [...shadow.querySelectorAll('button')]
+    const minimizeBtn = buttons.find(b =>
+      b.querySelector('path')?.getAttribute('d')?.startsWith('M3 10')
+    ) ?? buttons[1]
+    minimizeBtn?.click()
+  }
+  setTimeout(tryMinimize, 800)
 }
 
 /**
@@ -95,20 +120,21 @@ async function shadowDOMTrigger(intentText) {
         editor.dispatchEvent(new Event('input', { bubbles: true }))
       }
 
+      // Wait for React state to register the typed text before submitting
       setTimeout(() => {
-        // Press Enter to submit
         editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true, composed: true }))
         editor.dispatchEvent(new KeyboardEvent('keyup',   { key: 'Enter', keyCode: 13, bubbles: true, composed: true }))
 
-        // btn[2] is the send/paper-plane button (confirmed by SVG path inspection)
-        const buttons = [...shadow.querySelectorAll('button')]
-        const sendBtn = buttons.find(b =>
-          b.querySelector('path')?.getAttribute('d')?.startsWith('M1.946')
-        ) ?? buttons[2]
-        sendBtn?.click()
-
-        resolve(true)
-      }, 150)
+        // Give the send button time to enable, then click it
+        setTimeout(() => {
+          const buttons = [...shadow.querySelectorAll('button')]
+          const sendBtn = buttons.find(b =>
+            b.querySelector('path')?.getAttribute('d')?.startsWith('M1.946')
+          ) ?? buttons[2]
+          sendBtn?.click()
+          resolve(true)
+        }, 300)
+      }, 400)
       return true
     }
 
@@ -134,7 +160,11 @@ export async function triggerDovetailIntent(intentText, { newSession = false } =
     return
   }
 
-  if (newSession) await clearDovetailSession()
+  if (newSession) {
+    await clearDovetailSession()
+    // Allow the new WebSocket session to connect before sending
+    await new Promise(r => setTimeout(r, 1500))
+  }
 
   await shadowDOMTrigger(intentText)
 }

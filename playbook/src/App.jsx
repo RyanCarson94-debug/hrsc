@@ -10,6 +10,7 @@ import { PlaybookEditor } from './pages/PlaybookEditor.jsx'
 import { ComponentLibrary } from './pages/ComponentLibrary.jsx'
 import { CaseHistory } from './pages/CaseHistory.jsx'
 import { api } from './api.js'
+import { initDovetail } from './lib/dovetail.js'
 
 function AdminGuard({ user, children }) {
   if (!user) return <div className="p-8 text-gray-500 text-sm">Loading…</div>
@@ -25,6 +26,8 @@ export default function App() {
       .then(setUser)
       .catch(() => setUser({ email: 'anonymous', name: 'Anonymous', isAdmin: false }))
   }, [])
+
+  useEffect(() => { initDovetail() }, [])
 
   return (
     <BrowserRouter basename="/playbook">
