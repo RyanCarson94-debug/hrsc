@@ -31,26 +31,30 @@ function openWidget(shadow) {
 }
 
 /**
- * Clear the widget's session by replacing the shadow host element,
- * which forces the widget script to re-initialise with a fresh WebSocket session.
+ * Start a new conversation in the widget.
+ * Looks for a "new conversation" button inside the shadow DOM.
+ * If none is found, closes and reopens the widget (visual reset only).
  */
 export async function clearDovetailSession() {
-  const host = document.getElementById('auxi-chat-widget')
-  if (!host) return
-
-  // Close widget first so it doesn't reopen mid-reset
   const shadow = getShadowRoot()
-  if (isWidgetOpen(shadow)) {
-    // First button in open state is close (X)
-    shadow.querySelector('button')?.click()
-    await new Promise(r => setTimeout(r, 200))
+  if (!shadow) return
+
+  // Look for a new-conversation or reset button by aria-label or title
+  const buttons = [...shadow.querySelectorAll('button')]
+  const resetBtn = buttons.find(b =>
+    /new.conv|new.chat|restart|reset|start.over/i.test(b.textContent + b.title + (b.getAttribute('aria-label') ?? ''))
+  )
+  if (resetBtn) {
+    resetBtn.click()
+    await new Promise(r => setTimeout(r, 400))
+    return
   }
 
-  // Replace node to force full widget reinitialisation
-  const clone = host.cloneNode(true)
-  host.replaceWith(clone)
-  // Wait for shadow DOM to be rebuilt
-  await new Promise(r => setTimeout(r, 800))
+  // Fallback: close then reopen so visually it looks fresh
+  if (isWidgetOpen(shadow)) {
+    shadow.querySelector('button')?.click()
+    await new Promise(r => setTimeout(r, 300))
+  }
 }
 
 async function shadowDOMTrigger(intentText) {
@@ -108,7 +112,7 @@ async function shadowDOMTrigger(intentText) {
  * Trigger a Dovetail Copilot intent by text.
  * Pass { newSession: true } (default) to reset the conversation first.
  */
-export async function triggerDovetailIntent(intentText, { newSession = true } = {}) {
+export async function triggerDovetailIntent(intentText, { newSession = false } = {}) {
   if (!intentText) return
 
   if (!document.getElementById('auxi-chat-widget')) {
