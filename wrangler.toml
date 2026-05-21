@@ -35,4 +35,4 @@ TAXONOMY_APP_VERSION = "1.0.0"
 FOCUSFLOW_SESSION_SECRET = "dev-secret-change-in-production"
 # ANTHROPIC_API_KEY is set in Cloudflare Pages dashboard environment variables (not here)
 # Admin emails for the Playbook app — set in Cloudflare Pages dashboard (comma-separated)
-PLAYBOOK_ADMIN_EMAILS = "Ryan.Carson@seqirua.com"
+PLAYBOOK_ADMIN_EMAILS = "Ryan.Carson@seqirus.com"
