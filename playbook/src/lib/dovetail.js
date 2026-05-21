@@ -6,34 +6,61 @@
  * Communication uses WebSocket (wss://conversation.copilot-eu.dovetailnow.com).
  *
  * To trigger an intent we:
- *   1. Open the widget (click its launcher button if closed)
+ *   1. Ensure the widget panel is visually open
  *   2. Wait for the contenteditable editor to appear in the shadow root
  *   3. Set its text content and dispatch React-compatible input events
  *   4. Submit via Enter keydown then send button click (with delay for React state)
  *
  * To reset the session we click X → Yes in the confirmation dialog.
  * This sends the EXIT WebSocket command and starts a new connection.
+ *
+ * Panel states:
+ *   - Launcher-only: only 1 button (the floating bubble) — panel not in DOM
+ *   - Panel hidden:  4+ buttons in DOM but panel is CSS-hidden (minimize was clicked)
+ *   - Panel visible: 4+ buttons in DOM and X button has nonzero bounding rect
  */
 
 function getShadowRoot() {
   return document.getElementById('auxi-chat-widget')?.shadowRoot ?? null
 }
 
-function isWidgetOpen(shadow) {
-  return !!shadow?.querySelector('[contenteditable]')
+/** True when the panel is present in the shadow DOM (visible or CSS-hidden). */
+function isPanelInDOM(shadow) {
+  return (shadow?.querySelectorAll('button').length ?? 0) > 1
 }
 
+/** True when the panel is visible to the user (X button has nonzero bounding rect). */
+function isPanelVisible(shadow) {
+  const buttons = [...(shadow?.querySelectorAll('button') ?? [])]
+  if (buttons.length <= 1) return false
+  const rect = buttons[0].getBoundingClientRect()
+  return rect.width > 0 && rect.height > 0
+}
+
+/**
+ * Ensure the chat panel is open and visible.
+ * Handles three states: launcher-only, panel CSS-hidden, panel already visible.
+ */
 function openWidget(shadow) {
-  if (isWidgetOpen(shadow)) return
-  // The launcher button is the first button when widget is closed
-  const btn = shadow?.querySelector('button')
-  btn?.click()
+  if (isPanelVisible(shadow)) return
+
+  if (isPanelInDOM(shadow)) {
+    // Panel is in DOM but CSS-hidden (minimize was clicked) — toggle it back open
+    const buttons = [...shadow.querySelectorAll('button')]
+    const minimizeBtn = buttons.find(b =>
+      b.querySelector('path')?.getAttribute('d')?.startsWith('M3 10')
+    ) ?? buttons[1]
+    minimizeBtn?.click()
+  } else {
+    // Launcher-only state — click the launcher bubble to open the panel
+    shadow?.querySelector('button')?.click()
+  }
 }
 
 /**
  * Suppress the widget auto-opening on page load.
  * Call once on app startup — polls until the shadow root appears, then
- * clicks the minimize button (btn[1]) if the widget opened automatically.
+ * minimizes the widget if it opened automatically.
  */
 export function initDovetail() {
   let attempts = 0
@@ -44,7 +71,7 @@ export function initDovetail() {
       if (attempts < 12) setTimeout(tryMinimize, 500)
       return
     }
-    if (!isWidgetOpen(shadow)) return
+    if (!isPanelVisible(shadow)) return
     // btn[1] is the minus/minimize button (SVG path starts 'M3 10')
     const buttons = [...shadow.querySelectorAll('button')]
     const minimizeBtn = buttons.find(b =>
@@ -64,9 +91,9 @@ export async function clearDovetailSession() {
   const shadow = getShadowRoot()
   if (!shadow) return
 
-  // Open widget if closed so header buttons are present
-  if (!isWidgetOpen(shadow)) {
-    openWidget(shadow)
+  // Panel must be in DOM so we can access its buttons
+  if (!isPanelInDOM(shadow)) {
+    shadow?.querySelector('button')?.click()
     await new Promise(r => setTimeout(r, 600))
   }
 
@@ -106,6 +133,9 @@ async function shadowDOMTrigger(intentText) {
     function tryFill() {
       const editor = shadow.querySelector('[contenteditable]')
       if (!editor) return false
+
+      // Ensure panel is visible before filling (openWidget may need a tick to take effect)
+      if (!isPanelVisible(shadow)) return false
 
       editor.focus()
 
@@ -150,7 +180,7 @@ async function shadowDOMTrigger(intentText) {
 
 /**
  * Trigger a Dovetail Copilot intent by text.
- * Pass { newSession: true } (default) to reset the conversation first.
+ * Pass { newSession: true } to reset the conversation first.
  */
 export async function triggerDovetailIntent(intentText, { newSession = false } = {}) {
   if (!intentText) return
