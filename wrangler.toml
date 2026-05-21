@@ -23,9 +23,16 @@ binding       = "WORKHQ_DB"
 database_name = "workhq-db"
 database_id   = "2f46ddb4-60f4-474a-b18b-6e6130f779db"
 
+[[d1_databases]]
+binding       = "HRSC_PLAYBOOK_DB"
+database_name = "hrsc-playbook-db"
+database_id   = "placeholder-set-after-wrangler-d1-create"
+
 # ── Environment variables ─────────────────────────────────────────────────────
 [vars]
 TAXONOMY_APP_VERSION = "1.0.0"
 # Session token secret — set a strong random value in Pages dashboard for production
 FOCUSFLOW_SESSION_SECRET = "dev-secret-change-in-production"
 # ANTHROPIC_API_KEY is set in Cloudflare Pages dashboard environment variables (not here)
+# Admin emails for the Playbook app — set in Cloudflare Pages dashboard (comma-separated)
+PLAYBOOK_ADMIN_EMAILS = ""
