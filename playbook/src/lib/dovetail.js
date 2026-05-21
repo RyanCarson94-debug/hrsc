@@ -32,29 +32,43 @@ function openWidget(shadow) {
 
 /**
  * Start a new conversation in the widget.
- * Looks for a "new conversation" button inside the shadow DOM.
- * If none is found, closes and reopens the widget (visual reset only).
+ * Clicks the X/exit button which triggers a confirmation dialog,
+ * then clicks "Yes" — the widget sends EXIT and creates a new WebSocket session.
  */
 export async function clearDovetailSession() {
   const shadow = getShadowRoot()
   if (!shadow) return
 
-  // Open widget if closed so the new-conversation button is present
+  // Open widget if closed so header buttons are present
   if (!isWidgetOpen(shadow)) {
     openWidget(shadow)
     await new Promise(r => setTimeout(r, 600))
   }
 
-  // btn[3] is the speech-bubble "New Conversation" button (identified by SVG path prefix)
+  // btn[0] is the X/exit button (SVG path starts M4.293)
   const buttons = [...shadow.querySelectorAll('button')]
-  const newConvBtn = buttons.find(b =>
-    b.querySelector('path')?.getAttribute('d')?.startsWith('M7.29')
-  ) ?? buttons[3]
+  const exitBtn = buttons.find(b =>
+    b.querySelector('path')?.getAttribute('d')?.startsWith('M4.293')
+  ) ?? buttons[0]
 
-  if (newConvBtn) {
-    newConvBtn.click()
-    await new Promise(r => setTimeout(r, 400))
-  }
+  if (!exitBtn) return
+  exitBtn.click()
+
+  // Wait for the "Yes" confirmation button and click it
+  await new Promise((resolve) => {
+    function tryClickYes() {
+      const allBtns = [...shadow.querySelectorAll('button')]
+      const yesBtn = allBtns.find(b => b.textContent.trim() === 'Yes')
+      if (yesBtn) { yesBtn.click(); resolve(); return true }
+      return false
+    }
+    if (tryClickYes()) return
+    const observer = new MutationObserver(() => {
+      if (tryClickYes()) observer.disconnect()
+    })
+    observer.observe(shadow, { childList: true, subtree: true })
+    setTimeout(() => { observer.disconnect(); resolve() }, 3000)
+  })
 }
 
 async function shadowDOMTrigger(intentText) {
