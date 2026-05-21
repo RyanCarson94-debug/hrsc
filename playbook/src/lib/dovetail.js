@@ -39,21 +39,21 @@ export async function clearDovetailSession() {
   const shadow = getShadowRoot()
   if (!shadow) return
 
-  // Look for a new-conversation or reset button by aria-label or title
-  const buttons = [...shadow.querySelectorAll('button')]
-  const resetBtn = buttons.find(b =>
-    /new.conv|new.chat|restart|reset|start.over/i.test(b.textContent + b.title + (b.getAttribute('aria-label') ?? ''))
-  )
-  if (resetBtn) {
-    resetBtn.click()
-    await new Promise(r => setTimeout(r, 400))
-    return
+  // Open widget if closed so the new-conversation button is present
+  if (!isWidgetOpen(shadow)) {
+    openWidget(shadow)
+    await new Promise(r => setTimeout(r, 600))
   }
 
-  // Fallback: close then reopen so visually it looks fresh
-  if (isWidgetOpen(shadow)) {
-    shadow.querySelector('button')?.click()
-    await new Promise(r => setTimeout(r, 300))
+  // btn[3] is the speech-bubble "New Conversation" button (identified by SVG path prefix)
+  const buttons = [...shadow.querySelectorAll('button')]
+  const newConvBtn = buttons.find(b =>
+    b.querySelector('path')?.getAttribute('d')?.startsWith('M7.29')
+  ) ?? buttons[3]
+
+  if (newConvBtn) {
+    newConvBtn.click()
+    await new Promise(r => setTimeout(r, 400))
   }
 }
 
@@ -86,11 +86,11 @@ async function shadowDOMTrigger(intentText) {
         editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true, composed: true }))
         editor.dispatchEvent(new KeyboardEvent('keyup',   { key: 'Enter', keyCode: 13, bubbles: true, composed: true }))
 
-        // Also click the send button (second-to-last button; last may be attachment/emoji)
+        // btn[2] is the send/paper-plane button (confirmed by SVG path inspection)
         const buttons = [...shadow.querySelectorAll('button')]
-        // Buttons when open: 0=close(X), 1=minimize(-), 2=send, 3=other
-        // Try clicking btn index 2 first, fall back to last button
-        const sendBtn = buttons[2] ?? buttons[buttons.length - 1]
+        const sendBtn = buttons.find(b =>
+          b.querySelector('path')?.getAttribute('d')?.startsWith('M1.946')
+        ) ?? buttons[2]
         sendBtn?.click()
 
         resolve(true)
