@@ -37,6 +37,7 @@
  *   POST /api/playbook/cases                   → create case
  *   GET  /api/playbook/cases/:id               → get case
  *   PUT  /api/playbook/cases/:id               → update case (mark steps complete)
+ *   DELETE /api/playbook/cases/:id             → delete case (admin or own case)
  */
 
 const CORS = {
@@ -373,7 +374,9 @@ export async function onRequest(context) {
         const offset = parseInt(qp.get('offset') || '0', 10);
 
         let q = `
-          SELECT c.*, p.name AS playbook_name, p.slug AS playbook_slug
+          SELECT c.id, c.playbook_id, c.case_ref, c.intake_data, c.completed_steps,
+                 c.created_by, c.created_at, c.updated_at,
+                 p.name AS playbook_name, p.slug AS playbook_slug
           FROM cases c
           LEFT JOIN playbooks p ON c.playbook_id = p.id
           WHERE 1=1`;
@@ -399,10 +402,11 @@ export async function onRequest(context) {
         const body = await request.json();
         const newId = crypto.randomUUID();
         await DB.prepare(
-          'INSERT INTO cases (id, playbook_id, intake_data, completed_steps, created_by) VALUES (?, ?, ?, ?, ?)'
+          'INSERT INTO cases (id, playbook_id, case_ref, intake_data, completed_steps, created_by) VALUES (?, ?, ?, ?, ?, ?)'
         ).bind(
           newId,
           body.playbook_id,
+          (body.case_ref || '').trim(),
           JSON.stringify(body.intake_data || {}),
           JSON.stringify([]),
           user.email
@@ -429,6 +433,14 @@ export async function onRequest(context) {
         await DB.prepare(
           "UPDATE cases SET completed_steps = ?, updated_at = datetime('now') WHERE id = ?"
         ).bind(JSON.stringify(body.completed_steps || []), id).run();
+        return json({ ok: true });
+      }
+
+      if (request.method === 'DELETE' && id) {
+        const row = await DB.prepare('SELECT created_by FROM cases WHERE id = ?').bind(id).first();
+        if (!row) return err('Not found', 404);
+        if (!user.isAdmin && row.created_by !== user.email) return err('Forbidden', 403);
+        await DB.prepare('DELETE FROM cases WHERE id = ?').bind(id).run();
         return json({ ok: true });
       }
     }

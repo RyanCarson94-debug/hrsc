@@ -18,6 +18,13 @@ export function AdviserHome({ user }) {
     }).finally(() => setLoading(false))
   }, [])
 
+  async function deleteCase(e, caseId) {
+    e.stopPropagation()
+    if (!window.confirm('Delete this case? This cannot be undone.')) return
+    await api.deleteCase(caseId)
+    setRecentCases(cs => cs.filter(c => c.id !== caseId))
+  }
+
   if (loading) return <div className="p-8 text-csl-gray3 text-sm">Loading…</div>
 
   return (
@@ -43,9 +50,7 @@ export function AdviserHome({ user }) {
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <div className="font-bold text-csl-black group-hover:text-csl-red">
-                    {pb.name}
-                  </div>
+                  <div className="font-bold text-csl-black group-hover:text-csl-red">{pb.name}</div>
                   {pb.description && (
                     <div className="text-sm text-csl-gray3 mt-0.5 font-light">{pb.description}</div>
                   )}
@@ -67,24 +72,33 @@ export function AdviserHome({ user }) {
               const completed = JSON.parse(c.completed_steps || '[]').length
               const intake = JSON.parse(c.intake_data || '{}')
               return (
-                <button
+                <div
                   key={c.id}
+                  className="rounded border border-csl-gray2 bg-white px-4 py-3 hover:border-csl-red hover:shadow-sm transition-all flex items-center justify-between group cursor-pointer"
                   onClick={() => navigate(`/play/${c.playbook_slug}/run?case=${c.id}`)}
-                  className="w-full text-left rounded border border-csl-gray2 bg-white px-4 py-3 hover:border-csl-red hover:shadow-sm transition-all flex items-center justify-between group"
                 >
-                  <div>
-                    <div className="text-sm font-semibold text-csl-black group-hover:text-csl-red">
-                      {c.playbook_name}
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-csl-black group-hover:text-csl-red truncate">
+                      {c.case_ref || '—'}
                     </div>
                     <div className="text-xs text-csl-gray3 mt-0.5 font-light">
-                      {completed} step{completed !== 1 ? 's' : ''} completed ·{' '}
+                      {c.playbook_name} · {completed} step{completed !== 1 ? 's' : ''} done ·{' '}
                       {new Date(c.updated_at).toLocaleDateString()}
                       {intake.termination_type ? ` · ${intake.termination_type}` : ''}
                       {intake.country ? ` · ${intake.country}` : ''}
                     </div>
                   </div>
-                  <span className="text-xs text-csl-red font-semibold group-hover:underline">Resume →</span>
-                </button>
+                  <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                    <span className="text-xs text-csl-red font-semibold group-hover:underline">Resume →</span>
+                    <button
+                      onClick={e => deleteCase(e, c.id)}
+                      className="text-xs text-csl-gray3 hover:text-red-600 transition-colors"
+                      title="Delete case"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
               )
             })}
           </div>

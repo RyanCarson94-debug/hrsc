@@ -113,7 +113,8 @@ export function StepRunner() {
         </button>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-csl-black">{playbook.name}</h1>
+            <div className="text-xs font-semibold text-csl-gray3 uppercase tracking-widest mb-0.5">{playbook.name}</div>
+            <h1 className="text-xl font-bold text-csl-black">{caseData.case_ref || '—'}</h1>
             <div className="text-sm text-csl-gray3 mt-0.5 font-light">
               {completedCount} of {totalApplicable} steps complete
               {Object.entries(intakeData).map(([k, v]) => v ? (

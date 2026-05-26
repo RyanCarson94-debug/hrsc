@@ -50,7 +50,8 @@ export const api = {
     const qs = new URLSearchParams(params).toString()
     return req('GET', `/cases${qs ? `?${qs}` : ''}`)
   },
-  getCase:    (id)   => req('GET', `/cases/${id}`),
-  createCase: (body) => req('POST', '/cases', body),
-  updateCase: (id, body) => req('PUT', `/cases/${id}`, body),
+  getCase:    (id)        => req('GET', `/cases/${id}`),
+  createCase: (body)      => req('POST', '/cases', body),
+  updateCase: (id, body)  => req('PUT', `/cases/${id}`, body),
+  deleteCase: (id)        => req('DELETE', `/cases/${id}`),
 }

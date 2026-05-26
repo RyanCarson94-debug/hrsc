@@ -3,6 +3,8 @@ import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
+import Image from '@tiptap/extension-image'
+import Youtube from '@tiptap/extension-youtube'
 import { useEffect, useCallback } from 'react'
 
 function Btn({ onClick, active, title, children }) {
@@ -33,6 +35,8 @@ export function RichTextEditor({ value, onChange, placeholder: placeholderText }
       Underline,
       Link.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: placeholderText || 'Write step instructions…' }),
+      Image.configure({ inline: false, allowBase64: false }),
+      Youtube.configure({ width: 640, height: 360, nocookie: true }),
     ],
     content: value || '',
     onUpdate: ({ editor }) => {
@@ -54,6 +58,20 @@ export function RichTextEditor({ value, onChange, placeholder: placeholderText }
     if (url === null) return
     if (url === '') { editor.chain().focus().unsetLink().run(); return }
     editor.chain().focus().setLink({ href: url }).run()
+  }, [editor])
+
+  const insertImage = useCallback(() => {
+    if (!editor) return
+    const url = window.prompt('Image URL')
+    if (!url) return
+    editor.chain().focus().setImage({ src: url }).run()
+  }, [editor])
+
+  const insertVideo = useCallback(() => {
+    if (!editor) return
+    const url = window.prompt('YouTube URL (e.g. https://www.youtube.com/watch?v=…)')
+    if (!url) return
+    editor.commands.setYoutubeVideo({ src: url })
   }, [editor])
 
   if (!editor) return null
@@ -82,10 +100,13 @@ export function RichTextEditor({ value, onChange, placeholder: placeholderText }
         {editor.isActive('link') && (
           <Btn onClick={() => editor.chain().focus().unsetLink().run()} active={false} title="Remove link">Unlink</Btn>
         )}
+        <Divider />
+        <Btn onClick={insertImage} active={false} title="Insert image">🖼 Image</Btn>
+        <Btn onClick={insertVideo} active={false} title="Embed YouTube video">▶ Video</Btn>
       </div>
       <EditorContent
         editor={editor}
-        className="prose-playbook px-3 py-2 min-h-[220px] [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[220px] [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-csl-gray3 [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0"
+        className="prose-playbook px-3 py-2 min-h-[220px] [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[220px] [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-csl-gray3 [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0 [&_.ProseMirror_img]:max-w-full [&_.ProseMirror_img]:rounded [&_.ProseMirror_iframe]:w-full [&_.ProseMirror_iframe]:aspect-video [&_.ProseMirror_iframe]:rounded"
       />
     </div>
   )

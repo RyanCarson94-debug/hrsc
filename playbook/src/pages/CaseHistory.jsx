@@ -23,6 +23,14 @@ export function CaseHistory() {
 
   useEffect(() => { load() }, [])
 
+  async function deleteCase(e, caseId) {
+    e.stopPropagation()
+    if (!window.confirm('Delete this case? This cannot be undone.')) return
+    await api.deleteCase(caseId)
+    setCases(cs => cs.filter(c => c.id !== caseId))
+    setTotal(t => t - 1)
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-5 py-8">
       <div className="flex items-center justify-between mb-6">
@@ -42,11 +50,12 @@ export function CaseHistory() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-csl-gray2 bg-csl-gray1">
+                  <th className="text-left px-4 py-3 font-bold text-csl-black text-xs uppercase tracking-wide">Case Ref</th>
                   <th className="text-left px-4 py-3 font-bold text-csl-black text-xs uppercase tracking-wide">Playbook</th>
                   <th className="text-left px-4 py-3 font-bold text-csl-black text-xs uppercase tracking-wide">Adviser</th>
                   <th className="text-left px-4 py-3 font-bold text-csl-black text-xs uppercase tracking-wide">Details</th>
                   <th className="text-left px-4 py-3 font-bold text-csl-black text-xs uppercase tracking-wide">Progress</th>
-                  <th className="text-left px-4 py-3 font-bold text-csl-black text-xs uppercase tracking-wide">Last Updated</th>
+                  <th className="text-left px-4 py-3 font-bold text-csl-black text-xs uppercase tracking-wide">Updated</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -58,8 +67,9 @@ export function CaseHistory() {
                   const summary = summaryKeys.map(k => intake[k]).filter(Boolean).join(' · ')
 
                   return (
-                    <tr key={c.id} className="hover:bg-csl-gray1 transition-colors">
-                      <td className="px-4 py-3 font-semibold text-csl-black">{c.playbook_name || c.playbook_id}</td>
+                    <tr key={c.id} className="hover:bg-csl-gray1 transition-colors cursor-pointer" onClick={() => navigate(`/play/${c.playbook_slug}/run?case=${c.id}`)}>
+                      <td className="px-4 py-3 font-bold text-csl-black">{c.case_ref || <span className="text-csl-gray3 font-normal">—</span>}</td>
+                      <td className="px-4 py-3 text-csl-gray3 text-xs font-light">{c.playbook_name || c.playbook_id}</td>
                       <td className="px-4 py-3 text-csl-gray3 text-xs font-light">{c.created_by}</td>
                       <td className="px-4 py-3 text-csl-gray3 text-xs font-light">{summary || '—'}</td>
                       <td className="px-4 py-3">
@@ -69,12 +79,21 @@ export function CaseHistory() {
                         {new Date(c.updated_at).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => navigate(`/play/${c.playbook_slug}/run?case=${c.id}`)}
-                          className="text-xs text-csl-red hover:underline font-semibold"
-                        >
-                          View →
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={e => { e.stopPropagation(); navigate(`/play/${c.playbook_slug}/run?case=${c.id}`) }}
+                            className="text-xs text-csl-red hover:underline font-semibold"
+                          >
+                            View →
+                          </button>
+                          <button
+                            onClick={e => deleteCase(e, c.id)}
+                            className="text-xs text-csl-gray3 hover:text-red-600 transition-colors"
+                            title="Delete case"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )

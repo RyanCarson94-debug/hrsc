@@ -9,6 +9,7 @@ export function IntakeForm() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [caseRef, setCaseRef] = useState('')
   const [values, setValues] = useState({})
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export function IntakeForm() {
     e.preventDefault()
     setSaving(true)
     try {
-      const { id } = await api.createCase({ playbook_id: playbook.id, intake_data: values })
+      const { id } = await api.createCase({ playbook_id: playbook.id, case_ref: caseRef, intake_data: values })
       navigate(`/play/${slug}/run?case=${id}`)
     } catch (err) {
       setError(err.message)
@@ -48,10 +49,12 @@ export function IntakeForm() {
   if (error) return <div className="p-8 text-red-600 text-sm">{error}</div>
 
   const fields = playbook.fields || []
-  const allFilled = fields.every(f => {
+  const allFilled = caseRef.trim() !== '' && fields.every(f => {
     if (f.type === 'boolean') return true
     return (values[f.field_key] || '').trim() !== ''
   })
+
+  const inputCls = 'w-full rounded border border-csl-gray2 bg-white px-3 py-2 text-sm focus:border-csl-red focus:outline-none focus:ring-1 focus:ring-csl-red'
 
   return (
     <div className="max-w-xl mx-auto px-5 py-10">
@@ -64,13 +67,24 @@ export function IntakeForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded border border-csl-gray2 p-6 space-y-5">
-        <p className="text-sm text-csl-gray3 font-light">
-          Answer the questions below. Your answers determine which steps apply.
-        </p>
+        {/* Case reference — always first */}
+        <div>
+          <label className="block text-sm font-semibold text-csl-black mb-1">
+            Case Reference Number
+          </label>
+          <input
+            type="text"
+            value={caseRef}
+            onChange={e => setCaseRef(e.target.value)}
+            placeholder="e.g. INC0012345"
+            className={inputCls}
+            required
+            autoFocus
+          />
+          <p className="text-xs text-csl-gray3 mt-1 font-light">The ServiceNow or AskHR case number for this case.</p>
+        </div>
 
-        {fields.length === 0 && (
-          <p className="text-sm text-csl-gray3 italic font-light">This playbook has no intake questions. Click start to proceed.</p>
-        )}
+        {fields.length > 0 && <hr className="border-csl-gray2" />}
 
         {fields.map(field => (
           <FieldInput
