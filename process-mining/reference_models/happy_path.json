@@ -1,0 +1,56 @@
+{
+  "Payroll Query": [
+    "Case Opened",
+    "Assigned to Tier 1",
+    "Information Gathered",
+    "Resolved",
+    "Case Closed"
+  ],
+  "Leaver Process": [
+    "Case Opened",
+    "Assigned to Tier 2",
+    "Workday Action Triggered",
+    "Confirmed with Manager",
+    "Resolved",
+    "Case Closed"
+  ],
+  "Onboarding": [
+    "Case Opened",
+    "Assigned to Tier 2",
+    "Workday Action Triggered",
+    "IT Setup",
+    "Resolved",
+    "Case Closed"
+  ],
+  "Transfer": [
+    "Case Opened",
+    "Assigned to Tier 2",
+    "Workday Action Triggered",
+    "Resolved",
+    "Case Closed"
+  ],
+  "Benefits": [
+    "Case Opened",
+    "Assigned to Tier 1",
+    "Resolved",
+    "Case Closed"
+  ],
+  "Policy Query": [
+    "Case Opened",
+    "Assigned to Tier 1",
+    "Resolved",
+    "Case Closed"
+  ],
+  "Leave Management": [
+    "Case Opened",
+    "Assigned to Tier 1",
+    "Resolved",
+    "Case Closed"
+  ],
+  "Equipment Request": [
+    "Case Opened",
+    "Assigned to Tier 1",
+    "Resolved",
+    "Case Closed"
+  ]
+}
